@@ -1,0 +1,10 @@
+name=foil
+libdir=/usr/lib
+includedir=/usr/include
+
+Name: lib${name}
+Description: Library of encryption utilities
+Version: [version]
+Requires: openssl libglibutil glib-2.0
+Libs: -L${libdir} -l${name}
+Cflags: -I${includedir} -I${includedir}/${name}

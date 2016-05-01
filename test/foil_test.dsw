@@ -1,0 +1,254 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "libfoil"=..\libfoil\libfoil.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libfoilmsg"=..\libfoilmsg\libfoilmsg.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libglibutil"=..\..\jolla\libglibutil\libglibutil.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "test_basic"=.\libfoil\test_basic\test_basic.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_cavp_aes"=.\libfoil\test_cavp_aes\test_cavp_aes.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_cipher_aes"=.\libfoil\test_cipher_aes\test_cipher_aes.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_cipher_rsa"=.\libfoil\test_cipher_rsa\test_cipher_rsa.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_digest"=.\libfoil\test_digest\test_digest.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_foilmsg"=.\libfoilmsg\test_foilmsg\test_foilmsg.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libfoilmsg
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_input"=.\libfoil\test_input\test_input.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_key_aes"=.\libfoil\test_key_aes\test_key_aes.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_key_rsa"=.\libfoil\test_key_rsa\test_key_rsa.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_output"=.\libfoil\test_output\test_output.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_sign"=.\libfoil\test_sign\test_sign.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+}}}
+
+###############################################################################
+

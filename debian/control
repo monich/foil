@@ -1,0 +1,24 @@
+Source: libfoil
+Section: libs
+Priority: optional
+Maintainer: Slava Monich <slava@monich.com>
+Build-Depends: debhelper (>= 7), libglibutil-dev (>= 1.0.24), libglib2.0-dev
+Standards-Version: 3.8.4
+
+Package: libfoil
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libglibutil (>= 1.0.24)
+Description: Library of glib-based cryptography utilities
+
+Package: libfoil-dev
+Section: libdevel
+Architecture: any
+Depends: libfoil (= ${binary:Version}), ${misc:Depends}, libglibutil-dev (>= 1.0.24)
+Description: Development files for libfoil
+
+Package: foilmsg
+Section: misc
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Encryption/decryption utility

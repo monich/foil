@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# This script requires lcov to be installed
+#
+
+LIBFOIL_TESTS="\
+test_basic \
+test_cavp_aes \
+test_cipher_aes \
+test_cipher_rsa \
+test_digest \
+test_input \
+test_key_aes \
+test_key_rsa \
+test_output \
+test_sign"
+
+LIBFOILMSG_TESTS="\
+test_foilmsg"
+
+FLAVOR="release"
+
+pushd `dirname $0` > /dev/null
+COV_DIR="$PWD"
+pushd .. > /dev/null
+TEST_DIR="$PWD"
+pushd .. > /dev/null
+BASE_DIR="$PWD"
+popd > /dev/null
+popd > /dev/null
+popd > /dev/null
+
+LIBFOIL_DIR="$BASE_DIR/libfoil"
+LIBFOILMSG_DIR="$BASE_DIR/libfoilmsg"
+LIBFOIL_BUILD_DIR="$LIBFOIL_DIR/build/$FLAVOR"
+LIBFOILMSG_BUILD_DIR="$LIBFOILMSG_DIR/build/$FLAVOR"
+
+export LD_LIBRARY_PATH="$LIBFOIL_BUILD_DIR"
+
+make GCOV=1 -C "$BASE_DIR" clean $FLAVOR
+for t in $LIBFOIL_TESTS ; do
+    pushd "$TEST_DIR/libfoil/$t"
+    make GCOV=1 clean $FLAVOR || exit 1
+    build/$FLAVOR/$t || exit 1
+    popd
+done
+for t in $LIBFOILMSG_TESTS ; do
+    pushd "$TEST_DIR/libfoilmsg/$t"
+    make GCOV=1 clean $FLAVOR || exit 1
+    build/$FLAVOR/$t || exit 1
+    popd
+done
+
+# LCOV 1.10 has branch coverage disabled per default
+LCOV_OPT="--rc lcov_branch_coverage=1"
+GENHTML_OPT="--branch-coverage"
+
+LIBFOIL_RAW_COV="$COV_DIR/libfoil-raw.gcov"
+LIBFOIL_COV="$COV_DIR/libfoil.gcov"
+LIBFOILMSG_RAW_COV="$COV_DIR/libfoilmsg-raw.gcov"
+LIBFOILMSG_COV="$COV_DIR/libfoilmsg.gcov"
+
+rm -f "$LIBFOIL_COV" "$LIBFOIL_RAW_COV"  "$LIBFOILMSG_COV" "$LIBFOILMSG_RAW_COV"
+lcov $LCOV_OPT -c -d "$LIBFOIL_BUILD_DIR" -b "$LIBFOIL_DIR" -o "$LIBFOIL_RAW_COV" || exit 1
+lcov $LCOV_OPT -c -d "$LIBFOILMSG_BUILD_DIR" -b "$LIBFOILMSG_DIR" -o "$LIBFOILMSG_RAW_COV" || exit 1
+lcov $LCOV_OPT -e "$LIBFOIL_RAW_COV" "$LIBFOIL_DIR/*" -o "$LIBFOIL_COV" || exit 1
+lcov $LCOV_OPT -e "$LIBFOILMSG_RAW_COV" "$LIBFOILMSG_DIR/*" -o "$LIBFOILMSG_COV" || exit 1
+genhtml $GENHTML_OPT "$LIBFOIL_COV" "$LIBFOILMSG_COV" -t Foil -p "$BASE_DIR" --output-directory "$COV_DIR/results" || exit 1

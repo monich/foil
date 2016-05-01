@@ -1,0 +1,131 @@
+Binary encoding
+===============
+
+Encrypted message is encoded according to the following ASN.1 rules:
+
+TaggedData ::= SEQUENCE {
+    format          INTEGER
+    data            OCTET STRING
+}
+
+EncryptedMessage ::= SEQUENCE {
+    formatVersion   INTEGER,
+    senderKey       TaggedData,
+    encryptedKeys   EncryptedKeys,
+    encryptedData   TaggedData,
+    signature       TaggedData
+}
+
+formatVersion is 1
+
+senderKey is fingerprint (MD-5 hash) of the sender's public key.
+The recipient is supposed to have the sender's public key which
+is required in order to verify the signature.
+The format tag is 1 for RSA public key fingerprint returned by
+foil_key_fingerprint().
+
+encryptedKeys is the collection of fingerprints and encrypted keys
+for each of them (see EncryptedKeys description below).
+
+encryptedData is the PlainData block (see below) encrypted with
+the block cipher key from the encryptedKey block. Note that the
+original PlainData block can be padded to the block size according
+to the requirements of the block cipher, i.e. after decryption it
+can be followed by (relatively) small amount of garbage.
+The format tag is 1 for AES in CBC mode.
+
+signature is the hash of encryptedData part, encrypted with the
+sender's private key.
+The format tag is 1 for MD-5 hash + 16 bytes of random padding,
+encrypted with RSA private key. When signature is being verified,
+padding is (obviously) ignored. Since RSA iself inflates the data,
+padding doesn't actually increase the size of the signature part,
+but kills any correlation with the input data.
+
+EncryptedKeys
+=============
+
+The message may have more than one recipient and the sender may
+choose to encrypt the key with both recipient's and its own public
+key so that both parties could decrypt it.
+
+EncryptedKey ::= SEQUENCE {
+    fingerprint     TaggedData,
+    encryptedKey    OCTET STRING
+}
+
+EncryptedKeys ::= SEQUENCE {
+    keyFormat       INTEGER
+    keys            SEQUENCE OF EncryptedKey,
+}
+
+The fingerprint format tag is 1 for RSA public key fingerprint
+returned by foil_key_fingerprint().
+
+encryptedKey is the block cipher key + initialization vector
+encrypted with the public key that matches the fingerprint.
+The exact format depends on the block cipher algorithm and is
+specified by keyFormat.
+
+keyFormat is 1 for AES 128 (16 bytes key + 16 bytes IV)
+keyFormat is 2 for AES 192 (24 bytes key + 16 bytes IV)
+keyFormat is 3 for AES 256 (32 bytes key + 16 bytes IV)
+
+Since RSA iself inflates the data, the key size doesn't actually
+increase the size of the encrypted key.
+
+PlainData
+=========
+
+The original data being encrypted is also ASN.1 formatted according
+to the following rules:
+
+Header ::= SEQUENCE {
+    name            IA5String
+    value           IA5String
+}
+
+PlainData ::= SEQUENCE {
+    format          INTEGER
+    contentType     IA5String OPTIONAL,
+    headers         SEQUENCE OF Header OPTIONAL,
+    data            OCTET STRING
+}
+
+After decryption, the data following the PlainData sequence (such as
+block cipher padding) are discarded.
+
+format is 1
+
+If contentType is missing, then "text/plain; charset=UTF-8" is
+assumed, otherwise it follows Content-Type header rules specified
+by RFC2616 (see http://ietf.org/rfc/rfc2616.txt).
+
+headers sequence may contain "Content-Type" header too, in which
+case it overrides contentType value. Obviously, specifying content
+type in more than one place make little sense and should be avoided.
+
+data bytes are interpreted according to contentType. The text is
+not NULL terminated. Including terminating NULL character into the
+input data may be considered an arror by the recipient.
+
+Text presentation
+=================
+
+Binary message can be BASE64 encoded and prefixed with FOILMSG
+keyword, e.g.
+
+FOILMSG
+MIIBowIBATAVAgEBBBChIuSH43GzfGVeE3yuuJ3DMIIBBwIBAQSCAQBJeOkSHxhy
++RygZv1iWZr+0eerjk0bFTxNYv8vh2uurDlPslHPBv8TgyzxkvnnzLJdWf7jKcrf
+boO0+/JiJTfVZR1N3VFGw10eSm834grdRJRqPjwT4U3ckvn0Wr/byM8P679VZXka
+G9DwVnqbYu02iBeK+sFfJgE4EfhwypJY0pvuXZLp27cf5kIaUb8MdIzafgkco2Iq
+uVH2aQwoQ18X7aUvExBgUW8Y2CzkBJe0oSb5ealWf9x6BI3TKZxyTHrhQhFW3wT8
+BGtmBQMy1N6q3WJOneFSZIjYOebsb1ndy7dk0djSaaobSveM37SZfwOGrbXez1Xy
+CEKtWGHiv4S2MBUCAQEEEEDLtgnkgeIQ1d1HPqpe4AkwZQIBAQRgJjyApdGKKNBP
+REoBo5LI/YzIM0ZABACJT6XvNoISP1Br1Dm/bXlvHHw9yfeKUCjuh/8wr8wATaSU
+gSMRO+oQX9F37vJMCCjEXfqmKGnl3mWCcJ7h4OjR4lWfj14zhs0C
+
+Whitespaces are ignored.
+
+Enjoy your privacy!
