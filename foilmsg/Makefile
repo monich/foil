@@ -10,7 +10,6 @@
 
 EXE = foilmsg
 SRC = $(EXE).c
-LIB_SRC = foilmsg_encrypt.c foilmsg_decrypt.c
 
 #
 # Required packages
