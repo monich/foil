@@ -158,7 +158,7 @@ foil_output_reset(
     gboolean ok = FALSE;
     if (G_LIKELY(out) && !out->closed) {
         out->bytes_written = 0;
-        ok = out->fn->fn_reset(out);
+        ok = out->fn->fn_reset && out->fn->fn_reset(out);
     }
     return ok;
 }
@@ -171,7 +171,7 @@ foil_output_free_to_bytes(
         GBytes* bytes = NULL;
         if (!out->closed) {
             out->closed = TRUE;
-            if (out->fn->fn_flush(out)) {
+            if (out->fn->fn_flush(out) && out->fn->fn_to_bytes) {
                 bytes = out->fn->fn_to_bytes(out);
             } else {
                 out->fn->fn_close(out);

@@ -191,7 +191,7 @@ test_output_digest2(
 
 static
 void
-test_output_file(
+test_output_path(
     void)
 {
     const char data[] = "This is a file output test";
@@ -235,12 +235,84 @@ test_output_file(
     g_assert(!foil_output_write_bytes_all(out, bytes_expected));
     foil_output_unref(out);
 
+    /* Simulate to_bytes failure. First write the file ... */
+    out = foil_output_file_new_open(fname);
+    g_assert(foil_output_write_all(out, data, datalen));
+
+    /* then remove it and to_bytes will fail */
+    g_unlink(fname);
+    g_assert(!foil_output_free_to_bytes(out));
+
+    /* Simulate reopen failure. First write the file ... */
+    out = foil_output_file_new_open(fname);
+    g_assert(foil_output_write_all(out, data, datalen));
+
+    /* then remove it together with the directory */
+    g_unlink(fname);
+    g_rmdir(tmpdir);
+
+    /* ... and now reset and everythine after that should file */
+    g_assert(!foil_output_reset(out));
+    g_assert(!foil_output_reset(out));
+    g_assert(!foil_output_write_all(out, data, datalen));
+    g_assert(!foil_output_flush(out));
+    g_assert(!foil_output_free_to_bytes(out));
+
+    /* Since we have removed the directory we shouldn't be able to open
+     * the file anymore */
+    g_assert(!foil_output_file_new_open(fname));
+
+    g_free(tmpdir);
+    g_free(fname);
+    g_free(contents);
+    g_bytes_unref(bytes_written);
+    g_bytes_unref(bytes_expected);
+}
+
+static
+void
+test_output_file(
+    void)
+{
+    const char data[] = "This is a file output test";
+    const gssize datalen = sizeof(data)-1;
+    char* tmpdir = g_dir_make_tmp("test_output_XXXXXX", NULL);
+    char* fname = g_build_filename(tmpdir, "test", NULL);
+    FILE* f = fopen(fname, "wb");
+    char* contents = NULL;
+    gsize length = 0;
+    FoilOutput* out = foil_output_file_new(f, 0);
+    GBytes* bytes_expected = g_bytes_new_static(data, datalen);
+
+    g_assert(foil_output_write_all(out, data, datalen));
+    g_assert(!foil_output_reset(out));
+    g_assert(!foil_output_free_to_bytes(out));
+    fclose(f);
+
+    g_assert(g_file_get_contents(fname, &contents, &length, NULL));
+    g_assert(length == (gsize)datalen);
+    g_assert(!memcmp(data, contents, length));
+
+    /* Same thing but let foil_output_stream to close the file */
+    f = fopen(fname, "wb");
+    out = foil_output_file_new(f, FOIL_OUTPUT_FILE_CLOSE);
+    g_assert(foil_output_write_all(out, data, datalen));
+    foil_output_close(out);
+    foil_output_unref(out);
+
+    g_free(contents);
+    g_assert(g_file_get_contents(fname, &contents, &length, NULL));
+    g_assert(length == (gsize)datalen);
+    g_assert(!memcmp(data, contents, length));
+
+    /* NULL file is handled gracefully */
+    g_assert(!foil_output_file_new(NULL, 0));
+
     g_unlink(fname);
     g_rmdir(tmpdir);
     g_free(tmpdir);
     g_free(fname);
     g_free(contents);
-    g_bytes_unref(bytes_written);
     g_bytes_unref(bytes_expected);
 }
 
@@ -381,6 +453,7 @@ int main(int argc, char* argv[])
     g_test_add_func(TEST_("basic"), test_output_basic);
     g_test_add_func(TEST_("digest1"), test_output_digest1);
     g_test_add_func(TEST_("digest2"), test_output_digest2);
+    g_test_add_func(TEST_("path"), test_output_path);
     g_test_add_func(TEST_("file"), test_output_file);
     g_test_add_func(TEST_("base64"), test_output_base64);
     return test_run();

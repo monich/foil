@@ -51,10 +51,15 @@ typedef struct foil_output_file_map {
 typedef struct foil_output_file {
     FoilOutput parent;
     FILE* file;
+    guint flags;
+} FoilOutputFile;
+
+typedef struct foil_output_path {
+    FoilOutputFile parent;
     char* path;
     char* tmpdir;
     gboolean delete_when_closed;
-} FoilOutputFile;
+} FoilOutputPath;
 
 static
 void
@@ -88,7 +93,8 @@ foil_output_file_write(
     gsize size)
 {
     FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
-    return fwrite(buf, 1, size, self->file);
+    /* self->file can be NULL if foil_output_path_reset() fails */
+    return self->file ? fwrite(buf, 1, size, self->file) : -1;
 }
 
 static
@@ -97,32 +103,59 @@ foil_output_file_flush(
     FoilOutput* out)
 {
     FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
-    return fflush(self->file) == 0;
+    /* self->file can be NULL if foil_output_path_reset() fails */
+    return self->file && fflush(self->file) == 0;
+}
+
+static
+void
+foil_output_file_close(
+    FoilOutput* out)
+{
+    FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
+    /* self->file can be NULL if foil_output_path_reset() fails */
+    if (self->file) {
+        if (self->flags & FOIL_OUTPUT_FILE_CLOSE) {
+            fclose(self->file);
+        }
+        self->file = NULL;
+    }
+}
+
+static
+void
+foil_output_file_free(
+    FoilOutput* out)
+{
+    FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
+    GASSERT(!self->file);
+    g_slice_free(FoilOutputFile, self);
 }
 
 static
 gboolean
-foil_output_file_reset(
+foil_output_path_reset(
     FoilOutput* out)
 {
-    FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
-    fclose(self->file);
-    self->file = fopen(self->path, "wb");
-    return (self->file != NULL);
+    FoilOutputPath* self = G_CAST(out, FoilOutputPath, parent.parent);
+    if (self->parent.file) {
+        fclose(self->parent.file);
+    }
+    self->parent.file = fopen(self->path, "wb");
+    return (self->parent.file != NULL);
 }
 
 static
 GBytes*
-foil_output_file_to_bytes(
+foil_output_path_to_bytes(
     FoilOutput* out)
 {
-    FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
+    FoilOutputPath* self = G_CAST(out, FoilOutputPath, parent.parent);
     GBytes* bytes = NULL;
-    if (self->file) {
+    if (self->parent.file) {
         GMappedFile* map;
         GError* error = NULL;
-        fclose(self->file);
-        self->file = NULL;
+        foil_output_file_close(out);
         map = g_mapped_file_new(self->path, FALSE, &error);
         if (map) {
             if (self->delete_when_closed) {
@@ -153,41 +186,62 @@ foil_output_file_to_bytes(
 
 static
 void
-foil_output_file_close(
+foil_output_path_close(
     FoilOutput* out)
 {
-    FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
-    if (self->file) {
-        fclose(self->file);
-        self->file = NULL;
-        if (self->delete_when_closed) {
-            remove(self->path);
-        }
-        if (self->tmpdir) {
-            rmdir(self->tmpdir);
-        }
+    FoilOutputPath* self = G_CAST(out, FoilOutputPath, parent.parent);
+    foil_output_file_close(out);
+    if (self->delete_when_closed) {
+        remove(self->path);
+    }
+    if (self->tmpdir) {
+        rmdir(self->tmpdir);
     }
 }
 
 static
 void
-foil_output_file_free(
+foil_output_path_free(
     FoilOutput* out)
 {
-    FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
-    GASSERT(!self->file);
+    FoilOutputPath* self = G_CAST(out, FoilOutputPath, parent);
+    GASSERT(!self->parent.file);
     g_free(self->path);
     g_free(self->tmpdir);
-    g_slice_free(FoilOutputFile, self);
+    g_slice_free(FoilOutputPath, self);
 }
 
-static const FoilOutputFunc foil_output_file_fn = {
+/* Since 1.0.1 */
+FoilOutput*
+foil_output_file_new(
+    FILE* file,
+    guint flags)
+{
+    static const FoilOutputFunc foil_output_file_fn = {
+        foil_output_file_write, /* fn_write */
+        foil_output_file_flush, /* fn_flush */
+        NULL,                   /* fn_reset */
+        NULL,                   /* fn_to_bytes */
+        foil_output_file_close, /* fn_close */
+        foil_output_file_free   /* fn_free */
+    };
+
+    if (file) {
+        FoilOutputFile* self = g_slice_new0(FoilOutputFile);
+        self->file = file;
+        self->flags = flags;
+        return foil_output_init(&self->parent, &foil_output_file_fn);
+    }
+    return NULL;
+}
+
+static const FoilOutputFunc foil_output_path_fn = {
     foil_output_file_write,     /* fn_write */
     foil_output_file_flush,     /* fn_flush */
-    foil_output_file_reset,     /* fn_reset */
-    foil_output_file_to_bytes,  /* fn_to_bytes */
-    foil_output_file_close,     /* fn_close */
-    foil_output_file_free       /* fn_free */
+    foil_output_path_reset,     /* fn_reset */
+    foil_output_path_to_bytes,  /* fn_to_bytes */
+    foil_output_path_close,     /* fn_close */
+    foil_output_path_free       /* fn_free */
 };
 
 FoilOutput*
@@ -197,10 +251,12 @@ foil_output_file_new_open(
     if (path) {
         FILE* file = fopen(path, "wb");
         if (file) {
-            FoilOutputFile* self = g_slice_new0(FoilOutputFile);
-            self->file = file;
+            FoilOutputPath* self = g_slice_new0(FoilOutputPath);
+            FoilOutputFile* parent = &self->parent;
             self->path = g_strdup(path);
-            return foil_output_init(&self->parent, &foil_output_file_fn);
+            parent->file = file;
+            parent->flags = FOIL_OUTPUT_FILE_CLOSE;
+            return foil_output_init(&parent->parent, &foil_output_path_fn);
         }
     }
     return NULL;
@@ -214,12 +270,14 @@ foil_output_file_new_tmp(void)
         char* path = g_build_filename(tmpdir, "tmp", NULL);
         FILE* file = fopen(path, "wb");
         if (file) {
-            FoilOutputFile* self = g_slice_new0(FoilOutputFile);
-            self->file = file;
+            FoilOutputPath* self = g_slice_new0(FoilOutputPath);
+            FoilOutputFile* parent = &self->parent;
             self->path = path;
             self->tmpdir = tmpdir;
             self->delete_when_closed = TRUE;
-            return foil_output_init(&self->parent, &foil_output_file_fn);
+            parent->file = file;
+            parent->flags = FOIL_OUTPUT_FILE_CLOSE;
+            return foil_output_init(&parent->parent, &foil_output_path_fn);
         }
         g_free(path);
         g_free(tmpdir);

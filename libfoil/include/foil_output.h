@@ -105,6 +105,14 @@ foil_output_base64_new_full(
 #define FOIL_OUTPUT_BASE64_CLOSE    (0x01)  /* Close the target stream */
 #define FOIL_OUTPUT_BASE64_FILESAFE (0x02)  /* Use filename safe enciding */
 
+/* Since 1.0.1 */
+FoilOutput*
+foil_output_file_new(
+    FILE* file,
+    guint flags);
+
+#define FOIL_OUTPUT_FILE_CLOSE      (0x01)  /* Close the file when done */
+
 FoilOutput*
 foil_output_file_new_open(
     const char* path);
