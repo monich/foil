@@ -31,6 +31,8 @@
 
 #include <gutil_macros.h>
 
+#include <errno.h>
+
 #ifdef _WIN32
 #  include <io.h>
 #  include <direct.h>
@@ -258,6 +260,8 @@ foil_output_file_new_open(
             parent->flags = FOIL_OUTPUT_FILE_CLOSE;
             return foil_output_init(&parent->parent, &foil_output_path_fn);
         }
+    } else {
+        errno = EINVAL;
     }
     return NULL;
 }
