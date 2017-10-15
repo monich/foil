@@ -88,11 +88,13 @@ RELEASE_CFLAGS = $(FULL_CFLAGS) $(RELEASE_FLAGS) -O2
 # Files
 #
 
+COMMON_PREFIX = common_
+
 DEBUG_OBJS = \
-  $(COMMON_SRC:%.c=$(DEBUG_BUILD_DIR)/%.o) \
+  $(COMMON_SRC:%.c=$(DEBUG_BUILD_DIR)/$(COMMON_PREFIX)%.o) \
   $(SRC:%.c=$(DEBUG_BUILD_DIR)/%.o)
 RELEASE_OBJS = \
-  $(COMMON_SRC:%.c=$(RELEASE_BUILD_DIR)/%.o) \
+  $(COMMON_SRC:%.c=$(RELEASE_BUILD_DIR)/$(COMMON_PREFIX)%.o) \
   $(SRC:%.c=$(RELEASE_BUILD_DIR)/%.o)
 
 ifdef SRC1
@@ -163,10 +165,10 @@ $(DEBUG_BUILD_DIR):
 $(RELEASE_BUILD_DIR):
 	mkdir -p $@
 
-$(DEBUG_BUILD_DIR)/%.o : $(COMMON_DIR)/%.c
+$(DEBUG_BUILD_DIR)/$(COMMON_PREFIX)%.o : $(COMMON_DIR)/%.c
 	$(CC) -c $(DEBUG_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
 
-$(RELEASE_BUILD_DIR)/%.o : $(COMMON_DIR)/%.c
+$(RELEASE_BUILD_DIR)/$(COMMON_PREFIX)%.o : $(COMMON_DIR)/%.c
 	$(CC) -c $(RELEASE_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
 
 $(DEBUG_BUILD_DIR)/%.o : $(SRC_DIR)/%.c
