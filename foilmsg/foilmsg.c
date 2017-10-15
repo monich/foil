@@ -204,7 +204,7 @@ main(
                     g_error_free(error);
                 }
             } else {
-                FoilInput* input = foil_input_file_new(stdin, FALSE);
+                FoilInput* input = foil_input_file_new(stdin, 0);
                 in = foil_input_read_all(input);
                 foil_input_unref(input);
             }
