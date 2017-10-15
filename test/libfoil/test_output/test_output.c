@@ -235,15 +235,20 @@ test_output_path(
     g_assert(!foil_output_write_bytes_all(out, bytes_expected));
     foil_output_unref(out);
 
-    /* Simulate to_bytes failure. First write the file ... */
+#ifdef _WIN32
+    /* We can't remove open file on Windows */
+    g_unlink(fname);
+    g_rmdir(tmpdir);
+#else
+    /* Simulate to_bytes failure (requires Linux). First write the file ... */
     out = foil_output_file_new_open(fname);
     g_assert(foil_output_write_all(out, data, datalen));
 
-    /* then remove it and to_bytes will fail */
+    /* but on Linux we can remove it and to_bytes will fail */
     g_unlink(fname);
     g_assert(!foil_output_free_to_bytes(out));
 
-    /* Simulate reopen failure. First write the file ... */
+    /* Simulate reopen failure (requires Linux). First write the file ... */
     out = foil_output_file_new_open(fname);
     g_assert(foil_output_write_all(out, data, datalen));
 
@@ -257,6 +262,7 @@ test_output_path(
     g_assert(!foil_output_write_all(out, data, datalen));
     g_assert(!foil_output_flush(out));
     g_assert(!foil_output_free_to_bytes(out));
+#endif
 
     /* Since we have removed the directory we shouldn't be able to open
      * the file anymore */
