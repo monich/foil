@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2017 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +31,8 @@
 #include "foil_log_p.h"
 
 #include <gutil_macros.h>
+
+#include <errno.h>
 
 typedef struct foil_input_file {
     FoilInput parent;
@@ -98,6 +100,8 @@ foil_input_file_new_open(
 {
     if (path) {
         return foil_input_file_new(fopen(path, "rb"), TRUE);
+    } else {
+        errno = EINVAL;
     }
     return NULL;
 }
