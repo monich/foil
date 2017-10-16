@@ -54,6 +54,13 @@ foil_input_copy(
     FoilOutput* out,
     gsize size);
 
+/* Since 1.0.1 */
+gboolean
+foil_input_copy_all(
+    FoilInput* in,
+    FoilOutput* out,
+    gsize* copied);
+
 gboolean
 foil_input_has_available(
     FoilInput* in,

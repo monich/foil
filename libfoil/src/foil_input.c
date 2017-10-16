@@ -31,6 +31,8 @@
 #include "foil_output.h"
 #include "foil_log_p.h"
 
+#define DEFAULT_READ_CHUNK (0x1000)
+
 FoilInput*
 foil_input_init(
     FoilInput* in,
@@ -132,7 +134,7 @@ foil_input_copy(
     if (G_LIKELY(in) && !in->closed) {
         gssize copied = 0;
         if (G_LIKELY(size > 0)) {
-            const gsize chunk_size = MIN(size, 0x1000);
+            const gsize chunk_size = MIN(size, DEFAULT_READ_CHUNK);
             void* chunk = g_slice_alloc(chunk_size);
             while (size > 0) {
                 const gsize count = MIN(size, chunk_size);
@@ -155,6 +157,42 @@ foil_input_copy(
         return copied;
     }
     return -1;
+}
+
+/* Since 1.0.1 */
+gboolean
+foil_input_copy_all(
+    FoilInput* in,
+    FoilOutput* out,
+    gsize* copied)
+{
+    gboolean ok = FALSE;
+    gsize total = 0;
+    if (G_LIKELY(in) && G_LIKELY(out) && !in->closed) {
+        const gsize chunk_size = DEFAULT_READ_CHUNK;
+        void* chunk = g_slice_alloc(chunk_size);
+        gssize bytes_in;
+        ok = TRUE;
+        while ((bytes_in = foil_input_read(in, chunk, chunk_size)) > 0) {
+            const gssize bytes_out = foil_output_write(out, chunk, bytes_in);
+            if (bytes_out > 0) {
+                total += bytes_out;
+                if (bytes_out == bytes_in) {
+                    continue;
+                }
+            }
+            ok = FALSE;
+            break;
+        }
+        if (bytes_in < 0 || !foil_output_flush(out)) {
+            ok = FALSE;
+        }
+        g_slice_free1(chunk_size, chunk);
+    }
+    if (copied) {
+        *copied = total;
+    }
+    return ok;
 }
 
 gboolean
