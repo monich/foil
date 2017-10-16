@@ -30,6 +30,7 @@
 #ifndef TEST_COMMON_H
 #define TEST_COMMON_H
 
+#include "foil_types.h"
 #include <gutil_log.h>
 #include <gutil_macros.h>
 
@@ -81,6 +82,15 @@ char*
 test_hex_bytes(
     GBytes* bytes,
     const char* sep);
+
+FoilOutput*
+test_output_mem_new(
+    gssize maxsize,
+    guint flags);
+
+#define TEST_OUTPUT_FLUSH_FAILS_ONCE   (0x01)
+#define TEST_OUTPUT_FLUSH_FAILS_ALWAYS (0x02)
+#define TEST_OUTPUT_WRITE_FAILS        (0x04)
 
 #endif /* TEST_COMMON_H */
 

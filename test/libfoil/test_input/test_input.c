@@ -29,7 +29,7 @@
 
 #include "test_common.h"
 
-#include "foil_input.h"
+#include "foil_input_p.h"
 #include "foil_output.h"
 #include "foil_digest.h"
 
@@ -41,6 +41,7 @@
 #endif
 
 #define GBYTES_STATIC(data) g_bytes_new_static(data, sizeof(data))
+#define READ_CHUNK (0x1000)
 
 static
 void
@@ -48,12 +49,15 @@ test_input_null(
     void)
 {
     guint8 buf[1];
+    gsize copied = (gsize)-1;
     FoilInput* in = foil_input_mem_new(NULL);
     FoilInput* in2 = foil_input_mem_new_bytes(NULL);
 
     /* Test resistance to NULL and all kinds of invalid input */
     foil_input_unref(NULL);
     foil_input_close(NULL);
+    foil_input_push_back(NULL, NULL, 0);
+    foil_input_push_back(in, NULL, 0);
 
     g_assert(!foil_input_ref(NULL));
     g_assert(!foil_input_range_new(NULL, 0, 0));
@@ -78,6 +82,10 @@ test_input_null(
     g_assert(foil_input_read(in, NULL, 1) == 0);
     g_assert(foil_input_copy(NULL, NULL, 0) < 0);
     g_assert(foil_input_copy(in, NULL, 1) == 0);
+    g_assert(!foil_input_copy_all(NULL, NULL, NULL));
+    g_assert(!foil_input_copy_all(in, NULL, NULL));
+    g_assert(!foil_input_copy_all(in, NULL, &copied));
+    g_assert(!copied);
 
     /* Zero bytes is always available */
     g_assert(foil_input_has_available(in, 0));
@@ -91,6 +99,7 @@ test_input_null(
     g_assert(!foil_input_peek(in, 1, NULL));
     g_assert(foil_input_read(in, NULL, 1) < 0);
     g_assert(foil_input_copy(in, NULL, 1) < 0);
+    foil_input_push_back(in, NULL, 0);
 
     foil_input_unref(in);
     foil_input_unref(in2);
@@ -243,6 +252,103 @@ test_input_range(
     g_bytes_unref(bytes1234);
     g_bytes_unref(bytes234);
     g_bytes_unref(bytes345);
+}
+
+static
+void
+test_input_copy(
+    void)
+{
+    gsize len = READ_CHUNK + 16;
+    gsize partial = len - 8;
+    void* data = g_malloc(len);
+    GBytes* in_bytes = g_bytes_new_take(data, len);
+    FoilInput* in = foil_input_mem_new(in_bytes);
+    FoilOutput* out = foil_output_mem_new(NULL);
+    GBytes* out_bytes;
+    gsize size, copied = 0;
+    gconstpointer out_data;
+
+    /* Successfully copy len bytes */
+    memset(data, 0xAA, len);
+    g_assert(foil_input_copy_all(in, out, &copied));
+    g_assert(copied == len);
+    foil_input_close(in);
+
+    /* Can't copy to the closed stream */
+    g_assert(!foil_input_copy_all(in, out, &copied));
+    g_assert(!copied);
+    foil_input_unref(in);
+
+    /* Verify the data */
+    out_bytes = foil_output_free_to_bytes(out);
+    g_assert(g_bytes_equal(in_bytes, out_bytes));
+    g_bytes_unref(out_bytes);
+
+    /* Test flush failure */
+    copied = 0;
+    in = foil_input_mem_new(in_bytes);
+    out = test_output_mem_new(-1, TEST_OUTPUT_FLUSH_FAILS_ONCE);
+    g_assert(!foil_input_copy_all(in, out, &copied));
+    g_assert(copied == len);
+    out_bytes = foil_output_free_to_bytes(out);
+    g_assert(g_bytes_equal(in_bytes, out_bytes));
+    foil_input_unref(in);
+    g_bytes_unref(out_bytes);
+
+    /* Test partial copy */
+    in = foil_input_mem_new(in_bytes);
+    out = test_output_mem_new(partial, 0);
+    g_assert(!foil_input_copy_all(in, out, &copied));
+    g_assert(copied == partial);
+    out_bytes = foil_output_free_to_bytes(out);
+    out_data = g_bytes_get_data(out_bytes, &size);
+    g_assert(size == copied);
+    g_assert(!memcmp(data, out_data, size));
+    foil_input_unref(in);
+    g_bytes_unref(out_bytes);
+
+    /* (Almost) the same as above but hits a different condition */
+    in = foil_input_mem_new(in_bytes);
+    out = test_output_mem_new(READ_CHUNK, 0);
+    g_assert(!foil_input_copy_all(in, out, &copied));
+    g_assert(copied == READ_CHUNK);
+    out_bytes = foil_output_free_to_bytes(out);
+    out_data = g_bytes_get_data(out_bytes, &size);
+    g_assert(size == copied);
+    g_assert(!memcmp(data, out_data, size));
+    foil_input_unref(in);
+    g_bytes_unref(out_bytes);
+
+    /* Test write failure */
+    out = test_output_mem_new(0, TEST_OUTPUT_WRITE_FAILS);
+    in = foil_input_mem_new(in_bytes);
+    g_assert(!foil_input_copy(in, out, len));
+    foil_input_unref(in);
+    foil_output_unref(out);
+
+    g_bytes_unref(in_bytes);
+}
+
+static
+void
+test_input_push(
+    void)
+{
+    static const guint8 test12345[] = { '1', '2', '3', '4', '5' };
+    static const guint8 test123456[] = { '1', '2', '3', '4', '5', '6' };
+    FoilInput* in = foil_input_mem_new_static(TEST_ARRAY_AND_SIZE(test123456));
+    GBytes* bytes;
+
+    foil_input_skip(in, sizeof(test12345));
+    /* Second push won't work */
+    foil_input_push_back(in, TEST_ARRAY_AND_SIZE(test12345));
+    foil_input_push_back(in, TEST_ARRAY_AND_SIZE(test12345));
+    bytes = foil_input_read_all(in);
+    foil_input_unref(in);
+
+    g_assert(test_bytes_equal(bytes, TEST_ARRAY_AND_SIZE(test123456)));
+    g_bytes_unref(bytes);
 }
 
 static
@@ -462,6 +568,8 @@ int main(int argc, char* argv[])
     g_test_add_func(TEST_("null"), test_input_null);
     g_test_add_func(TEST_("basic"), test_input_basic);
     g_test_add_func(TEST_("range"), test_input_range);
+    g_test_add_func(TEST_("copy"), test_input_copy);
+    g_test_add_func(TEST_("push"), test_input_push);
     g_test_add_func(TEST_("digest"), test_input_digest);
     g_test_add_func(TEST_("file"), test_input_file);
     g_test_add_func(TEST_("base64"), test_input_base64);
