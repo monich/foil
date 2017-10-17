@@ -30,14 +30,15 @@
 #include "foil_output_p.h"
 
 #include <gutil_macros.h>
+#include <glib/gstdio.h>
 
 #include <errno.h>
 
 #ifdef _WIN32
 #  include <io.h>
-#  include <direct.h>
 #else
 #  include <unistd.h>
+#  include <fcntl.h>
 #endif
 
 /* Logging */
@@ -72,7 +73,7 @@ foil_output_file_map_free(
     g_mapped_file_unref(fm->map);
     remove(fm->path);
     if (fm->tmpdir) {
-        rmdir(fm->tmpdir);
+        g_rmdir(fm->tmpdir);
     }
     g_free(fm->path);
     g_free(fm->tmpdir);
@@ -197,7 +198,7 @@ foil_output_path_close(
         remove(self->path);
     }
     if (self->tmpdir) {
-        rmdir(self->tmpdir);
+        g_rmdir(self->tmpdir);
     }
 }
 
@@ -271,19 +272,31 @@ foil_output_file_new_tmp(void)
 {
     char* tmpdir = g_dir_make_tmp("foil_XXXXXX", NULL);
     if (tmpdir) {
-        char* path = g_build_filename(tmpdir, "tmp", NULL);
-        FILE* file = fopen(path, "wb");
-        if (file) {
-            FoilOutputPath* self = g_slice_new0(FoilOutputPath);
-            FoilOutputFile* parent = &self->parent;
-            self->path = path;
-            self->tmpdir = tmpdir;
-            self->delete_when_closed = TRUE;
-            parent->file = file;
-            parent->flags = FOIL_OUTPUT_FILE_CLOSE;
-            return foil_output_init(&parent->parent, &foil_output_path_fn);
+        if (!g_chmod(tmpdir, 0700)) {
+            char* path = g_build_filename(tmpdir, "tmp", NULL);
+            int fd = creat(path, 0600);
+            if (fd >= 0) {
+                FILE* file = fdopen(fd, "wb");
+                if (file) {
+                    FoilOutputPath* self = g_slice_new0(FoilOutputPath);
+                    FoilOutputFile* parent = &self->parent;
+                    FoilOutput* out = &parent->parent;
+                    self->path = path;
+                    self->tmpdir = tmpdir;
+                    self->delete_when_closed = TRUE;
+                    parent->file = file;
+                    parent->flags = FOIL_OUTPUT_FILE_CLOSE;
+                    return foil_output_init(out, &foil_output_path_fn);
+                }
+                close(fd);
+            } else {
+                GERR("Failed to create %s", path);
+            }
+            g_free(path);
+        } else {
+            GERR("Failed to set permissions on %s", tmpdir);
         }
-        g_free(path);
+        g_rmdir(tmpdir);
         g_free(tmpdir);
     }
     return NULL;
