@@ -103,6 +103,10 @@ SOURCE=..\..\common\test_common.h
 
 SOURCE=..\..\common\test_main.c
 # End Source File
+# Begin Source File
+
+SOURCE=..\..\common\test_output_mem.c
+# End Source File
 # End Group
 # End Target
 # End Project
