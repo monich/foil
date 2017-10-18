@@ -116,6 +116,8 @@ foil_input_read(
                     GASSERT((gsize)more_bytes <= size);
                     in->bytes_read += more_bytes;
                     read += more_bytes;
+                } else if (more_bytes < 0 && !read) {
+                    read = -1;
                 }
             }
         } else {
