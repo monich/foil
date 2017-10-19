@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libglibutil"=..\..\jolla\libglibutil\libglibutil.dsp - Package Owner=<4>
+Project: "libglibutil"=$(LIBGLIBUTIL_ROOT)\libglibutil.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

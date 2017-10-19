@@ -1,4 +1,6 @@
 *~
+foilmsg/foilmsg.ncb
+foilmsg/foilmsg.opt
 test/foil_test.ncb
 test/foil_test.opt
 test/coverage/libfoil.gcov

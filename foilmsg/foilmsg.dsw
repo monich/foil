@@ -1,0 +1,74 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "foilmsg"=.\foilmsg.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libfoilmsg
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "libfoil"=..\libfoil\libfoil.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libfoilmsg"=..\libfoilmsg\libfoilmsg.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libglibutil"=$(LIBGLIBUTIL_ROOT)\libglibutil.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+}}}
+
+###############################################################################
+
