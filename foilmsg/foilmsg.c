@@ -43,6 +43,161 @@
 #define RET_CMDLINE 2
 
 static
+const char*
+foilmsg_info_fingerprint_format_name(
+    int tag)
+{
+    switch (tag) {
+    case FOILMSG_FINGERPRINT_SSH_RSA:
+        return " (rsa-ssh)";
+    default:
+        return "";
+    }
+}
+
+static
+const char*
+foilmsg_info_key_format_name(
+    int tag)
+{
+    switch (tag) {
+    case FOILMSG_ENCRYPT_KEY_FORMAT_AES128:
+        return " (AES-128)";
+    case FOILMSG_ENCRYPT_KEY_FORMAT_AES192:
+        return " (AES-192)";
+    case FOILMSG_ENCRYPT_KEY_FORMAT_AES256:
+        return " (AES-256)";
+    default:
+        return "";
+    }
+}
+
+static
+const char*
+foilmsg_info_signature_format_name(
+    int tag)
+{
+    switch (tag) {
+    case FOILMSG_SIGNATURE_FORMAT_MD5_RSA:
+        return " (MD5-RSA)";
+    default:
+        return "";
+    }
+}
+
+static
+const char*
+foilmsg_info_cipher_name(
+    int tag)
+{
+    switch (tag) {
+    case FOILMSG_ENCRYPT_FORMAT_AES_CBC:
+        return " (AES-CBC)";
+    default:
+        return "";
+    }
+}
+
+static
+void
+foilmsg_info_dump_data(
+    const char* prefix,
+    const char* name,
+    const FoilBytes* data)
+{
+    printf("%s%s: %lu bytes\n", prefix, name, (unsigned long)data->len);
+    if (data->len > 0 && GLOG_ENABLED(GLOG_LEVEL_DEBUG)) {
+        const char* prefix2 = "  ";
+        const gsize prefix_len = strlen(prefix) + strlen(prefix2);
+        const gsize line = 16;
+        const gsize block = line/2;
+        gsize pos;
+        GString* buf = g_string_new(NULL);
+        g_string_append(buf, prefix);
+        g_string_append(buf, prefix2);
+        for (pos = 0; pos < data->len; pos++) {
+            if (pos > 0 && !(pos % line)) {
+                /* Beginning of the line (except for the first one) */
+                printf("%s\n", buf->str);
+                g_string_set_size(buf,prefix_len );
+            }
+            if ((pos % line) > 0) {
+                g_string_append_c(buf, ' ');
+                if (!(pos % block)) {
+                    g_string_append_c(buf, ' ');
+                }
+            }
+            g_string_append_printf(buf, "%02x", data->val[pos]);
+        }
+        if (buf->len > 0) {
+            /* Print the remaining part */
+            printf("%s\n", buf->str);
+        }
+        g_string_free(buf, TRUE);
+    }
+}
+
+static
+int
+foilmsg_info(
+    const FoilBytes* bytes)
+{
+    int ret;
+    GBytes* converted = NULL;
+    FoilMsgInfo* msg = foilmsg_parse(bytes);
+    if (!msg) {
+        GDEBUG("Trying to convert to binary form...");
+        converted = foilmsg_to_binary(bytes);
+        if (converted) {
+            FoilBytes binary;
+            msg = foilmsg_parse(foil_bytes_from_data(&binary, converted));
+        }
+    }
+    if (msg) {
+        printf("Format: %d\n", msg->format);
+        printf("Sender fingerprint:\n");
+        printf("  Format: %d%s\n", msg->sender_fingerprint.tag,
+            foilmsg_info_fingerprint_format_name(msg->sender_fingerprint.tag));
+        foilmsg_info_dump_data("  ", "Data", &msg->sender_fingerprint.data);
+        printf("Key format: %d%s\n", msg->encrypt_key_format,
+            foilmsg_info_key_format_name(msg->encrypt_key_format));
+        if (msg->num_encrypt_keys) {
+            int i;
+            printf("Keys:\n");
+            for (i=0; i<msg->num_encrypt_keys; i++) {
+                const FoilMsgEncryptKey* key = msg->encrypt_keys + i;
+                const FoilMsgTaggedData* fp = &key->fingerprint;
+                const char* fp_prefix = "       ";
+                printf("%3d. Fingerprint:\n", i+1);
+                printf("%sFormat: %d%s\n", fp_prefix, fp->tag,
+                    foilmsg_info_fingerprint_format_name(fp->tag));
+                foilmsg_info_dump_data(fp_prefix, "Data", &fp->data);
+                foilmsg_info_dump_data("     ", "Encryption key", &key->data);
+            }
+        } else {
+            printf("Keys: (none)\n");
+        }
+        printf("Encrypted data:\n");
+        printf("  Cipher: %d%s\n", msg->encrypted.tag,
+            foilmsg_info_cipher_name(msg->encrypted.tag));
+        foilmsg_info_dump_data("  ", "Data", &msg->encrypted.data);
+        printf("Signature:\n");
+        printf("  Format: %d%s\n", msg->signature.tag,
+            foilmsg_info_signature_format_name(msg->signature.tag));
+        foilmsg_info_dump_data("  ", "Data", &msg->signature.data);
+        foilmsg_info_free(msg);
+        ret = RET_OK;
+    } else {
+        GERR("Failed to parse the message");
+        ret = RET_ERR;
+    }
+    if (converted) {
+        g_bytes_unref(converted);
+    }
+    return ret;
+}
+
+static
 int
 foilmsg_encode(
     FoilKey* recipient,
@@ -102,6 +257,7 @@ main(
     gboolean ok;
     gboolean verbose = FALSE;
     gboolean decrypt = FALSE;
+    gboolean show_info = FALSE;
     GError* error = NULL;
     char* priv_key = NULL;
     char* pub_key = NULL;
@@ -110,6 +266,8 @@ main(
     int key_size = 128;
     int columns = 64;
     GOptionContext* options;
+    GOptionGroup* encrypt_group;
+    GOptionGroup* decrypt_group;
     GOptionEntry entries[] = {
         { "decrypt", 'd', 0, G_OPTION_ARG_NONE, &decrypt,
           "Decrypt the data", NULL },
@@ -117,14 +275,22 @@ main(
           "Your private key [~/.ssh/id_rsa]", "FILE" },
         { "public", 'p', 0, G_OPTION_ARG_FILENAME, &pub_key,
           "Public key of the other party", "FILE" },
-        { "bits", 'b', 0, G_OPTION_ARG_INT, &key_size,
-          "Encryption key size (128, 192 or 256) [128]", "BITS" },
         { "file", 'f', 0, G_OPTION_ARG_FILENAME, &in_file,
           "Read input from FILE", "FILE" },
-        { "columns", 'c', 0, G_OPTION_ARG_INT, &columns,
-          "Wrap lines at the specified column [64]", "COLS" },
         { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
           "Enable verbose output", NULL },
+        { NULL }
+    };
+    GOptionEntry encrypt_entries[] = {
+        { "bits", 'b', 0, G_OPTION_ARG_INT, &key_size,
+          "Encryption key size (128, 192 or 256) [128]", "BITS" },
+        { "columns", 'c', 0, G_OPTION_ARG_INT, &columns,
+          "Wrap lines at the specified column [64]", "COLS" },
+        { NULL }
+    };
+    GOptionEntry decrypt_entries[] = {
+        { "info", 'i', 0, G_OPTION_ARG_NONE, &show_info,
+          "Show information about the encrypted message", NULL },
         { NULL }
     };
     const char* summary =
@@ -142,9 +308,25 @@ main(
     G_GNUC_END_IGNORE_DEPRECATIONS;
 
     options = g_option_context_new("- encrypt or decrypt text messages");
+    encrypt_group = g_option_group_new("encrypt", "Encryption Options:",
+        "Show encryption options", NULL, NULL);
+    decrypt_group = g_option_group_new("decrypt", "Decryption Options:",
+        "Show decryption options", NULL, NULL);
     g_option_context_add_main_entries(options, entries, NULL);
+    g_option_group_add_entries(encrypt_group, encrypt_entries);
+    g_option_group_add_entries(decrypt_group, decrypt_entries);
+    g_option_context_add_group(options, encrypt_group);
+    g_option_context_add_group(options, decrypt_group);
     g_option_context_set_summary(options, summary);
     ok = g_option_context_parse(options, &argc, &argv, &error);
+
+    /* Set up logging */
+    gutil_log_timestamp = FALSE;
+    gutil_log_func = gutil_log_stderr;
+    gutil_log_default.name = "foilmsg";
+    if (verbose) {
+        gutil_log_default.level = GLOG_LEVEL_VERBOSE;
+    }
 
     /* Use ~/.ssh/id_rsa as the default private key */
     if (ok && !priv_key) {
@@ -160,17 +342,13 @@ main(
         ok = FALSE;
     }
 
-    if (ok && priv_key) {
+    if (show_info && !decrypt) {
+        GWARN("Ignoring --info option because we are not decrypting");
+    }
+
+    if (ok && priv_key && argc == 1) {
         FoilKey* pub = NULL;
         FoilPrivateKey* priv;
-
-        /* Set up logging */
-        gutil_log_timestamp = FALSE;
-        gutil_log_func = gutil_log_stderr;
-        gutil_log_default.name = "foilmsg";
-        if (verbose) {
-            gutil_log_default.level = GLOG_LEVEL_VERBOSE;
-        }
 
         /* Load the keys */
         if (pub_key) {
@@ -212,7 +390,11 @@ main(
                 FoilBytes bytes;
                 foil_bytes_from_data(&bytes, in);
                 if (decrypt) {
-                    ret = foilmsg_decode(pub, priv, &bytes);
+                    if (show_info) {
+                        ret = foilmsg_info(&bytes);
+                    } else {
+                        ret = foilmsg_decode(pub, priv, &bytes);
+                    }
                 } else if (g_utf8_validate((void*)bytes.val, bytes.len, 0)) {
                     /* NULL terminate the text */
                     FoilMsgEncryptOptions opt;
