@@ -310,8 +310,12 @@ foil_input_read_all(
             len += nbytes;
             g_byte_array_set_size(buf, len + chunk);
         }
-        g_byte_array_set_size(buf, len);
-        return g_byte_array_free_to_bytes(buf);
+        if (nbytes == 0) {
+            /* Successfully read the entire input */
+            g_byte_array_set_size(buf, len);
+            return g_byte_array_free_to_bytes(buf);
+        }
+        g_byte_array_free(buf, TRUE);
     }
     return NULL;
 }
