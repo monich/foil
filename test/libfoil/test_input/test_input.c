@@ -536,17 +536,17 @@ test_input_base64(
         gsize inputlen = strlen(t->in);
         FoilInput* mem = foil_input_mem_new_static(t->in, inputlen);
         FoilInput* base64 = foil_input_base64_new_full(mem, t->flags);
-        GBytes* out = foil_input_read_all(base64);
+        GBytes* decoded = foil_input_read_all(base64);
         GDEBUG("%s", t->in);
 
-        g_assert(out);
+        g_assert(decoded);
         if (t->out) {
-            g_assert(test_bytes_equal(out, t->out, t->outbytes));
+            g_assert(test_bytes_equal(decoded, t->out, t->outbytes));
             g_assert(inputlen - foil_input_bytes_read(mem) == t->remaining);
         } else {
-            g_assert(!g_bytes_get_size(out));
+            g_assert(!g_bytes_get_size(decoded));
         }
-        g_bytes_unref(out);
+        g_bytes_unref(decoded);
         foil_input_unref(base64);
         foil_input_unref(mem);
 
@@ -557,6 +557,31 @@ test_input_base64(
         g_assert(inputlen - foil_input_bytes_read(mem) == t->remaining);
         foil_input_unref(base64);
         foil_input_unref(mem);
+
+        if (t->remaining) {
+            /* Check the validation option */
+            FoilOutput* out = foil_output_mem_new(NULL);
+            gsize copied = 0;
+
+            /* foil_input_copy_all() fails on invalid input */
+            mem = foil_input_mem_new_static(t->in, inputlen);
+            base64 = foil_input_base64_new_full(mem, t->flags |
+                FOIL_INPUT_BASE64_VALIDATE);
+            g_assert(!foil_input_copy_all(base64, out, &copied));
+            g_assert(foil_output_bytes_written(out) == t->outbytes);
+            g_assert(copied == t->outbytes);
+            foil_input_unref(base64);
+            foil_input_unref(mem);
+            foil_output_unref(out);
+
+            /* foil_input_read_all() fails too. */
+            mem = foil_input_mem_new_static(t->in, inputlen);
+            base64 = foil_input_base64_new_full(mem, t->flags |
+                FOIL_INPUT_BASE64_VALIDATE);
+            g_assert(!foil_input_read_all(base64));
+            foil_input_unref(base64);
+            foil_input_unref(mem);
+        }
     }
 }
 
