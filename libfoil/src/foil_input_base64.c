@@ -140,7 +140,7 @@ foil_input_base64_map(
 }
 
 static
-guint
+int
 foil_input_base64_read_chunk(
     FoilInputBase64* self,
     guint8* chunk /* [BASE64_DECODE_INPUT_CHUNK] */)
@@ -173,8 +173,10 @@ foil_input_base64_read_chunk(
 
     /* The chunk can't start with '=' */
     next = foil_input_peek(self->in, 1, NULL);
-    if (!next || (char)(*next) == '=') {
+    if (!next) {
         return 0;
+    } else if ((char)(*next) == '=') {
+        return -1;
     }
 
     /* Sophisticated case. We need to accumulate skipped characters in
@@ -233,7 +235,8 @@ foil_input_base64_read_chunk(
             self->skip_buf->len);
         g_byte_array_set_size(self->skip_buf, 0);
     }
-    return 0;
+
+    return -1;
 }
 
 static
@@ -248,7 +251,7 @@ foil_input_base64_read(
     guint8* ptr = buf;
     gsize remain = size;
     gssize bytes_read = 0;
-    guint k;
+    int k = 0;
 
     /* Copy already decoded bytes */
     if (self->buffered && remain) {
@@ -293,7 +296,13 @@ foil_input_base64_read(
         }
     }
 
-    return bytes_read;
+    if (bytes_read > 0) {
+        /* Something has been decoded */
+        return bytes_read;
+    } else {
+        /* FOIL_INPUT_BASE64_VALIDATE means that we fail on invalid input */
+        return (self->flags & FOIL_INPUT_BASE64_VALIDATE) ? k : 0;
+    }
 }
 
 static

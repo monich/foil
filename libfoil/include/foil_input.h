@@ -123,6 +123,7 @@ foil_input_base64_new_full(
     guint flags);
 
 #define FOIL_INPUT_BASE64_IGNORE_SPACES (0x01)
+#define FOIL_INPUT_BASE64_VALIDATE      (0x02)  /* Since 1.0.1 */
 
 FoilInput*
 foil_input_cipher_new(
