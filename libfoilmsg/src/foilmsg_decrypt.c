@@ -49,11 +49,6 @@ typedef struct foilmsg_priv {
     char** header_strings;
 } FoilMsgPriv;
 
-typedef struct foilmsg_tagged_data {
-    gint32 tag;
-    FoilBytes data;
-} FoilMsgTaggedData;
-
 typedef struct foilmsg_decrypt_context {
     FoilCipher* cipher;
     GType sig_digest_type;
@@ -161,54 +156,97 @@ foilmsg_decode_tagged_data(
  */
 
 static
-gboolean
-foilmsg_decode_encrypted_key(
-    FoilParsePos* pos,
-    GBytes* fp,
-    FoilMsgTaggedData* block)
+void
+foilmsg_free_encrypt_key(
+    gpointer ptr)
 {
+    FoilMsgEncryptKey* key = ptr;
+    g_slice_free1(sizeof(*key), key);
+}
+
+static
+FoilMsgInfo*
+foilmsg_parse_encrypted_keys(
+    FoilParsePos* pos)
+{
+    FoilMsgInfo* msg = NULL;
     guint32 len;
-    gboolean ok = FALSE;
     if (foil_asn1_parse_start_sequence(pos, &len)) {
+        gint32 key_format;
         FoilParsePos seq;
         seq.ptr = pos->ptr;
         seq.end = pos->ptr + len;
-        if (foil_asn1_parse_int32(&seq, &block->tag)) {
-            FoilBytes fp_bytes;
-            foil_bytes_from_data(&fp_bytes, fp);
-
-            /* Find the key encrypted with our public key */
+        if (foil_asn1_parse_int32(&seq, &key_format)) {
+            FoilMsgEncryptKey* key;
+            GSList* keys = NULL;
+            guint i, nkeys = 0;
             while (foil_asn1_parse_start_sequence(&seq, &len)) {
-                FoilMsgTaggedData fp_block;
-                FoilBytes key_data;
                 FoilParsePos seq2;
                 seq2.ptr = seq.ptr;
                 seq2.end = seq.ptr + len;
-                if (!foilmsg_decode_tagged_data(&seq2, &fp_block) ||
-                    !foil_asn1_parse_octet_string(&seq2, &key_data)) {
-                    /* Broken data stream */
-                    return FALSE;
-                } else {
-                    /* Check the fingerprint */
-                    if (fp_block.tag == FOILMSG_FINGERPRINT_FORMAT &&
-                        foil_bytes_equal(&fp_block.data, &fp_bytes)) {
-                        block->data = key_data;
-                        ok = TRUE;
-                        /* Continue to loop to verify the structure */
-                    }
+                key = g_slice_new(FoilMsgEncryptKey);
+                keys = g_slist_append(keys, key);
+                if (foilmsg_decode_tagged_data(&seq2, &key->fingerprint) &&
+                    foil_asn1_parse_octet_string(&seq2, &key->data)) {
+                    seq.ptr = seq2.ptr;
+                    nkeys++;
+                    continue;
                 }
-                seq.ptr = seq2.ptr;
+                /* Broken data stream */
+                g_slist_free_full(keys, foilmsg_free_encrypt_key);
+                return NULL;
             }
 
             /* Must reach the end of the sequence */
             if (seq.ptr == seq.end) {
                 pos->ptr = seq.ptr;
-            } else {
-                ok = FALSE;
+                msg = g_malloc0(sizeof(*msg) + nkeys*sizeof(*key));
+                key = (FoilMsgEncryptKey*)(msg+1);
+                msg->encrypt_keys = key;
+                msg->encrypt_key_format = key_format;
+                msg->num_encrypt_keys = nkeys;
+                for (i=0; i<nkeys; i++) {
+                    memcpy(key, keys->data, sizeof(*key));
+                    foilmsg_free_encrypt_key(keys->data);
+                    keys = g_slist_delete_link(keys, keys);
+                    key++;
+                }
             }
+
+            g_slist_free_full(keys, foilmsg_free_encrypt_key);
         }
     }
-    return ok;
+    return msg;
+}
+
+void
+foilmsg_info_free(
+    FoilMsgInfo* info)
+{
+    /* The whole thing is allocated as a single memory block */
+    g_free(info);
+}
+
+static
+gboolean
+foilmsg_decrypt_find_key(
+    const FoilMsgInfo* msg,
+    GBytes* fingerprint,
+    FoilMsgTaggedData* key_block)
+{
+    int i;
+    FoilBytes fp_bytes;
+    foil_bytes_from_data(&fp_bytes, fingerprint);
+    for (i=0; i<msg->num_encrypt_keys; i++) {
+        const FoilMsgEncryptKey* key = msg->encrypt_keys + i;
+        if (key->fingerprint.tag == FOILMSG_FINGERPRINT_FORMAT &&
+            foil_bytes_equal(&key->fingerprint.data, &fp_bytes)) {
+            key_block->tag = msg->encrypt_key_format;
+            key_block->data = key->data;
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 static
@@ -284,6 +322,55 @@ foilmsg_decrypt_init_cipher(
     return FALSE;
 }
 
+FoilMsgInfo*
+foilmsg_parse(
+    const FoilBytes* bytes)
+{
+    guint32 len;
+    FoilParsePos pos;
+    pos.ptr = bytes->val;
+    pos.end = pos.ptr + bytes->len;
+    if (foil_asn1_parse_start_sequence(&pos, &len)) {
+        gint32 format;
+        FoilMsgTaggedData fingerprint;
+        pos.end = pos.ptr + len;
+
+        /* formatVersion */
+        if (!foil_asn1_parse_int32(&pos, &format)) {
+            GDEBUG("Error parsing format version");
+        } else if (format != FOILMSG_FORMAT_VERSION) {
+            GDEBUG("Unsuported format %d", format);
+
+        /* senderKey */
+        } else if (!foilmsg_decode_tagged_data(&pos, &fingerprint)) {
+            GDEBUG("Error parsing figerprint block");
+
+        /* encryptedKey */
+        } else {
+            FoilMsgInfo* msg = foilmsg_parse_encrypted_keys(&pos);
+            if (!msg) {
+                GDEBUG("Error parsing encryption key");
+                /* encryptedData */
+            } else {
+                if (!foilmsg_decode_tagged_data(&pos, &msg->encrypted)) {
+                    GDEBUG("Error parsing encryption data block");
+                    /* signature */
+                } else if (!foilmsg_decode_tagged_data(&pos, &msg->signature)) {
+                    GDEBUG("Error parsing signature block");
+                } else {
+                    msg->format = format;
+                    msg->sender_fingerprint = fingerprint;
+                    return msg;
+                }
+                foilmsg_info_free(msg);
+            }
+        }
+    } else {
+        GDEBUG("Garbage, sir!");
+    }
+    return NULL;
+}
+
 static
 gboolean
 foilmsg_decrypt_init(
@@ -291,56 +378,30 @@ foilmsg_decrypt_init(
     FoilPrivateKey* recipient,
     const FoilBytes* bytes)
 {
-    guint32 len;
-    FoilParsePos pos;
-    pos.ptr = bytes->val;
-    pos.end = pos.ptr + bytes->len;
+    FoilMsgInfo* msg = foilmsg_parse(bytes);
+    gboolean ok = FALSE;
     memset(dec, 0, sizeof(*dec));
-    if (foil_asn1_parse_start_sequence(&pos, &len)) {
-        gint32 format_version;
-        FoilMsgTaggedData fingerprint, enc_key, enc_data, signature;
-        pos.end = pos.ptr + len;
-
-        /* formatVersion */
-        if (!foil_asn1_parse_int32(&pos, &format_version)) {
-            GDEBUG("Error parsing format version");
-        } else if (format_version != FOILMSG_FORMAT_VERSION) {
-            GDEBUG("Unsuported format %d", format_version);
-
-        /* senderKey */
-        } else if (!foilmsg_decode_tagged_data(&pos, &fingerprint)) {
-            GDEBUG("Error parsing figerprint block");
-        } else if (fingerprint.tag != FOILMSG_FINGERPRINT_FORMAT) {
-            GDEBUG("Unsuported fingerprint format %d", fingerprint.tag);
-
-        /* encryptedKey */
-        } else if (!foilmsg_decode_encrypted_key(&pos,
+    if (msg) {
+        const FoilMsgTaggedData* fp = &msg->sender_fingerprint;
+        FoilMsgTaggedData enc_key;
+        if (fp->tag != FOILMSG_FINGERPRINT_FORMAT) {
+            GDEBUG("Unsuported fingerprint format %d", fp->tag);
+        } else if (!foilmsg_decrypt_find_key(msg,
             foil_private_key_fingerprint(recipient), &enc_key)) {
-            GDEBUG("Error decoding encryption key");
-
-        /* encryptedData */
-        } else if (!foilmsg_decode_tagged_data(&pos, &enc_data)) {
-            GDEBUG("Error parsing encryption data block");
-
-        /* signature */
-        } else if (!foilmsg_decode_tagged_data(&pos, &signature)) {
-            GDEBUG("Error parsing signature block");
-        } else if (!foilmsg_decrypt_init_signature(dec, &signature)) {
-            GDEBUG("Unsupported signature type %d", signature.tag);
-
-        /* Initialize decryption cipher */
+            GDEBUG("Recipient's fingerprint is missing");
+        } else if (!foilmsg_decrypt_init_signature(dec, &msg->signature)) {
+            GDEBUG("Unsupported signature type %d", msg->signature.tag);
         } else if (!foilmsg_decrypt_init_cipher(dec, recipient, &enc_key,
-                    enc_data.tag)) {
+            msg->encrypted.tag)) {
             GDEBUG("Error initializing decryption cipher");
         } else {
-            dec->fingerprint_data = fingerprint.data;
-            dec->enc_data = enc_data.data;
-            return TRUE;
+            dec->fingerprint_data = fp->data;
+            dec->enc_data = msg->encrypted.data;
+            ok = TRUE;
         }
-    } else {
-        GDEBUG("Garbage, sir!");
+        foilmsg_info_free(msg);
     }
-    return FALSE;
+    return ok;
 }
 
 static
@@ -494,6 +555,42 @@ foilmsg_decrypt_text_len(
     } else {
         return NULL;
     }
+}
+
+GBytes*
+foilmsg_to_binary(
+    const FoilBytes* data)
+{
+    GBytes* bytes = NULL;
+    if (G_LIKELY(data)) {
+        FoilParsePos pos;
+        pos.ptr = data->val;
+        pos.end = pos.ptr + data->len;
+        foil_parse_skip_spaces(&pos);
+        if (pos.end >= pos.ptr + FOILMSG_PREFIX_LENGTH &&
+            !memcmp(pos.ptr, FOILMSG_PREFIX, FOILMSG_PREFIX_LENGTH)) {
+            FoilInput* mem;
+            FoilInput* base64;
+            /* TODO: use temporary file for large amounts of input data */
+            FoilOutput* out = foil_output_mem_new(NULL);
+            pos.ptr += FOILMSG_PREFIX_LENGTH;
+            mem = foil_input_mem_new_static(pos.ptr, pos.end - pos.ptr);
+            base64 = foil_input_base64_new_full(mem,
+                FOIL_INPUT_BASE64_IGNORE_SPACES |
+                FOIL_INPUT_BASE64_VALIDATE);
+            foil_input_unref(mem);
+            if (foil_input_copy_all(base64, out, NULL)) {
+                bytes = foil_output_free_to_bytes(out);
+            } else {
+                foil_output_unref(out);
+            }
+            foil_input_unref(base64);
+        }
+        if (!bytes) {
+            bytes = g_bytes_new_static(data->val, data->len);
+        }
+    }
+    return bytes;
 }
 
 FoilMsg*

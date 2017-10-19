@@ -28,13 +28,20 @@
  */
 
 #include "test_common.h"
-#include "foilmsg.h"
+#include "foilmsg_p.h"
 
 #include <foil_key.h>
 #include <foil_private_key.h>
 #include <foil_output.h>
 
 #define DATA_DIR "data/"
+
+typedef struct test_foilmsg_to_binary {
+    const char* name;
+    FoilBytes in;
+    const void* out;
+    guint out_size;
+} TestFoilMsgConvertToBinary;
 
 typedef struct test_foilmsg_key_files {
     const char* from_priv;
@@ -128,6 +135,8 @@ test_foilmsg_invalid(
     g_assert(priv);
 
     foilmsg_free(NULL);
+    foilmsg_info_free(NULL);
+    g_assert(!foilmsg_to_binary(NULL));
     g_assert(!foilmsg_encrypt(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
     //g_assert(!foilmsg_encrypt_file(NULL, NULL, NULL, NULL, NULL, NULL, NULL));
     g_assert(!foilmsg_encrypt_to_bytes(NULL, NULL, NULL, NULL, NULL, NULL));
@@ -142,6 +151,17 @@ test_foilmsg_invalid(
     g_assert(!foilmsg_decrypt_text_bytes(priv, NULL));
     g_assert(!foilmsg_verify(NULL, NULL));
     foil_private_key_unref(priv);
+}
+
+static
+void
+test_foilmsg_to_binary(
+    gconstpointer param)
+{
+    const TestFoilMsgConvertToBinary* test = param;
+    GBytes* bytes = foilmsg_to_binary(&test->in);
+    g_assert(test_bytes_equal(bytes, test->out, test->out_size));
+    g_bytes_unref(bytes);
 }
 
 static
@@ -329,6 +349,42 @@ test_foilmsg_verify_error(
 }
 
 #define TEST_(name) "/foilmsg/" name
+
+static const char foilmsg_prefix[] = FOILMSG_PREFIX;
+static const char foilmsg_prefix_and_spaces[] = " " FOILMSG_PREFIX "  ";
+static const char foilmsg_no_prefix[] = " WHATEVER ";
+static const char foilmsg_invalid_base64[] = FOILMSG_PREFIX " ABCD....";
+
+static const TestFoilMsgConvertToBinary foilmsg_convert_tests[] = {
+    {
+        TEST_("ConvertEmpty"),
+        { (gconstpointer)foilmsg_prefix, 0 },
+        NULL, 0
+    },{
+        TEST_("ConvertShort1"),
+        { (gconstpointer)foilmsg_prefix, 1 },
+        foilmsg_prefix, 1
+    }, {
+        TEST_("ConvertPrefix"),
+        { (gconstpointer)foilmsg_prefix, FOILMSG_PREFIX_LENGTH },
+        NULL, 0
+    }, {
+        TEST_("ConvertPrefixAndSpaces"),
+        {
+            (gconstpointer)foilmsg_prefix_and_spaces,
+            G_N_ELEMENTS(foilmsg_prefix_and_spaces)-1
+        },
+        NULL, 0
+    }, {
+        TEST_("ConvertNoPrefix"),
+        { (gconstpointer)TEST_ARRAY_AND_SIZE(foilmsg_no_prefix) },
+        TEST_ARRAY_AND_SIZE(foilmsg_no_prefix)
+    }, {
+        TEST_("ConvertInvalidBase64"),
+        { (gconstpointer)TEST_ARRAY_AND_SIZE(foilmsg_invalid_base64) },
+        TEST_ARRAY_AND_SIZE(foilmsg_invalid_base64)
+    }
+};
 
 static const FoilMsgEncryptOptions options_invalid_key_type = {
     (FOILMSG_KEY_TYPE)-1, 0
@@ -1458,6 +1514,10 @@ int main(int argc, char* argv[])
     guint i;
     g_test_init(&argc, &argv, NULL);
     g_test_add_func(TEST_("Invalid"), test_foilmsg_invalid);
+    for (i = 0; i < G_N_ELEMENTS(foilmsg_convert_tests); i++) {
+        const TestFoilMsgConvertToBinary* test = foilmsg_convert_tests + i;
+        g_test_add_data_func(test->name, test, test_foilmsg_to_binary);
+    }
     for (i = 0; i < G_N_ELEMENTS(foilmsg_tests); i++) {
         const TestFoilMsg* test = foilmsg_tests + i;
         g_test_add_data_func(test->name, test, test->fn);

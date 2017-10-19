@@ -34,6 +34,35 @@
 
 G_BEGIN_DECLS
 
+typedef struct foilmsg_tagged_data {
+    gint32 tag;
+    FoilBytes data;
+} FoilMsgTaggedData;
+
+typedef struct foilmsg_encrypt_key {
+    FoilMsgTaggedData fingerprint;
+    FoilBytes data;
+} FoilMsgEncryptKey;
+
+/* Valid tags for various blocks */
+#define FOILMSG_FINGERPRINT_SSH_RSA       (1)
+#define FOILMSG_ENCRYPT_KEY_FORMAT_AES128 (1) /* 16 bytes key + 16 bytes IV */
+#define FOILMSG_ENCRYPT_KEY_FORMAT_AES192 (2) /* 24 bytes key + 16 bytes IV */
+#define FOILMSG_ENCRYPT_KEY_FORMAT_AES256 (3) /* 32 bytes key + 16 bytes IV */
+#define FOILMSG_ENCRYPT_FORMAT_AES_CBC    (1)
+#define FOILMSG_SIGNATURE_FORMAT_MD5_RSA  (1)
+
+/* N.B. Must be freed with foilmsg_info_free */
+typedef struct foilmsg_info {
+    gint32 format;
+    FoilMsgTaggedData sender_fingerprint;
+    gint32 encrypt_key_format;
+    gint32 num_encrypt_keys;
+    const FoilMsgEncryptKey* encrypt_keys;
+    FoilMsgTaggedData encrypted;
+    FoilMsgTaggedData signature;
+} FoilMsgInfo;
+
 typedef struct foilmsg_header {
     const char* name;
     const char* value;
@@ -124,9 +153,37 @@ foilmsg_encrypt_to_bytes(
     const FoilMsgEncryptOptions* opt);  /* optional */
 
 /*
+ * foilmsg_parse checks the structure of the encrypted message.
+ * Returns NULL if parsing fails. FoilMsgInfo contains pointers
+ * to the bytes provided as input (doesn't copy the data).
+ */
+
+FoilMsgInfo*
+foilmsg_parse(
+    const FoilBytes* bytes);
+
+void
+foilmsg_info_free(
+    FoilMsgInfo* info);
+
+/*
+ * Converts BASE64 encoded text representation into a binary format.
+ *
+ * Note that if the input is not recognized as a FOILMSG encoded text
+ * the returned GBytes points to the data pointed to by FoilBytes, i.e.
+ * in the binary data is not being copied. In that case the callers is
+ * responsible for releasing the GBytes reference before deallocating
+ * the input data.
+ */
+
+GBytes*
+foilmsg_to_binary(
+    const FoilBytes* data);
+
+/*
  * Decryption is a two-step process.
  *
- * First, you need to decode the message with foilmsg_decrypt()
+ * First, you need to decrypt the message with foilmsg_decrypt()
  * or foilmsg_decrypt_binary(). That gives you the fingerprint of the
  * sender's public key and the decrypted text. It doesn't guarantee
  * that the message hasn't been modified in transit (block cipher
@@ -139,6 +196,7 @@ foilmsg_encrypt_to_bytes(
  * If FoilOutput is NULL, the message will be processed in RAM (it's your
  * responsibility then to ensure that there's enough RAM).
  */
+
 FoilMsg*
 foilmsg_decrypt(
     FoilPrivateKey* recipient,
