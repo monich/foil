@@ -1,7 +1,7 @@
 Name: libfoil
 Version: 1.0.0
 Release: 0
-Summary: Cryptography library based on glib
+Summary: Yet another glib-style crypto API
 Group: Development/Libraries
 License: BSD
 Vendor: slava
@@ -26,25 +26,25 @@ Requires: pkgconfig
 %description devel
 This package contains the development library for %{name}.
 
-%package -n foilmsg
-Summary: Encryption/decryption utility
+%package -n foil-tools
+Summary: Encryption/decryption utilities
 Group: Applications/File
 Requires: libfoil
 
-%description -n foilmsg
-Command line encryption/decryption utility.
+%description -n foil-tools
+Command line encryption/decryption utilities.
 
 %prep
 %setup -q
 
 %build
 make -C libfoil KEEP_SYMBOLS=1 release pkgconfig
-make -C foilmsg KEEP_SYMBOLS=1 release
+make -C tools KEEP_SYMBOLS=1 release
 
 %install
 rm -rf %{buildroot}
 make -C libfoil install-dev DESTDIR=%{buildroot}
-make -C foilmsg install DESTDIR=%{buildroot}
+make -C tools install DESTDIR=%{buildroot}
 
 %check
 make check
@@ -63,6 +63,6 @@ make check
 %{_libdir}/%{name}.so
 %{_includedir}/foil/*.h
 
-%files -n foilmsg
+%files -n foil-tools
 %defattr(-,root,root,-)
 %{_bindir}/foilmsg

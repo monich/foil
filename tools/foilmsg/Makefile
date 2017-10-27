@@ -28,25 +28,11 @@ all: debug release
 #
 
 SRC_DIR = .
-LIBFOIL_DIR = ../libfoil
-LIBFOILMSG_DIR = ../libfoilmsg
+LIBFOIL_DIR = ../../libfoil
+LIBFOILMSG_DIR = ../../libfoilmsg
 BUILD_DIR = build
 DEBUG_BUILD_DIR = $(BUILD_DIR)/debug
 RELEASE_BUILD_DIR = $(BUILD_DIR)/release
-
-#
-# Code coverage
-#
-
-ifndef GCOV
-GCOV = 0
-endif
-
-ifneq ($(GCOV),0)
-CFLAGS += --coverage
-LDFLAGS += --coverage
-SUBMAKE_OPTS += GCOV=1
-endif
 
 #
 # Tools and flags
