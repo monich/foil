@@ -194,7 +194,7 @@ void
 test_output_path(
     void)
 {
-    const char data[] = "This is a file output test";
+    const char data[] = "This is a file output test\n";
     const gssize datalen = sizeof(data)-1;
     char* tmpdir = g_dir_make_tmp("test_output_XXXXXX", NULL);
     char* fname = g_build_filename(tmpdir, "test", NULL);

@@ -35,6 +35,7 @@
 #include <errno.h>
 
 #ifdef _WIN32
+#  include <fcntl.h>
 #  include <io.h>
 #else
 #  include <unistd.h>
@@ -277,6 +278,10 @@ foil_output_file_new_tmp(void)
             int fd = creat(path, 0600);
             if (fd >= 0) {
                 FILE* file = fdopen(fd, "wb");
+#ifdef _WIN32
+                /* Microsoft's fdopen ignores the "b" flag */
+                _setmode(fd, _O_BINARY);
+#endif
                 if (file) {
                     FoilOutputPath* self = g_slice_new0(FoilOutputPath);
                     FoilOutputFile* parent = &self->parent;
