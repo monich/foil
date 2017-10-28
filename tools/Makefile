@@ -3,3 +3,4 @@
 all:
 %:
 	@$(MAKE) -C foilmsg $*
+	@$(MAKE) -C foilpng $*

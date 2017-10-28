@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 F90=df.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "src" /I "$(LIBFOIL_ROOT)/include" /I "$(LIBGLIBUTIL_ROOT)/include" /I "$(GTK_ROOT)/include/glib-2.0" /I "$(GTK_ROOT)/lib/glib-2.0/include" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "src" /I "../libfoil/include" /I "$(LIBGLIBUTIL_DIR)/include" /I "$(GTK_ROOT)/include/glib-2.0" /I "$(GTK_ROOT)/lib/glib-2.0/include" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 F90=df.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "include" /I "src" /I "$(LIBFOIL_ROOT)/include" /I "$(LIBGLIBUTIL_ROOT)/include" /I "$(GTK_ROOT)/include/glib-2.0" /I "$(GTK_ROOT)/lib/glib-2.0/include" /D "WIN32" /D "_DEBUG" /D "DEBUG" /D "_MBCS" /D "_LIB" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "include" /I "src" /I "../libfoil/include" /I "$(LIBGLIBUTIL_DIR)/include" /I "$(GTK_ROOT)/include/glib-2.0" /I "$(GTK_ROOT)/lib/glib-2.0/include" /D "WIN32" /D "_DEBUG" /D "DEBUG" /D "_MBCS" /D "_LIB" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"

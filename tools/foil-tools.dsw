@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "foilmsg"=foilmsg\foilmsg.dsp - Package Owner=<4>
+Project: "foilmsg"=.\foilmsg\foilmsg.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -19,6 +19,33 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libfoilmsg
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "foilpng"=.\foilpng\foilpng.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libfoilmsg
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name png
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name zlib
     End Project Dependency
 }}}
 
@@ -48,7 +75,31 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libglibutil"=$(LIBGLIBUTIL_ROOT)\libglibutil.dsp - Package Owner=<4>
+Project: "libglibutil"=$(LIBGLIBUTIL_DIR)\libglibutil.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "png"=$(LIBPNG_DIR)\png.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "zlib"=$(ZLIB_DIR)\zlib.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

@@ -7,7 +7,9 @@ License: BSD
 Vendor: slava
 URL: https://github.com/monich/foil
 Source: %{name}-%{version}.tar.bz2
+BuildRequires: file-devel
 BuildRequires: pkgconfig(openssl)
+BuildRequires: pkgconfig(libpng)
 BuildRequires: pkgconfig(glib-2.0) >= 2.36
 BuildRequires: pkgconfig(libglibutil) >= 1.0.24
 Requires: glib2 >= 2.36
@@ -66,3 +68,4 @@ make check
 %files -n foil-tools
 %defattr(-,root,root,-)
 %{_bindir}/foilmsg
+%{_bindir}/foilpng
