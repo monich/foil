@@ -11,7 +11,7 @@ all:
 clean:
 	@make -C libfoil clean
 	@make -C libfoilmsg clean
-	@make -C toold clean
+	@make -C tools clean
 	@make -C test clean
 	rm -fr test/coverage/results test/coverage/*.gcov
 	rm -f *~

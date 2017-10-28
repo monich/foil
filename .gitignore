@@ -9,10 +9,9 @@ test/coverage/libfoilmsg.gcov
 test/coverage/libfoilmsg-raw.gcov
 test/coverage/results
 debian/files
-debian/foilmsg.debhelper.log
-debian/foilmsg.install
-debian/foilmsg.substvars
-debian/foilmsg
+debian/foil-tools.debhelper.log
+debian/foil-tools.substvars
+debian/foil-tools
 debian/libfoil-dev.debhelper.log
 debian/libfoil-dev.substvars
 debian/libfoil-dev
