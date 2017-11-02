@@ -647,7 +647,7 @@ foil_cipher_async_data_source_finalize(
     FoilCipherAsyncDataSource* async = (FoilCipherAsyncDataSource*)source;
     FoilCipher* cipher = async->cipher;
     FoilCipherPriv* priv = cipher->priv;
-    int i;
+    guint i;
     GASSERT(priv->async_id);
     priv->async_id = 0;
     for (i=0; i<G_N_ELEMENTS(async->overlap); i++) {
@@ -685,12 +685,14 @@ foil_cipher_write_data_async(
             foil_cipher_async_data_source_prepare,
             foil_cipher_async_data_source_check,
             NULL,
-            foil_cipher_async_data_source_finalize
+            foil_cipher_async_data_source_finalize,
+            NULL,
+            NULL
         };
         GSource* source = g_source_new(&foil_cipher_async_funcs,
             sizeof(FoilCipherAsyncDataSource));
         FoilCipherAsyncDataSource* async = (FoilCipherAsyncDataSource*)source;
-        int i;
+        guint i;
         async->cipher = self;
         async->fn = fn;
         async->fn_arg = arg;

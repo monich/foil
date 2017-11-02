@@ -98,7 +98,7 @@ foil_output_file_write(
 {
     FoilOutputFile* self = G_CAST(out, FoilOutputFile, parent);
     /* self->file can be NULL if foil_output_path_reset() fails */
-    return self->file ? fwrite(buf, 1, size, self->file) : -1;
+    return self->file ? (gssize)fwrite(buf, 1, size, self->file) : -1;
 }
 
 static

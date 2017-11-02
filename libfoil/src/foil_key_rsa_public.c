@@ -42,11 +42,12 @@
 G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPublic, foil_key_rsa_public, FOIL_TYPE_KEY);
 
 #define FOIL_KEY_RSA_PUBLIC_HAS_PREFIX(data,len,prefix) ( \
-    (len) >= G_N_ELEMENTS(prefix) && \
+    (guint)(len) >= G_N_ELEMENTS(prefix) && \
     memcmp(data, prefix, G_N_ELEMENTS(prefix)) == 0)
 #define FOIL_KEY_RSA_PUBLIC_HAS_TEXT_PREFIX(data,len,prefix) ( \
     FOIL_KEY_RSA_PUBLIC_HAS_PREFIX(data,len,prefix) && \
-    ((len) == G_N_ELEMENTS(prefix) || isspace((data)[G_N_ELEMENTS(prefix)])))
+    ((guint)(len) == G_N_ELEMENTS(prefix) || \
+    isspace((data)[G_N_ELEMENTS(prefix)])))
 
 /*
  * string    "ssh-rsa"

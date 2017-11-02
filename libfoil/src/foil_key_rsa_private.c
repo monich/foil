@@ -54,10 +54,10 @@ G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPrivate, foil_key_rsa_private,
 #define FOIL_KEY_RSA_PRIVATE_CLEAR_BYTES(bytes) \
     memset((void*)((bytes)->val), 0, (bytes)->len);
 #define FOIL_KEY_RSA_PRIVATE_HAS_PREFIX(data,len,prefix) (\
-    (len) >= G_N_ELEMENTS(prefix) && \
+    (guint)(len) >= G_N_ELEMENTS(prefix) && \
     memcmp(data, prefix, G_N_ELEMENTS(prefix)) == 0)
 #define FOIL_KEY_RSA_PRIVATE_HAS_TEXT_PREFIX(data,len,prefix) (\
-    (len) >= G_N_ELEMENTS(prefix) && \
+    (guint)(len) >= G_N_ELEMENTS(prefix) && \
     memcmp(data, prefix, G_N_ELEMENTS(prefix)) == 0 &&  \
     isspace((data)[G_N_ELEMENTS(prefix)]))
 
@@ -483,7 +483,7 @@ foil_key_rsa_private_export_default(
         GBytes* bytes = NULL;
         if (pass && pass[0]) {
             /* Encrypt the key */
-            const static char tags[] = "Proc-Type: 4,ENCRYPTED\n"
+            static const char tags[] = "Proc-Type: 4,ENCRYPTED\n"
                "DEK-Info: AES-256-CBC,";
             const guint bits = 256;
             GType key_type = FOIL_KEY_AES256;
