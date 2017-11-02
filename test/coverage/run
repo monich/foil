@@ -20,15 +20,28 @@ test_foilmsg"
 
 FLAVOR="release"
 
-pushd `dirname $0` > /dev/null
-COV_DIR="$PWD"
-pushd .. > /dev/null
-TEST_DIR="$PWD"
-pushd .. > /dev/null
-BASE_DIR="$PWD"
-popd > /dev/null
-popd > /dev/null
-popd > /dev/null
+function require() {
+    if ! which $1 >> /dev/null ; then
+        echo "*** Please install $1 first!"
+        exit 1
+    fi
+}
+
+# Check required tools
+require lcov
+require dirname
+require realpath
+
+# LCOV 1.10 has branch coverage disabled per default
+# Previous versions didn't have the --rc option
+if  [ ! -z "$(lcov --help | grep ' --rc ')" ] ; then
+    LCOV_OPT="--rc lcov_branch_coverage=1"
+    GENHTML_OPT="--branch-coverage"
+fi
+
+COV_DIR=$(realpath "$(dirname $0)")
+TEST_DIR=$(realpath "${COV_DIR}/..")
+BASE_DIR=$(realpath "${TEST_DIR}/..")
 
 LIBFOIL_DIR="$BASE_DIR/libfoil"
 LIBFOILMSG_DIR="$BASE_DIR/libfoilmsg"
@@ -50,10 +63,6 @@ for t in $LIBFOILMSG_TESTS ; do
     build/$FLAVOR/$t || exit 1
     popd
 done
-
-# LCOV 1.10 has branch coverage disabled per default
-LCOV_OPT="--rc lcov_branch_coverage=1"
-GENHTML_OPT="--branch-coverage"
 
 LIBFOIL_RAW_COV="$COV_DIR/libfoil-raw.gcov"
 LIBFOIL_COV="$COV_DIR/libfoil.gcov"
