@@ -27,49 +27,16 @@
  * any official policies, either expressed or implied.
  */
 
-#include "foil_openssl_random.h"
-#include "foil_random_p.h"
+#ifndef FOIL_OPENSSL_RANDOM_H
+#define FOIL_OPENSSL_RANDOM_H
 
-#include <openssl/rand.h>
-
-typedef FoilRandom FoilOpensslRandom;
-typedef FoilRandomClass FoilOpensslRandomClass;
-
-/* There's no need to instantiate this class, make it abstract */
-G_DEFINE_ABSTRACT_TYPE(FoilOpensslRandom, foil_openssl_random, FOIL_TYPE_RANDOM)
+#include "foil_types.h"
 
 GType
-foil_impl_random_get_type()
-{
-    return foil_openssl_random_get_type();
-}
+foil_openssl_random_get_type(
+    void);
 
-static
-gboolean
-foil_openssl_random_generate(
-    void* data,
-    guint size)
-{
-    return RAND_bytes(data, size) != 0;
-}
-
-static
-void
-foil_openssl_random_init(
-    FoilOpensslRandom* self)
-{
-}
-
-static
-void
-foil_openssl_random_class_init(
-    FoilOpensslRandomClass* klass)
-{
-    /* Seed the generator */
-    RAND_poll();
-    klass->name = "OpenSSL";
-    klass->fn_generate = foil_openssl_random_generate;
-}
+#endif /* FOIL_OPENSSL_RANDOM_H */
 
 /*
  * Local Variables:
