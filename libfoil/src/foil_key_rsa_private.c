@@ -454,7 +454,6 @@ foil_key_rsa_private_parse_bytes(
                 FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT,
                 "Unrecognized RSA private key format");
         }
-        GWARN("Unrecognized RSA private key format");
         return FALSE;
     }
 }
