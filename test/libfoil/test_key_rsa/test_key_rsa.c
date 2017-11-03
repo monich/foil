@@ -324,6 +324,49 @@ test_key_rsa_invalid_params(
 
 static
 void
+test_key_rsa_generate(
+    void)
+{
+    FoilKey* key1;
+    FoilKey* key2;
+    FoilKey* pub1;
+    FoilKey* pub2;
+    GBytes* bytes;
+
+    /* It doesn't make sense to generate public keys */
+    g_assert(!foil_key_generate_new(FOIL_KEY_RSA_PUBLIC, 0));
+
+    /* Try invalid bit count */
+    g_assert(!foil_key_generate_new(FOIL_KEY_RSA_PRIVATE, 0));
+    g_assert(!foil_key_generate_new(FOIL_KEY_RSA_PRIVATE, 4));
+
+    key1 = foil_key_generate_new(FOIL_KEY_RSA_PRIVATE, 1024);
+    key2 = foil_key_generate_new(FOIL_KEY_RSA_PRIVATE, 1024);
+    g_assert(FOIL_IS_KEY_RSA_PRIVATE(key1));
+    g_assert(FOIL_IS_KEY_RSA_PRIVATE(key2));
+    g_assert(!foil_key_equal(key1, key2));
+
+    pub1 = foil_public_key_new_from_private(FOIL_PRIVATE_KEY(key1));
+    pub2 = foil_public_key_new_from_private(FOIL_PRIVATE_KEY(key2));
+    g_assert(!foil_key_equal(pub1, pub2));
+
+    foil_key_unref(pub1);
+    foil_key_unref(pub2);
+    foil_key_unref(key2);
+
+    /* Make sure it can be converted to bytes and back */
+    bytes = foil_key_to_bytes(key1);
+    key2 = foil_key_new_from_bytes(FOIL_KEY_RSA_PRIVATE, bytes);
+    g_bytes_unref(bytes);
+    g_assert(FOIL_IS_KEY_RSA_PRIVATE(key2));
+    g_assert(foil_key_equal(key1, key2));
+
+    foil_key_unref(key1);
+    foil_key_unref(key2);
+}
+
+static
+void
 test_key_rsa_fingerprint(
     gconstpointer param)
 {
@@ -1116,6 +1159,7 @@ int main(int argc, char* argv[])
     g_test_add_func(TEST_("null"), test_key_rsa_null);
     g_test_add_func(TEST_("uninitialized"), test_key_rsa_uninitialized);
     g_test_add_func(TEST_("invalid_params"), test_key_rsa_invalid_params);
+    g_test_add_func(TEST_("generate"), test_key_rsa_generate);
     for (i = 0; i < G_N_ELEMENTS(tests); i++) {
         g_test_add_data_func(tests[i].name, tests + i, tests[i].fn);
     }
