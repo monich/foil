@@ -105,7 +105,7 @@ foil_key_rsa_private_data_copy(
     ptr = foil_bytes_copy(&copy->dmp1, &data->dmp1, ptr);
     ptr = foil_bytes_copy(&copy->dmq1, &data->dmq1, ptr);
     ptr = foil_bytes_copy(&copy->iqmp, &data->iqmp, ptr);
-    GASSERT((ptr - ((guint8*)copy)) + total);
+    GASSERT((gsize)(ptr - ((guint8*)copy)) == total);
     return copy;
 }
 
