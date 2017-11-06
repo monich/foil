@@ -557,6 +557,7 @@ main(
                         ret = foilpng_decode(pub, priv, in, out);
                     } else {
                         FoilMsgEncryptOptions opt;
+                        memset(&opt, 0, sizeof(opt));
                         opt.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
                         switch (key_size) {
                         default:  opt.key_type = FOILMSG_KEY_AES_128; break;
