@@ -111,7 +111,7 @@ gsize
 foilmsg_encrypt(
     FoilOutput* out,
     const FoilBytes* data,
-    const char* context_type,           /* optional */
+    const char* content_type,           /* optional */
     const FoilMsgHeaders* headers,      /* optional */
     FoilPrivateKey* sender,
     FoilKey* recipient,
@@ -137,7 +137,7 @@ gsize
 foilmsg_encrypt_file(
     FoilOutput* out,
     const char* file,
-    const char* context_type,           /* optional */
+    const char* content_type,           /* optional */
     const FoilMsgHeaders* headers,      /* optional */
     FoilPrivateKey* sender,
     FoilKey* recipient,
@@ -146,7 +146,7 @@ foilmsg_encrypt_file(
 GBytes*
 foilmsg_encrypt_to_bytes(
     const FoilBytes* data,
-    const char* context_type,           /* optional */
+    const char* content_type,           /* optional */
     const FoilMsgHeaders* headers,      /* optional */
     FoilPrivateKey* sender,
     FoilKey* recipient,
