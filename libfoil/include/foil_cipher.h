@@ -48,6 +48,18 @@ void
     gboolean ok,
     void* arg);
 
+/*
+ * FoilCipherPaddingFunc receives the block with first data_size bytes
+ * filled with the input data. The function fills the remaining
+ * (block_size - data_size) bytes.
+ */
+typedef
+void
+(*FoilCipherPaddingFunc)(
+    guint8* block,
+    gsize data_size,
+    gsize block_size);
+
 /* Cipher type information */
 
 const char*
@@ -91,6 +103,21 @@ foil_cipher_input_block_size(
 int
 foil_cipher_output_block_size(
     FoilCipher* cipher);
+
+/*
+ * By default, foil block cipher would pad the remaining part of the last
+ * block size with random data. In cases when it's necessary to use some
+ * specific padding, the caller may specify the padding function.
+ *
+ * Returns TRUE is the padding function is applicable to this cipher, FALSE
+ * if it's going to ignored (or the cipher is NULL). Specifying NULL padding
+ * function resets the behavior to the default.
+ */
+
+gboolean
+foil_cipher_set_padding_func(
+    FoilCipher* cipher,
+    FoilCipherPaddingFunc fn);
 
 /*
  * Primitive operations, synchronous or asynchronous variants.

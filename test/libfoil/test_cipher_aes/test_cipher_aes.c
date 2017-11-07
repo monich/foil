@@ -47,12 +47,23 @@ typedef struct test_cipher_aes {
 
 static
 void
+test_padding(
+    guint8* block,
+    gsize data_size,
+    gsize block_size)
+{
+    memset(block + data_size, 0, sizeof(block_size - data_size));
+}
+
+static
+void
 test_cipher_aes_basic(
     gconstpointer param)
 {
     const TestCipherAes* test = param;
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
     FoilKey* key = foil_key_new_from_file(FOIL_KEY_AES128, key_path);
+    FoilCipher* enc = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
     FoilCipher* dec = foil_cipher_new(FOIL_CIPHER_AES_CBC_DECRYPT, key);
 
     /* Test resistance to NULL and all kinds of invalid parameters */
@@ -63,6 +74,11 @@ test_cipher_aes_basic(
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_AES_CBC_ENCRYPT,0));
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_AES_CBC_DECRYPT,0));
     g_assert(!foil_cipher_type_supports_key(FOIL_KEY_AES128, 0));
+    g_assert(!foil_cipher_type_supports_key(0,0));
+    g_assert(!foil_cipher_set_padding_func(NULL, NULL));
+    g_assert(!foil_cipher_set_padding_func(dec, NULL));
+    g_assert(foil_cipher_set_padding_func(enc, NULL));
+    g_assert(foil_cipher_set_padding_func(enc, test_padding));
     g_assert(!foil_cipher_new(0, NULL));
     g_assert(!foil_cipher_new(0, NULL));
     g_assert(!foil_cipher_new(0, key));
@@ -86,6 +102,7 @@ test_cipher_aes_basic(
     g_assert(!foil_cipher_bytes(0, NULL, NULL));
 
     foil_key_unref(key);
+    foil_cipher_unref(enc);
     foil_cipher_unref(dec);
     g_free(key_path);
 }

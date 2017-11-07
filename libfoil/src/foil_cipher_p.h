@@ -39,6 +39,7 @@ struct foil_cipher_class {
     GObjectClass object;
     const char* name;
     gboolean (*fn_supports_key)(FoilCipherClass* klass, GType key_type);
+    void (*fn_set_padding_func)(FoilCipher* cipher, FoilCipherPaddingFunc fn);
     void (*fn_post_init)(FoilCipher* cipher);
     int (*fn_step)(FoilCipher* cipher, const void* in, void* out);
     int (*fn_finish)(FoilCipher* cipher, const void* in, int n, void* out);
@@ -53,6 +54,7 @@ struct foil_cipher {
     GObject object;
     FoilCipherPriv* priv;
     FoilKey* key;
+    FoilCipherPaddingFunc fn_pad;
     int input_block_size;
     int output_block_size;
 };
@@ -68,12 +70,11 @@ GType foil_cipher_get_type(void);
 #define FOIL_CIPHER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), \
         FOIL_TYPE_CIPHER, FoilCipherClass))
 
-/* Utilities */
 void
-foil_cipher_pad(
+foil_cipher_default_padding_func(
     guint8* block,
-    gssize data_size,
-    gssize block_size);
+    gsize data_size,
+    gsize block_size);
 
 #endif /* FOIL_CIPHER_P_H */
 

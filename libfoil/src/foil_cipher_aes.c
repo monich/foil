@@ -34,7 +34,7 @@
 #define GLOG_MODULE_NAME foil_log_cipher
 #include "foil_log_p.h"
 
-G_DEFINE_ABSTRACT_TYPE(FoilCipherAes, foil_cipher_aes, FOIL_TYPE_CIPHER_SYNC)
+G_DEFINE_ABSTRACT_TYPE(FoilCipherAes, foil_cipher_aes, FOIL_TYPE_CIPHER_SYNC);
 #define SUPER_CLASS foil_cipher_aes_parent_class
 
 static
@@ -50,6 +50,16 @@ foil_cipher_aes_supports_key(
         return TRUE;
     }
     return FALSE;
+}
+
+static
+void
+foil_cipher_aes_set_padding_func(
+    FoilCipher* cipher,
+    FoilCipherPaddingFunc fn)
+{
+    FoilCipherAes* self = FOIL_CIPHER_AES(cipher);
+    self->fn_pad = fn ? fn : foil_cipher_default_padding_func;
 }
 
 static
@@ -69,10 +79,11 @@ foil_cipher_aes_finish(
             return -1;
         } else {
             int ret;
-            guint8 tmp[FOIL_AES_BLOCK_SIZE];
-            memcpy(tmp, from, flen);
-            foil_cipher_pad(tmp, flen, FOIL_AES_BLOCK_SIZE);
-            ret = klass->fn_step(cipher, tmp, to);
+            FoilCipherAes* self = FOIL_CIPHER_AES(cipher);
+            guint8 last[FOIL_AES_BLOCK_SIZE];
+            memcpy(last, from, flen);
+            self->fn_pad(last, flen, FOIL_AES_BLOCK_SIZE);
+            ret = klass->fn_step(cipher, last, to);
             return ret;
         }
     } else {
@@ -98,6 +109,7 @@ void
 foil_cipher_aes_init(
     FoilCipherAes* self)
 {
+    self->fn_pad = foil_cipher_default_padding_func;
 }
 
 static
@@ -108,6 +120,7 @@ foil_cipher_aes_class_init(
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "AES";
     cipher->fn_supports_key = foil_cipher_aes_supports_key;
+    cipher->fn_set_padding_func = foil_cipher_aes_set_padding_func;
     cipher->fn_post_init = foil_cipher_aes_post_init;
     cipher->fn_finish = foil_cipher_aes_finish;
 }

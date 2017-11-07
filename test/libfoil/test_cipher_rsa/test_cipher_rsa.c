@@ -61,6 +61,8 @@ test_cipher_rsa_basic(
     g_assert(!foil_cipher_type_supports_key(0,0));
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_RSA_ENCRYPT, 0));
     g_assert(!foil_cipher_type_supports_key(FOIL_KEY_RSA_PRIVATE, 0));
+    g_assert(!foil_cipher_set_padding_func(NULL, NULL));
+    g_assert(!foil_cipher_set_padding_func(dec, NULL));
     g_assert(!foil_cipher_new(FOIL_CIPHER_RSA_ENCRYPT, aes));
     g_assert(!foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, aes));
     g_assert(!foil_cipher_new(0, NULL));

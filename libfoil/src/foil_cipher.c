@@ -177,6 +177,21 @@ foil_cipher_output_block_size(
     return G_LIKELY(self) ? self->output_block_size : 0;
 }
 
+gboolean
+foil_cipher_set_padding_func(
+    FoilCipher* self,
+    FoilCipherPaddingFunc fn)
+{
+    if (G_LIKELY(self)) {
+        FoilCipherClass* klass = FOIL_CIPHER_GET_CLASS(self);
+        if (klass->fn_set_padding_func) {
+            klass->fn_set_padding_func(self, fn);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 int
 foil_cipher_step(
     FoilCipher* self,
@@ -246,10 +261,10 @@ foil_cipher_cancel_all(
 }
 
 void
-foil_cipher_pad(
+foil_cipher_default_padding_func(
     guint8* block,
-    gssize data_size,
-    gssize block_size)
+    gsize data_size,
+    gsize block_size)
 {
     if (data_size < block_size) {
         guint8* ptr = block;

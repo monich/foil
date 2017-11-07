@@ -36,6 +36,7 @@
 typedef FoilCipherSyncClass FoilCipherAesClass;
 typedef struct foil_cipher_aes {
     FoilCipherSync sync;
+    FoilCipherPaddingFunc fn_pad;
     guint8 block[FOIL_AES_BLOCK_SIZE];
 } FoilCipherAes;
 

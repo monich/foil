@@ -91,6 +91,8 @@ foil_openssl_cipher_aes_cbc_decrypt_class_init(
 {
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "AESCBC(Decrypt)";
+    /* Padding makes no sense if we are decrypting */
+    cipher->fn_set_padding_func = NULL;
     cipher->fn_step = foil_openssl_cipher_aes_cbc_decrypt_step;
     cipher->fn_post_init = foil_openssl_cipher_aes_cbc_decrypt_post_init;
 }
