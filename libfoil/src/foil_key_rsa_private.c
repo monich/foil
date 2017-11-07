@@ -459,6 +459,51 @@ foil_key_rsa_private_parse_bytes(
 }
 
 static
+void
+foil_key_rsa_private_encrypt_pad(
+    guint8* block,
+    gsize data_size,
+    gsize block_size)
+{
+    /* Padding expected by openssl */
+    guint8 n = block_size - data_size;
+    memset(block + data_size, n, n);
+}
+
+/*
+ * Kind of similar to foil_cipher_bytes except that we need to use the
+ * specific padding. Otherwise openssl rsa will refuse to decrypt the key.
+ */
+static
+GBytes*
+foil_key_rsa_private_encrypt(
+    GType type,
+    FoilKey* key,
+    GBytes* bytes)
+{
+    GBytes* result = NULL;
+    if (G_LIKELY(bytes)) {
+        gsize size = 0;
+        const void* data = g_bytes_get_data(bytes, &size);
+        if (G_LIKELY(data || !size)) {
+            FoilCipher* cipher = foil_cipher_new(type, key);
+            if (cipher) {
+                FoilOutput* out = foil_output_mem_new(NULL);
+                foil_cipher_set_padding_func(cipher,
+                    foil_key_rsa_private_encrypt_pad);
+                if (foil_cipher_write_data(cipher, data, size, out, NULL)) {
+                    result = foil_output_free_to_bytes(out);
+                } else {
+                    foil_output_unref(out);
+                }
+                foil_cipher_unref(cipher);
+            }
+        }
+    }
+    return result;
+}
+
+static
 gboolean
 foil_key_rsa_private_export_default(
     FoilKeyRsaPrivate* self,
@@ -506,7 +551,7 @@ foil_key_rsa_private_export_default(
                     g_bytes_unref(b);
                     if (key) {
                         b = foil_key_rsa_private_data_to_bytes(self->data);
-                        bytes = foil_cipher_bytes(cipher, key, b);
+                        bytes = foil_key_rsa_private_encrypt(cipher, key, b);
                         g_bytes_unref(b);
                         foil_key_unref(key);
                     }
