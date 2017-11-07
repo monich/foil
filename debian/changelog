@@ -1,3 +1,11 @@
+libfoil (1.0.2) unstable; urgency=low
+
+  * Added foil_cipher_set_padding_func()
+  * Hooked up RSA private key generator
+  * Made RSA key encryption openssl compatible
+
+ -- Slava Monich <slava@monich.com>  Tue, 07 Nov 2017 14:24:26 +0300
+
 libfoil (1.0.1) unstable; urgency=low
 
   * Added foil_input_copy_all()
