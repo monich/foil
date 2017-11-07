@@ -121,6 +121,22 @@ foilmsg_free(
     }
 }
 
+const char*
+foilmsg_get_value(
+    FoilMsg* msg,
+    const char* name)
+{
+    if (G_LIKELY(msg) && G_LIKELY(name)) {
+        guint i;
+        for (i=0; i<msg->headers.count; i++) {
+            if (!strcmp(msg->headers.header[i].name, name)) {
+                return msg->headers.header[i].value;
+            }
+        }
+    }
+    return NULL;
+}
+
 /* SEQUENCE { tag INTEGER data OCTET STRING } */
 static
 gboolean

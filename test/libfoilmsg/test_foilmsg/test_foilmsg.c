@@ -292,6 +292,11 @@ test_foilmsg_headers2(
         g_assert(!g_strcmp0(h->value, header[i].value));
     }
 
+    g_assert(!foilmsg_get_value(NULL, NULL));
+    g_assert(!foilmsg_get_value(msg, NULL));
+    g_assert(!foilmsg_get_value(msg, "NoSuchHeader"));
+    g_assert(!g_strcmp0(foilmsg_get_value(msg, "Name"), "Value"));
+
     foilmsg_free(msg);
     g_bytes_unref(enc);
 

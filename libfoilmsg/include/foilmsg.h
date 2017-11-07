@@ -230,6 +230,12 @@ void
 foilmsg_free(
     FoilMsg* msg);
 
+/* Utilities */
+const char*
+foilmsg_get_value(
+    FoilMsg* msg,
+    const char* name);
+
 G_END_DECLS
 
 #endif /* FOILMSG_H */
