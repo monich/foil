@@ -194,6 +194,12 @@ foilmsg_decrypt(
     FoilOutput* out);   /* optional */
 
 FoilMsg*
+foilmsg_decrypt_file(
+    FoilPrivateKey* recipient,
+    const char* path,
+    FoilOutput* out);   /* optional */
+
+FoilMsg*
 foilmsg_decrypt_text(
     FoilPrivateKey* recipient,
     const char* message);

@@ -546,6 +546,30 @@ foilmsg_decrypt(
 }
 
 FoilMsg*
+foilmsg_decrypt_file(
+    FoilPrivateKey* recipient,
+    const char* path,
+    FoilOutput* out)
+{
+    FoilMsg* msg = NULL;
+    if (G_LIKELY(recipient) && G_LIKELY(path)) {
+        GError* error = NULL;
+        GMappedFile* map = g_mapped_file_new(path, FALSE, &error);
+        if (map) {
+            FoilBytes bytes;
+            bytes.val = (void*)g_mapped_file_get_contents(map);
+            bytes.len = g_mapped_file_get_length(map);
+            msg = foilmsg_decrypt(recipient, &bytes, out);
+            g_mapped_file_unref(map);
+        } else {
+            GDEBUG("Failed to read %s: %s", path, GERRMSG(error));
+            g_error_free(error);
+        }
+    }
+    return msg;
+}
+
+FoilMsg*
 foilmsg_decrypt_text(
     FoilPrivateKey* recipient,
     const char* message)

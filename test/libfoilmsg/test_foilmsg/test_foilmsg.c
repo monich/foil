@@ -33,6 +33,9 @@
 #include <foil_key.h>
 #include <foil_private_key.h>
 #include <foil_output.h>
+#include <foil_util.h>
+
+#include <glib/gstdio.h>
 
 #define DATA_DIR "data/"
 
@@ -132,7 +135,10 @@ test_foilmsg_invalid(
 {
     FoilPrivateKey* priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE,
         DATA_DIR "rsa-1024");
+    char* tmp = g_dir_make_tmp("foil_XXXXXX", NULL);
     g_assert(priv);
+    g_assert(tmp);
+    g_rmdir(tmp);
 
     foilmsg_free(NULL);
     foilmsg_info_free(NULL);
@@ -143,6 +149,9 @@ test_foilmsg_invalid(
     g_assert(!foilmsg_encrypt_text(NULL, NULL, NULL, 0, NULL));
     g_assert(!foilmsg_encrypt_text_to_bytes(NULL, NULL, NULL, NULL));
     g_assert(!foilmsg_decrypt(NULL, NULL, NULL));
+    g_assert(!foilmsg_decrypt_file(NULL, NULL, NULL));
+    g_assert(!foilmsg_decrypt_file(priv, NULL, NULL));
+    g_assert(!foilmsg_decrypt_file(priv, tmp, NULL));
     g_assert(!foilmsg_decrypt_text(NULL, NULL));
     g_assert(!foilmsg_decrypt_text(priv, NULL));
     g_assert(!foilmsg_decrypt_text_len(NULL, NULL, 0));
@@ -151,6 +160,41 @@ test_foilmsg_invalid(
     g_assert(!foilmsg_decrypt_text_bytes(priv, NULL));
     g_assert(!foilmsg_verify(NULL, NULL));
     foil_private_key_unref(priv);
+    g_free(tmp);
+}
+
+static
+void
+test_foilmsg_decrypt_file(
+    void)
+{
+    FoilPrivateKey* priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE,
+        DATA_DIR "rsa-1024");
+    FoilKey* pub = foil_public_key_new_from_private(priv);
+    char* tmpdir = g_dir_make_tmp("foil_XXXXXX", NULL);
+    char* tmpfile = g_strconcat(tmpdir, G_DIR_SEPARATOR_S "test", NULL);
+    FoilOutput* out = foil_output_file_new_open(tmpfile);
+    FoilMsg* msg;
+    FoilBytes in;
+
+    g_assert(priv);
+    g_assert(pub);
+    g_assert(out);
+    foil_bytes_from_string(&in, "This is a test");
+    g_assert(foilmsg_encrypt(out, &in, NULL, NULL, priv, pub, NULL, NULL));
+    foil_output_unref(out);
+
+    msg = foilmsg_decrypt_file(priv, tmpfile, NULL);
+    g_assert(msg);
+    g_assert(test_bytes_equal(msg->data, in.val,  in.len));
+    foilmsg_free(msg);
+
+    foil_private_key_unref(priv);
+    foil_key_unref(pub);
+    g_remove(tmpfile);
+    g_rmdir(tmpdir);
+    g_free(tmpfile);
+    g_free(tmpdir);
 }
 
 static
@@ -1519,6 +1563,7 @@ int main(int argc, char* argv[])
     guint i;
     g_test_init(&argc, &argv, NULL);
     g_test_add_func(TEST_("Invalid"), test_foilmsg_invalid);
+    g_test_add_func(TEST_("DecryptFile"), test_foilmsg_decrypt_file);
     for (i = 0; i < G_N_ELEMENTS(foilmsg_convert_tests); i++) {
         const TestFoilMsgConvertToBinary* test = foilmsg_convert_tests + i;
         g_test_add_data_func(test->name, test, test_foilmsg_to_binary);
