@@ -133,16 +133,6 @@ foilmsg_encrypt_text_to_bytes(
     FoilKey* recipient,
     const FoilMsgEncryptOptions* opt);  /* optional */
 
-gsize
-foilmsg_encrypt_file(
-    FoilOutput* out,
-    const char* file,
-    const char* content_type,           /* optional */
-    const FoilMsgHeaders* headers,      /* optional */
-    FoilPrivateKey* sender,
-    FoilKey* recipient,
-    const FoilMsgEncryptOptions* opt);  /* optional */
-
 GBytes*
 foilmsg_encrypt_to_bytes(
     const FoilBytes* data,
