@@ -123,7 +123,7 @@ foilmsg_free(
 
 const char*
 foilmsg_get_value(
-    FoilMsg* msg,
+    const FoilMsg* msg,
     const char* name)
 {
     if (G_LIKELY(msg) && G_LIKELY(name)) {
@@ -638,7 +638,7 @@ foilmsg_decrypt_text_bytes(
 
 gboolean
 foilmsg_verify(
-    FoilMsg* msg,
+    const FoilMsg* msg,
     FoilKey* sender)
 {
     if (G_LIKELY(msg) && G_LIKELY(sender)) {

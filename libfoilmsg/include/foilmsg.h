@@ -222,7 +222,7 @@ foilmsg_decrypt_text_bytes(
 /* Verify the signature */
 gboolean
 foilmsg_verify(
-    FoilMsg* msg,
+    const FoilMsg* msg,
     FoilKey* sender);
 
 /* Free the decrypted message */
@@ -233,7 +233,7 @@ foilmsg_free(
 /* Utilities */
 const char*
 foilmsg_get_value(
-    FoilMsg* msg,
+    const FoilMsg* msg,
     const char* name);
 
 G_END_DECLS
