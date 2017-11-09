@@ -50,7 +50,8 @@ LIBFOILMSG_BUILD_DIR="$LIBFOILMSG_DIR/build/$FLAVOR"
 
 export LD_LIBRARY_PATH="$LIBFOIL_BUILD_DIR"
 
-make GCOV=1 -C "$BASE_DIR" clean $FLAVOR
+make GCOV=1 -C "$LIBFOIL_DIR" clean $FLAVOR || exit 1
+make GCOV=1 -C "$LIBFOILMSG_DIR" clean $FLAVOR || exit 1
 for t in $LIBFOIL_TESTS ; do
     pushd "$TEST_DIR/libfoil/$t"
     make GCOV=1 clean $FLAVOR || exit 1
