@@ -1,3 +1,10 @@
+libfoil (1.0.3) unstable; urgency=low
+
+  * Added foilmsg_get_value
+  * Added foilmsg_decrypt_file
+
+ -- Slava Monich <slava@monich.com>  Thu, 30 Nov 2017 14:11:18 +0200
+
 libfoil (1.0.2) unstable; urgency=low
 
   * Added foil_cipher_set_padding_func()
