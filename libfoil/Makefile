@@ -7,7 +7,8 @@
 #
 
 IMPL = openssl
-PKGS = $(IMPL) libglibutil glib-2.0 gobject-2.0
+IMPL_PKG = libcrypto
+PKGS = $(IMPL_PKG) libglibutil glib-2.0 gobject-2.0
 
 #
 # Default target
