@@ -1,3 +1,12 @@
+libfoil (1.0.4) unstable; urgency=low
+
+  * Added -S (--self) option to foilmsg and foilpng tools
+  * Added --version option to all command line tools
+  * Updated tools to print key fingerprints in verbose mode
+  * Took out unnecessary libssl dependency
+
+ -- Slava Monich <slava@monich.com>  Tue, 05 Dec 2017 01:04:07 +0300
+
 libfoil (1.0.3) unstable; urgency=low
 
   * Added foilmsg_get_value
