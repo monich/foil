@@ -198,6 +198,24 @@ foilmsg_info(
 }
 
 static
+GString*
+foilmsg_bytes_to_hex(
+    GBytes* bytes)
+{
+    gsize len = 0;
+    const guint8* data = g_bytes_get_data(bytes, &len);
+    GString* buf = g_string_sized_new(len ? (len*3 - 1) : 0);
+    if (len > 0) {
+        guint i;
+        g_string_append_printf(buf, "%02x", data[0]);
+        for (i=1; i<len; i++) {
+            g_string_append_printf(buf, ":%02x", data[i]);
+        }
+    }
+    return buf;
+}
+
+static
 int
 foilmsg_encode(
     FoilKey* recipient,
@@ -356,18 +374,34 @@ main(
     if (ok && priv_key && argc == 1) {
         FoilKey* pub = NULL;
         FoilPrivateKey* priv;
+        const char* pub_pad = "";
 
         /* Load the keys */
-        if (pub_key) {
-            pub = foil_key_new_from_file(FOIL_KEY_RSA_PUBLIC, pub_key);
-            if (!pub) {
-                GERR("Failed to load public key from %s", pub_key);
+        priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_key);
+        if (priv) {
+            if (GLOG_ENABLED(GLOG_LEVEL_DEBUG)) {
+                GBytes* fp = foil_private_key_fingerprint(priv);
+                GString* buf = foilmsg_bytes_to_hex(fp);
+                GDEBUG("Private key fingerprint: %s", buf->str);
+                g_string_free(buf, TRUE);
+                pub_pad = " "; /* Align output for public and private keys */
             }
+        } else {
+            GERR("Failed to load private key from %s", priv_key);
         }
 
-        priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_key);
-        if (!priv) {
-            GERR("Failed to load private key from %s", priv_key);
+        if (pub_key) {
+            pub = foil_key_new_from_file(FOIL_KEY_RSA_PUBLIC, pub_key);
+            if (pub) {
+                if (GLOG_ENABLED(GLOG_LEVEL_DEBUG)) {
+                    GBytes* fp = foil_key_fingerprint(pub);
+                    GString* buf = foilmsg_bytes_to_hex(fp);
+                    GDEBUG("Public key fingerprint: %s%s", pub_pad, buf->str);
+                    g_string_free(buf, TRUE);
+                }
+            } else {
+                GERR("Failed to load public key from %s", pub_key);
+            }
         }
 
         /* Encrypt or decrypt something */
