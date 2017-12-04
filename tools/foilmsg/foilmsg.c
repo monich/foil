@@ -281,6 +281,9 @@ main(
     gboolean decrypt = FALSE;
     gboolean show_info = FALSE;
     gboolean for_self = FALSE;
+#ifdef VERSION
+    gboolean print_version = FALSE;
+#endif
     GError* error = NULL;
     char* priv_key = NULL;
     char* pub_key = NULL;
@@ -302,6 +305,10 @@ main(
           "Read input from FILE", "FILE" },
         { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
           "Enable verbose output", NULL },
+#ifdef VERSION
+        { "version", 0, 0, G_OPTION_ARG_NONE, &print_version,
+          "Print version and exit", NULL },
+#endif
         { NULL }
     };
     GOptionEntry encrypt_entries[] = {
@@ -371,6 +378,12 @@ main(
         GWARN("Ignoring --info option because we are not decrypting");
     }
 
+#ifdef VERSION
+    if (ok && print_version) {
+        printf("%s %s\n", gutil_log_default.name, G_STRINGIFY(VERSION));
+        ret = RET_OK;
+    } else
+#endif
     if (ok && priv_key && argc == 1) {
         FoilKey* pub = NULL;
         FoilPrivateKey* priv;
