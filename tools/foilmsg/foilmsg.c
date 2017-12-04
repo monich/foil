@@ -258,6 +258,7 @@ main(
     gboolean verbose = FALSE;
     gboolean decrypt = FALSE;
     gboolean show_info = FALSE;
+    gboolean for_self = FALSE;
     GError* error = NULL;
     char* priv_key = NULL;
     char* pub_key = NULL;
@@ -286,6 +287,8 @@ main(
           "Encryption key size (128, 192 or 256) [128]", "BITS" },
         { "columns", 'c', 0, G_OPTION_ARG_INT, &columns,
           "Wrap lines at the specified column [64]", "COLS" },
+        { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
+          "Encrypt to self and the recipient", NULL },
         { NULL }
     };
     GOptionEntry decrypt_entries[] = {
@@ -365,7 +368,6 @@ main(
 
         /* Encrypt or decrypt something */
         if (priv && (pub || !pub_key)) {
-
             /* Read the input data */
             GBytes* in = NULL;
             if (in_file) {
@@ -402,7 +404,10 @@ main(
                     memcpy(text, bytes.val, bytes.len);
                     text[bytes.len] = 0;
                     memset(&opt, 0, sizeof(opt));
-                    opt.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
+                    /* Without a public key, encrypt to self */
+                    if (for_self || !pub) {
+                        opt.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
+                    }
                     switch (key_size) {
                     default:  opt.key_type = FOILMSG_KEY_AES_128; break;
                     case 192: opt.key_type = FOILMSG_KEY_AES_192; break;
