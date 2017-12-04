@@ -100,7 +100,7 @@ typedef struct foilmsg_encrypt_options {
 /*
  * FOILMSG_FLAG_ENCRYPT_FOR_SELF - encrypt the key with sender's public
  * key (in addition to recipient's public key). If this flag is specified
- * the the recipient's public key may be omitted, i.e. the data will be
+ * then the recipient's public key may be omitted, i.e. the data will be
  * encrypted only for the sender itself.
  */
 #define FOILMSG_FLAG_ENCRYPT_FOR_SELF (0x01)
