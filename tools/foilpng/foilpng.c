@@ -397,6 +397,9 @@ main(
     gboolean verbose = FALSE;
     gboolean decrypt = FALSE;
     gboolean for_self = FALSE;
+#ifdef VERSION
+    gboolean print_version = FALSE;
+#endif
     GError* error = NULL;
     char* type = NULL;
     char* priv_key = NULL;
@@ -415,6 +418,10 @@ main(
           "Enable verbose output", NULL },
         { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
           "Encrypt to self and the recipient", NULL },
+#ifdef VERSION
+        { "version", 0, 0, G_OPTION_ARG_NONE, &print_version,
+          "Print version and exit", NULL },
+#endif
         { NULL }
     };
     GOptionEntry encrypt_entries[] = {
@@ -473,6 +480,12 @@ main(
         ok = FALSE;
     }
 
+#ifdef VERSION
+    if (ok && print_version) {
+        printf("%s %s\n", gutil_log_default.name, G_STRINGIFY(VERSION));
+        ret = RET_OK;
+    } else
+#endif
     if (ok && priv_key && argc == 3) {
         FoilKey* pub = NULL;
         FoilPrivateKey* priv;

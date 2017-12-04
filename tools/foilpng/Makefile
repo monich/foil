@@ -35,12 +35,23 @@ DEBUG_BUILD_DIR = $(BUILD_DIR)/debug
 RELEASE_BUILD_DIR = $(BUILD_DIR)/release
 
 #
+# Application version
+#
+
+VERSION_FILE = ../../VERSION
+VERSION_MAJOR = $(shell head -1 $(VERSION_FILE) | cut -f1 -d.)
+VERSION_MINOR = $(shell head -1 $(VERSION_FILE) | cut -f2 -d.)
+VERSION_RELEASE = $(shell head -1 $(VERSION_FILE) | cut -f3 -d.)
+VERSION = $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_RELEASE)
+
+#
 # Tools and flags
 #
 
 CC = $(CROSS_COMPILE)gcc
 LD = $(CC)
 WARNINGS = -Wall
+DEFINES += -DVERSION=$(VERSION)
 INCLUDES = -I$(LIBFOIL_DIR)/include -I$(LIBFOILMSG_DIR)/include
 BASE_FLAGS = -fPIC
 BASE_LDFLAGS = $(BASE_FLAGS) $(LDFLAGS)
