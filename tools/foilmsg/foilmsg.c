@@ -208,6 +208,10 @@ foilmsg_encode(
 {
     GString* enc = foilmsg_encrypt_text(text, sender, recipient, cols, opts);
     if (enc) {
+        /* Make sure that the last line is terminated */
+        if (enc->len > 0 && enc->str[enc->len-1] != '\n') {
+            g_string_append_c(enc, '\n');
+        }
         printf("%s", enc->str);
         g_string_free(enc, TRUE);
         return RET_OK;
