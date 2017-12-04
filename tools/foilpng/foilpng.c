@@ -378,6 +378,7 @@ main(
     gboolean ok;
     gboolean verbose = FALSE;
     gboolean decrypt = FALSE;
+    gboolean for_self = FALSE;
     GError* error = NULL;
     char* type = NULL;
     char* priv_key = NULL;
@@ -394,6 +395,8 @@ main(
           "Public key of the other party", "FILE" },
         { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
           "Enable verbose output", NULL },
+        { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
+          "Encrypt to self and the recipient", NULL },
         { NULL }
     };
     GOptionEntry encrypt_entries[] = {
@@ -558,7 +561,10 @@ main(
                     } else {
                         FoilMsgEncryptOptions opt;
                         memset(&opt, 0, sizeof(opt));
-                        opt.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
+                        /* Without a public key, encrypt to self */
+                        if (for_self || !pub) {
+                            opt.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
+                        }
                         switch (key_size) {
                         default:  opt.key_type = FOILMSG_KEY_AES_128; break;
                         case 192: opt.key_type = FOILMSG_KEY_AES_192; break;
