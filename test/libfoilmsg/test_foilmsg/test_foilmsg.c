@@ -199,6 +199,78 @@ test_foilmsg_decrypt_file(
 
 static
 void
+test_foilmsg_encrypt_self(
+    void)
+{
+    FoilPrivateKey* priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE,
+        DATA_DIR "rsa-1024");
+    FoilKey* pub = foil_public_key_new_from_private(priv);
+    FoilKey* pub2 = foil_key_new_from_file(FOIL_KEY_RSA_PUBLIC,
+        DATA_DIR "rsa-768.pub");
+    FoilMsgEncryptOptions opts;
+    const char* text = "This is a test";
+    const guint len = strlen(text);
+    FoilBytes bytes;
+    FoilMsg* msg;
+    GBytes* enc1;
+    GBytes* enc2;
+    GBytes* enc3;
+
+    g_assert(priv);
+    g_assert(pub);
+    g_assert(pub2);
+    memset(&opts, 0, sizeof(opts));
+
+    /* Public key in one form or another is required */
+    g_assert(!foilmsg_encrypt_text_to_bytes(text, priv, NULL, &opts));
+
+    /* This one we will fail to decrypt (not encrypted to self) */
+    enc1 = foilmsg_encrypt_text_to_bytes(text, priv, pub2, &opts);
+    g_assert(enc1);
+    msg = foilmsg_decrypt(priv, foil_bytes_from_data(&bytes, enc1), NULL);
+    g_assert(!msg);
+    g_bytes_unref(enc1);
+
+    /* Make sure that duplicate public keys don't get included */
+    enc1 = foilmsg_encrypt_text_to_bytes(text, priv, pub, &opts);
+    g_assert(enc1);
+    opts.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
+    enc2 = foilmsg_encrypt_text_to_bytes(text, priv, NULL, &opts);
+    g_assert(enc2);
+    enc3 = foilmsg_encrypt_text_to_bytes(text, priv, pub, &opts);
+    g_assert(enc3);
+
+    /* All those should have the same size */
+    g_assert(g_bytes_get_size(enc1) > 0);
+    g_assert(g_bytes_get_size(enc1) == g_bytes_get_size(enc2));
+    g_assert(g_bytes_get_size(enc1) == g_bytes_get_size(enc3));
+
+    /* And they all should get decrypted */
+    msg = foilmsg_decrypt(priv, foil_bytes_from_data(&bytes, enc1), NULL);
+    g_assert(msg);
+    g_assert(test_bytes_equal(msg->data, text,  len));
+    foilmsg_free(msg);
+    g_bytes_unref(enc1);
+
+    msg = foilmsg_decrypt(priv, foil_bytes_from_data(&bytes, enc2), NULL);
+    g_assert(msg);
+    g_assert(test_bytes_equal(msg->data, text,  len));
+    foilmsg_free(msg);
+    g_bytes_unref(enc2);
+
+    msg = foilmsg_decrypt(priv, foil_bytes_from_data(&bytes, enc3), NULL);
+    g_assert(msg);
+    g_assert(test_bytes_equal(msg->data, text,  len));
+    foilmsg_free(msg);
+    g_bytes_unref(enc3);
+
+    foil_private_key_unref(priv);
+    foil_key_unref(pub);
+    foil_key_unref(pub2);
+}
+
+static
+void
 test_foilmsg_to_binary(
     gconstpointer param)
 {
@@ -1564,6 +1636,7 @@ int main(int argc, char* argv[])
     g_test_init(&argc, &argv, NULL);
     g_test_add_func(TEST_("Invalid"), test_foilmsg_invalid);
     g_test_add_func(TEST_("DecryptFile"), test_foilmsg_decrypt_file);
+    g_test_add_func(TEST_("EncryptSelf"), test_foilmsg_encrypt_self);
     for (i = 0; i < G_N_ELEMENTS(foilmsg_convert_tests); i++) {
         const TestFoilMsgConvertToBinary* test = foilmsg_convert_tests + i;
         g_test_add_data_func(test->name, test, test_foilmsg_to_binary);

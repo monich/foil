@@ -393,8 +393,13 @@ foilmsg_encrypt(
                     g_ptr_array_add(pubkeys, foil_key_ref(recipient));
                 }
                 if (for_self) {
-                    g_ptr_array_add(pubkeys,
-                        foil_public_key_new_from_private(sender));
+                    FoilKey* pub = foil_public_key_new_from_private(sender);
+                    if (foil_key_equal(pub, recipient)) {
+                        GDEBUG("Not adding duplicate sender's public key");
+                        foil_key_unref(pub);
+                    } else {
+                        g_ptr_array_add(pubkeys, pub);
+                    }
                 }
 
                 /* Part 1 - format version */
