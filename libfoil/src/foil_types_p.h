@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,8 @@
 #include "foil_types.h"
 
 #include <gutil_macros.h>
+
+#include <glib-object.h>
 
 #define FOIL_ALIGN(x)  G_ALIGN4(x)
 

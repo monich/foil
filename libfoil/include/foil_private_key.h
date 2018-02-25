@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +31,8 @@
 #define FOIL_PRIVATE_KEY_H
 
 #include "foil_key.h"
+
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 

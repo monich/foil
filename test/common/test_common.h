@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,8 +31,11 @@
 #define TEST_COMMON_H
 
 #include "foil_types.h"
+
 #include <gutil_log.h>
 #include <gutil_macros.h>
+
+#include <glib-object.h>
 
 #define TEST_ARRAY_AND_SIZE(array) array, G_N_ELEMENTS(array)
 
