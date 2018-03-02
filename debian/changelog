@@ -1,3 +1,10 @@
+libfoil (1.0.6) unstable; urgency=low
+
+  * Explicitely include <glib-object.h> in one more place
+  * Fixed dependencies for pkgconfig target
+
+ -- Slava Monich <slava@monich.com>  Sat, 03 Mar 2018 01:23:11 +0200
+
 libfoil (1.0.5) unstable; urgency=low
 
   * Explicitely include <glib-object.h> where it's needed
