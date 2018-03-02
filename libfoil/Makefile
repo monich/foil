@@ -165,6 +165,7 @@ ifneq ($(strip $(DEPS)),)
 endif
 endif
 
+$(PKGCONFIG): | $(BUILD_DIR)
 $(DEBUG_OBJS) $(DEBUG_LIB): | $(DEBUG_BUILD_DIR)
 $(RELEASE_OBJS) $(RELEASE_LIB): | $(RELEASE_BUILD_DIR)
 $(IMPL_DEBUG_OBJS): | $(IMPL_DEBUG_BUILD_DIR)
@@ -208,6 +209,9 @@ distclean: clean
 clean:
 	rm -f *~ $(SRC_DIR)/*~ $(IMPL_SRC_DIR)/*~ $(INCLUDE_DIR)/*~
 	rm -fr $(BUILD_DIR)
+
+$(BUILD_DIR):
+	mkdir -p $@
 
 $(DEBUG_BUILD_DIR):
 	mkdir -p $@
