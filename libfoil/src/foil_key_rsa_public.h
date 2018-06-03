@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,13 +31,6 @@
 #define FOIL_KEY_RSA_PUBLIC_H
 
 #include "foil_key_p.h"
-
-/*
- * RSAPublicKey ::= SEQUENCE {
- *   modulus           INTEGER,  -- n
- *   publicExponent    INTEGER   -- e
- * }
- */
 
 typedef struct foil_key_rsa_public_info {
     FoilBytes n;

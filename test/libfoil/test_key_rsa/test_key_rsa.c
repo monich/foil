@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -856,6 +856,9 @@ test_key_rsa_fingerprint_value(
 #define TEST_READ_RFC4716_OK(type,name) \
     { TEST_("read-" name ".RFC4716"), test_key_rsa_##type##_read_ok,  \
       name ".RFC4716", name ".bin" }
+#define TEST_READ_PKCS8_OK(type,name) \
+    { TEST_("read-" name ".PKCS8"), test_key_rsa_##type##_read_ok,  \
+      name ".PKCS8", name ".bin" }
 #define TEST_READ_OK1(type,name) \
     { TEST_("read-" name), test_key_rsa_##type##_read_ok, \
       name }
@@ -892,6 +895,9 @@ test_key_rsa_fingerprint_value(
 #define TEST_STRING_RFC4716_COMMENT(name,comment) \
     { TEST_("string-rfc4716-comment-" name), test_key_rsa_string, \
       name, name ".pub", comment, FOIL_KEY_EXPORT_FORMAT_RFC4716 }
+#define TEST_STRING_PKCS8(name) \
+    { TEST_("string-pkcs8-" name), test_key_rsa_string, \
+      name, name ".pub", NULL, FOIL_KEY_EXPORT_FORMAT_PKCS8 }
 
 static const TestKeyRsa tests[] = {
     TEST_READ_OK(private,  "rsa-768"  ),
@@ -941,6 +947,7 @@ static const TestKeyRsa tests[] = {
     TEST_READ_PASSPHRASE_ERR("rsa-2048-passphrase", "err5", NULL,
         KEY_UNKNOWN_ENCRYPTION),  /* Invalid algorithm */
     TEST_READ_RFC4716_OK(public, "rsa-768.pub" ),
+    TEST_READ_PKCS8_OK(public, "rsa-768.pub" ),
     TEST_FINGERPRINT("rsa-768"  ),
     TEST_FINGERPRINT("rsa-1024" ),
     TEST_FINGERPRINT("rsa-1500" ),
@@ -1054,6 +1061,7 @@ static const TestKeyRsa tests[] = {
     TEST_STRING("rsa-1024"),
     TEST_STRING("rsa-1500"),
     TEST_STRING("rsa-2048"),
+    TEST_STRING_PKCS8("rsa-768" ),
     TEST_STRING_COMMENT("rsa-768" ),
     TEST_STRING_COMMENT("rsa-1024"),
     TEST_STRING_COMMENT("rsa-1500"),

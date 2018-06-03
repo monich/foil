@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -195,6 +195,14 @@ foil_asn1_is_integer(
 }
 
 gboolean
+foil_asn1_is_bit_string(
+    const FoilParsePos* pos)
+{
+    return pos->ptr < pos->end &&
+        (pos->ptr[0] & (~ASN1_CLASS_MASK)) == ASN1_TAG_BIT_STRING;
+}
+
+gboolean
 foil_asn1_is_octet_string(
     const FoilParsePos* pos)
 {
@@ -210,23 +218,31 @@ foil_asn1_is_ia5_string(
         (pos->ptr[0] & (~ASN1_CLASS_MASK)) == ASN1_TAG_IA5_STRING;
 }
 
+static
+gboolean
+foil_asn1_parse_skip_header(
+    FoilParsePos* pos,
+    guint32* len)
+{
+    FoilParsePos tmp = *pos;
+    guint32 seq_len;
+    gboolean def;
+    tmp.ptr++;
+    if (foil_asn1_parse_len(&tmp, &seq_len, &def) && def) {
+        pos->ptr = tmp.ptr;
+        if (len) *len = seq_len;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 gboolean
 foil_asn1_parse_skip_sequence_header(
     FoilParsePos* pos,
     guint32* len)
 {
-    if (foil_asn1_is_sequence(pos)) {
-        FoilParsePos tmp = *pos;
-        guint32 seq_len;
-        gboolean def;
-        tmp.ptr++;
-        if (foil_asn1_parse_len(&tmp, &seq_len, &def) && def) {
-            pos->ptr = tmp.ptr;
-            if (len) *len = seq_len;
-            return TRUE;
-        }
-    }
-    return FALSE;
+    return foil_asn1_is_sequence(pos) &&
+        foil_asn1_parse_skip_header(pos, len);
 }
 
 gboolean
@@ -243,6 +259,30 @@ foil_asn1_parse_start_sequence(
         pos->ptr = tmp.ptr;
         if (len) *len = seq_len;
         return TRUE;
+    }
+    return FALSE;
+}
+
+gboolean
+foil_asn1_parse_start_bit_string(
+    FoilParsePos* pos,
+    guint32* num_bytes,
+    guint8* unused_bits)
+{
+    if (foil_asn1_is_bit_string(pos)) {
+        FoilParsePos tmp = *pos;
+        guint32 len;
+        if (foil_asn1_parse_skip_header(&tmp, &len) &&
+            /* Overflow can occur on 32-bit systems */
+            tmp.ptr + len >= tmp.ptr && tmp.ptr + len <= tmp.end &&
+            /* Number of unused bits is always present and must be 0..7 */
+            len >= 1 && !(tmp.ptr[0] & 0xf8)) {
+            if (num_bytes) *num_bytes = len - 1;
+            if (unused_bits) *unused_bits = tmp.ptr[0];
+            *pos = tmp;
+            pos->ptr++;
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -451,6 +491,29 @@ foil_asn1_parse_block(
 }
 
 gboolean
+foil_asn1_parse_bit_string(
+    FoilParsePos* pos,
+    FoilBytes* bytes,
+    guint8* unused_bits)
+{
+    FoilParsePos tmp_pos = *pos;
+    FoilBytes tmp_bytes;
+    /* First byte - number of unused bits, always present */
+    if (foil_asn1_parse_block(&tmp_pos, ASN1_TAG_BIT_STRING, &tmp_bytes) &&
+        tmp_bytes.len >= 1 && !(tmp_bytes.val[0] & 0xf8)) {
+        *pos = tmp_pos;
+        if (unused_bits) *unused_bits = tmp_bytes.val[0];
+        if (bytes) {
+            tmp_bytes.val++;
+            tmp_bytes.len--;
+            *bytes = tmp_bytes;
+        }
+        return TRUE;
+    }
+    return FALSE;
+}
+
+gboolean
 foil_asn1_parse_octet_string(
     FoilParsePos* pos,
     FoilBytes* bytes)
@@ -624,6 +687,65 @@ foil_asn1_encode_sequence_bytes(
     return foil_output_free_to_bytes(out);
 }
 
+static
+GBytes*
+foil_asn1_encode_block_bytes(
+    guint8 id,
+    const FoilBytes* bytes)
+{
+    FoilOutput* out = foil_output_mem_new(NULL);
+    GVERIFY(foil_asn1_encode_block1(out, id, bytes));
+    return foil_output_free_to_bytes(out);
+}
+
+gsize
+foil_asn1_encode_bit_string_header(
+    FoilOutput* out,
+    gsize bitcount)
+{
+    const gsize len = 1 + (bitcount + 7)/8;
+    const guint8 unused_bits = (guint8)(bitcount % 8);
+    gsize size = foil_asn1_encode_block_header(out, ASN1_TAG_BIT_STRING, len);
+    if (size && foil_output_write_all(out, &unused_bits, 1)) {
+        return size + 1;
+    }
+    return 0;
+}
+
+gsize
+foil_asn1_encode_bit_string(
+    FoilOutput* out,
+    const FoilBytes* bytes,
+    guint unused_bits)
+{
+    guint8 unused_bits_count;
+    guint n = 1;
+    const FoilBytes* payload[2];
+    FoilBytes first_byte;
+
+    /* First byte - number of unused bits, always present */
+    first_byte.val = &unused_bits_count;
+    first_byte.len = 1;
+    payload[0] = &first_byte;
+    if (bytes && bytes->len > 0) {
+        unused_bits_count = (guint8)(unused_bits & 7);
+        payload[n++] = bytes;
+    } else {
+        unused_bits_count = 0;
+    }
+    return foil_asn1_encode_block(out, ASN1_TAG_BIT_STRING, payload, n);
+}
+
+GBytes*
+foil_asn1_encode_bit_string_bytes(
+    const FoilBytes* bytes,
+    guint unused_bits)
+{
+    FoilOutput* out = foil_output_mem_new(NULL);
+    GVERIFY(foil_asn1_encode_bit_string(out, bytes, unused_bits));
+    return foil_output_free_to_bytes(out);
+}
+
 gsize
 foil_asn1_encode_octet_string(
     FoilOutput* out,
@@ -636,9 +758,7 @@ GBytes*
 foil_asn1_encode_octet_string_bytes(
     const FoilBytes* bytes)
 {
-    FoilOutput* out = foil_output_mem_new(NULL);
-    GVERIFY(foil_asn1_encode_octet_string(out, bytes));
-    return foil_output_free_to_bytes(out);
+    return foil_asn1_encode_block_bytes(ASN1_TAG_OCTET_STRING, bytes);
 }
 
 gsize

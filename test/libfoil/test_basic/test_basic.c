@@ -580,11 +580,164 @@ test_asn1_seq(
 
 static
 void
+test_asn1_bit_string(
+    void)
+{
+    static const guint8 test1 [] = { 0x03, 0x01, 0x00 };
+    static const guint8 test2 [] = {
+        0x03, 0x82, 0x01, 0x05, 0x00,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+        0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
+        0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
+        0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
+        0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
+        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
+        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
+        0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x88, 0x88,
+        0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+        0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8,
+        0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8,
+        0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8,
+        0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xe8,
+        0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xd8,
+        0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+        0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
+        0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
+        0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
+        0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
+        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
+        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
+        0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x88, 0x88,
+        0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+        0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8,
+        0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8,
+        0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8,
+        0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xe8,
+        0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xd8,
+        0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+        0xf9, 0xfa, 0xfb, 0xfc
+    };
+    static const struct asn1_bit_strings_test {
+        const guint8* enc;
+        gsize len;
+        guint header;
+    } subtest [] = {
+        { test1, sizeof(test1),  3 },
+        { test2, sizeof(test2),  5 },
+    };
+
+    guint i;
+    guint32 len;
+    FoilParsePos pos;
+    static const guint8 not_bit_string[] = { 0x00 };
+    static const guint8 broken_bit_string[] = { 0x03, 0x82, 0x01 };
+    static const guint8 broken_bit_string2[] = { 0x03, 0x00 };
+    static const guint8 broken_bit_string3[] = { 0x03, 0x01, 0x08 };
+    static const guint8 broken_bit_string4[] = { 0x03, 0x02, 0x00 };
+
+    POS_SET(pos, not_bit_string);
+    g_assert(!foil_asn1_is_bit_string(&pos));
+    g_assert(!foil_asn1_parse_bit_string(&pos, NULL, NULL));
+    g_assert(!foil_asn1_parse_start_bit_string(&pos, NULL, NULL));
+    g_assert(pos.ptr == not_bit_string);
+
+    POS_SET(pos, broken_bit_string);
+    g_assert(foil_asn1_is_bit_string(&pos));
+    g_assert(!foil_asn1_parse_bit_string(&pos, NULL, NULL));
+    g_assert(!foil_asn1_parse_start_bit_string(&pos, NULL, NULL));
+    g_assert(pos.ptr == broken_bit_string);
+
+    POS_SET(pos, broken_bit_string2);
+    g_assert(foil_asn1_is_bit_string(&pos));
+    g_assert(!foil_asn1_parse_bit_string(&pos, NULL, NULL));
+    g_assert(!foil_asn1_parse_start_bit_string(&pos, NULL, NULL));
+    g_assert(pos.ptr == broken_bit_string2);
+
+    POS_SET(pos, broken_bit_string3);
+    g_assert(foil_asn1_is_bit_string(&pos));
+    g_assert(!foil_asn1_parse_bit_string(&pos, NULL, NULL));
+    g_assert(!foil_asn1_parse_start_bit_string(&pos, NULL, NULL));
+    g_assert(pos.ptr == broken_bit_string3);
+
+    POS_SET(pos, broken_bit_string4);
+    g_assert(foil_asn1_is_bit_string(&pos));
+    g_assert(!foil_asn1_parse_bit_string(&pos, NULL, NULL));
+    g_assert(!foil_asn1_parse_start_bit_string(&pos, NULL, NULL));
+    g_assert(pos.ptr == broken_bit_string4);
+
+    pos.end = pos.ptr;
+    g_assert(!foil_asn1_is_bit_string(&pos));
+
+    for (i=0; i<G_N_ELEMENTS(subtest); i++) {
+        const FoilBytes bytes = { subtest[i].enc + subtest[i].header,
+            subtest[i].len - subtest[i].header };
+        FoilInput* in = foil_input_mem_new_static(subtest[i].enc,
+            subtest[i].len);
+        GBytes* enc = foil_asn1_encode_bit_string_bytes(&bytes, 0);
+        GBytes* enc1;
+        FoilOutput* out = foil_output_mem_new(NULL);
+        FoilBytes bytes1;
+        guint8 unused_bits = 0xff;
+
+        GDEBUG("%u: %u bytes", i, (guint)bytes.len);
+        g_assert(foil_asn1_encode_bit_string_header(out, bytes.len*8));
+        foil_output_write(out, bytes.val, bytes.len);
+        enc1 = foil_output_free_to_bytes(out);
+        g_assert(g_bytes_equal(enc, enc1));
+        g_bytes_unref(enc1);
+
+        out = foil_output_mem_new(NULL);
+        g_assert(foil_asn1_encode_bit_string(out, &bytes, 0));
+        enc1 = foil_output_free_to_bytes(out);
+        g_assert(g_bytes_equal(enc, enc1));
+        g_bytes_unref(enc1);
+
+        g_assert(g_bytes_get_size(enc) ==
+            foil_asn1_bit_string_block_length(bytes.len*8));
+        g_assert(test_bytes_equal(enc, subtest[i].enc, subtest[i].len));
+
+        /* Parse the header */
+        pos.ptr = subtest[i].enc;
+        pos.end = pos.ptr + subtest[i].len;
+        g_assert(foil_asn1_parse_start_bit_string(&pos, NULL, NULL));
+
+        /* Same thing again, this time checking length and unused bits */
+        pos.ptr = subtest[i].enc;
+        pos.end = pos.ptr + subtest[i].len;
+        g_assert(foil_asn1_parse_start_bit_string(&pos, &len, &unused_bits));
+        g_assert(!unused_bits);
+        g_assert(len == bytes.len);
+
+        /* Parse the whole thing */
+        pos.ptr = subtest[i].enc;
+        pos.end = pos.ptr + subtest[i].len;
+        g_assert(foil_asn1_parse_bit_string(&pos, NULL, NULL));
+        g_assert(pos.end == pos.ptr);
+
+        /* Same thing again, this time checking bytes and unused bits */
+        pos.ptr = subtest[i].enc;
+        pos.end = pos.ptr + subtest[i].len;
+        unused_bits = 0xff;
+        g_assert(foil_asn1_parse_bit_string(&pos, &bytes1, &unused_bits));
+        g_assert(foil_bytes_equal(&bytes, &bytes1));
+        g_assert(!unused_bits);
+        g_assert(pos.end == pos.ptr);
+
+        foil_input_unref(in);
+        g_bytes_unref(enc);
+    }
+}
+
+static
+void
 test_asn1_octet_string(
     void)
 {
-    static const guint8 seq1 [] = { 0x04, 0x01, 0x02 };
-    static const guint8 seq2 [] = {
+    static const guint8 test1 [] = { 0x04, 0x01, 0x02 };
+    static const guint8 test2 [] = {
         0x04, 0x82, 0x01, 0x04,
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
@@ -620,36 +773,41 @@ test_asn1_octet_string(
         0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
         0xf9, 0xfa, 0xfb, 0xfc
     };
-    const FoilBytes bytes1 = { seq1 + 2, sizeof(seq1) - 2 };
-    const FoilBytes bytes2 = { seq2 + 4, sizeof(seq2) - 4 };
-    FoilInput* in1 = foil_input_mem_new_static(seq1, sizeof(seq1));
-    FoilInput* in2 = foil_input_mem_new_static(seq2, sizeof(seq2));
-    GBytes* enc1 = foil_asn1_encode_octet_string_bytes(&bytes1);
-    GBytes* enc2 = foil_asn1_encode_octet_string_bytes(&bytes2);
-    GBytes* enc3;
-    FoilOutput* out3 = foil_output_mem_new(NULL);
-    guint32 len;
+    static const struct asn1_octet_strings_test {
+        const guint8* enc;
+        gsize len;
+        guint header;
+    } subtest [] = {
+        { test1, sizeof(test1),  2 },
+        { test2, sizeof(test2),  4 },
+    };
 
-    g_assert(foil_asn1_encode_octet_string_header(out3, bytes2.len));
-    foil_output_write(out3, bytes2.val, bytes2.len);
-    enc3 = foil_output_free_to_bytes(out3);
-    g_assert(g_bytes_equal(enc2, enc3));
-    g_bytes_unref(enc3);
+    guint i;
+    for (i=0; i<G_N_ELEMENTS(subtest); i++) {
+        const FoilBytes bytes = { subtest[i].enc + subtest[i].header,
+            subtest[i].len - subtest[i].header };
+        FoilInput* in = foil_input_mem_new_static(subtest[i].enc,
+            subtest[i].len);
+        GBytes* enc = foil_asn1_encode_octet_string_bytes(&bytes);
+        GBytes* enc1;
+        FoilOutput* out = foil_output_mem_new(NULL);
+        guint32 len;
 
-    g_assert(g_bytes_get_size(enc1) == foil_asn1_block_length(bytes1.len));
-    g_assert(g_bytes_get_size(enc2) == foil_asn1_block_length(bytes2.len));
-    g_assert(GBYTES_EQUAL(enc1, seq1));
-    g_assert(GBYTES_EQUAL(enc2, seq2));
+        g_assert(foil_asn1_encode_octet_string_header(out, bytes.len));
+        foil_output_write(out, bytes.val, bytes.len);
+        enc1 = foil_output_free_to_bytes(out);
+        g_assert(g_bytes_equal(enc, enc1));
+        g_bytes_unref(enc1);
 
-    g_assert(foil_asn1_read_octet_string_header(in1, &len));
-    g_assert(len == bytes1.len);
-    g_assert(foil_asn1_read_octet_string_header(in2, &len));
-    g_assert(len == bytes2.len);
+        g_assert(g_bytes_get_size(enc) == foil_asn1_block_length(bytes.len));
+        g_assert(test_bytes_equal(enc, subtest[i].enc, subtest[i].len));
 
-    foil_input_unref(in1);
-    foil_input_unref(in2);
-    g_bytes_unref(enc1);
-    g_bytes_unref(enc2);
+        g_assert(foil_asn1_read_octet_string_header(in, &len));
+        g_assert(len == bytes.len);
+
+        foil_input_unref(in);
+        g_bytes_unref(enc);
+    }
 }
 
 static
@@ -665,7 +823,7 @@ test_asn1_octet_string2(
     static const guint8 short2 [] = { 0x04, 0x84, 0xff, 0xff, 0xff, 0xff };
     static const guint8 wrong1 [] = { 0x02, 0x01, 0xff };
     static const guint8 broken1 [] = { 0x03, 0x88, 0x99 };
-    static const struct asn1_octet_strings_test {
+    static const struct asn1_octet_strings2_test {
         gboolean good_tag;
         gboolean good_header;
         gboolean good;
@@ -896,6 +1054,7 @@ int main(int argc, char* argv[])
     g_test_add_func(TEST_("parse_headers"), test_parse_headers);
     g_test_add_func(TEST_("asn1/Len"), test_asn1_len);
     g_test_add_func(TEST_("asn1/Seq"), test_asn1_seq);
+    g_test_add_func(TEST_("asn1/BitString"), test_asn1_bit_string);
     g_test_add_func(TEST_("asn1/OctetString"), test_asn1_octet_string);
     g_test_add_func(TEST_("asn1/OctetString2"), test_asn1_octet_string2);
     g_test_add_func(TEST_("asn1/IA5String"), test_asn1_ia5_string);

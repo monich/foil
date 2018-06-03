@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,11 @@ gboolean
 foil_asn1_is_integer(
     const FoilParsePos* pos);
 
+/* Since 1.0.7 */
+gboolean
+foil_asn1_is_bit_string(
+    const FoilParsePos* pos);
+
 gboolean
 foil_asn1_is_octet_string(
     const FoilParsePos* pos);
@@ -69,6 +74,13 @@ foil_asn1_parse_start_sequence(
     FoilParsePos* pos,
     guint32* len);
 
+/* Since 1.0.7 */
+gboolean
+foil_asn1_parse_start_bit_string(
+    FoilParsePos* pos,
+    guint32* num_bytes,
+    guint8* unused_bits);
+
 gboolean
 foil_asn1_parse_integer_bytes(
     FoilParsePos* pos,
@@ -78,6 +90,13 @@ gboolean
 foil_asn1_parse_int32(
     FoilParsePos* pos,
     gint32* value);
+
+/* Since 1.0.7 */
+gboolean
+foil_asn1_parse_bit_string(
+    FoilParsePos* pos,
+    FoilBytes* bytes,
+    guint8* unused_bits);
 
 gboolean
 foil_asn1_parse_octet_string(
@@ -92,6 +111,10 @@ foil_asn1_parse_ia5_string(
 gsize
 foil_asn1_block_length(
     gsize data_length);
+
+/* Since 1.0.7 */
+#define foil_asn1_bit_string_block_length(bitcount) \
+    foil_asn1_block_length(1 + ((bitcount) + 7)/8)
 
 gboolean
 foil_asn1_parse_len(
@@ -152,6 +175,25 @@ gsize
 foil_asn1_encode_octet_string_header(
     FoilOutput* out,
     gsize data_length);
+
+/* Since 1.0.7 */
+gsize
+foil_asn1_encode_bit_string_header(
+    FoilOutput* out,
+    gsize bitcount);
+
+/* Since 1.0.7 */
+gsize
+foil_asn1_encode_bit_string(
+    FoilOutput* out,
+    const FoilBytes* bytes,
+    guint unused_bits);
+
+/* Since 1.0.7 */
+GBytes*
+foil_asn1_encode_bit_string_bytes(
+    const FoilBytes* bytes,
+    guint unused_bits);
 
 gsize
 foil_asn1_encode_octet_string(

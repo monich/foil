@@ -57,7 +57,8 @@ G_BEGIN_DECLS
 /* Key export format (for exporting to text) */
 typedef enum foil_key_export_format {
     FOIL_KEY_EXPORT_FORMAT_DEFAULT,
-    FOIL_KEY_EXPORT_FORMAT_RFC4716
+    FOIL_KEY_EXPORT_FORMAT_RFC4716,
+    FOIL_KEY_EXPORT_FORMAT_PKCS8    /* Since 1.0.7 */
 } FoilKeyExportFormat;
 
 FoilKey*

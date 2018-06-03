@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,6 @@ G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPrivate, foil_key_rsa_private,
     memcmp(data, prefix, G_N_ELEMENTS(prefix)) == 0 &&  \
     isspace((data)[G_N_ELEMENTS(prefix)]))
 
-#define FOIL_RSA_VERSION (0)
 #define FOIL_PKCS5_SALT_LEN (8)
 G_STATIC_ASSERT(FOIL_AES_BLOCK_SIZE >= FOIL_PKCS5_SALT_LEN);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,6 +56,8 @@ typedef struct foil_key_class {
         FOIL_TYPE_KEY, FoilKeyClass))
 #define FOIL_KEY_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj),\
         FOIL_TYPE_KEY, FoilKeyClass)
+
+#define FOIL_RSA_VERSION (0)
 
 #endif /* FOIL_KEY_P_H */
 

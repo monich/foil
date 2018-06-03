@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +31,7 @@
 #include "foil_digest.h"
 #include "foil_output.h"
 #include "foil_input.h"
+#include "foil_asn1.h"
 #include "foil_util_p.h"
 
 #include <ctype.h>
@@ -40,6 +41,16 @@
 #include "foil_log_p.h"
 
 G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPublic, foil_key_rsa_public, FOIL_TYPE_KEY);
+
+/* 1.2.840.113549.1.1.1 */
+# define RSA_PUBLIC_KEY_OID_BYTES \
+    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01
+static const guint8 RSA_PUBLIC_KEY_OID[] = { RSA_PUBLIC_KEY_OID_BYTES };
+static const guint8 RSA_PUBLIC_KEY_AID[] = {
+    0x30, sizeof(RSA_PUBLIC_KEY_OID) + 2,
+    RSA_PUBLIC_KEY_OID_BYTES,
+    0x05, 0x00 /* No idea what these two bytes mean */
+};
 
 #define FOIL_KEY_RSA_PUBLIC_HAS_PREFIX(data,len,prefix) ( \
     (guint)(len) >= G_N_ELEMENTS(prefix) && \
@@ -72,6 +83,14 @@ static const guint8 rsa_public_rfc4716_prefix[] = {
 static const guint8 rsa_public_rfc4716_suffix[] = {
     '-','-','-','-',' ','E','N','D',' ','S','S','H','2',' ','P','U',
     'B','L','I','C',' ','K','E','Y',' ','-','-','-','-'
+};
+static const guint8 rsa_public_pkcs8_prefix[] = {
+    '-','-','-','-','-','B','E','G','I','N',' ','P','U','B','L','I',
+    'C',' ','K','E','Y','-','-','-','-','-'
+};
+static const guint8 rsa_public_pkcs8_suffix[] = {
+    '-','-','-','-','-','E','N','D',' ','P','U','B','L','I','C',' ',
+    'K','E','Y','-','-','-','-','-'
 };
 
 static
@@ -209,6 +228,167 @@ foil_key_rsa_public_parse_ssh_rsa_binary(
 
 static
 gboolean
+foil_key_rsa_public_parse_ssh_rsa_text(
+    FoilKeyRsaPublic* self,
+    const guint8* data,
+    gsize len)
+{
+    gboolean ok = FALSE;
+    if (FOIL_KEY_RSA_PUBLIC_HAS_TEXT_PREFIX(data, len, ssh_rsa_text_prefix)) {
+        FoilParsePos pos;
+        pos.ptr = data + G_N_ELEMENTS(ssh_rsa_text_prefix);
+        pos.end = data + len;
+        if (pos.ptr < pos.end && isspace(*pos.ptr)) {
+            GBytes* decoded;
+            foil_parse_skip_spaces(&pos);
+            decoded = foil_parse_base64(&pos, 0);
+            if (decoded) {
+                if (pos.ptr == pos.end || isspace(*pos.ptr)) {
+                    gsize size;
+                    const void* bin = g_bytes_get_data(decoded, &size);
+                    ok = foil_key_rsa_public_parse_ssh_rsa_binary(self,
+                        bin, size);
+                }
+                g_bytes_unref(decoded);
+            }
+        }
+    }
+    return ok;
+}
+
+/*
+ * Format defined in RFC 2313:
+ *
+ * RSAPublicKey ::= SEQUENCE {
+ *   modulus INTEGER, -- n
+ *   publicExponent INTEGER -- e }
+ */
+static
+gboolean
+foil_key_rsa_public_parse_asn1(
+    FoilKeyRsaPublic* self,
+    const FoilBytes* bytes)
+{
+    guint32 len;
+    FoilParsePos pos;
+    pos.ptr = bytes->val;
+    pos.end = bytes->val + bytes->len;
+    if (foil_asn1_parse_start_sequence(&pos, &len)) {
+        FoilKeyRsaPublicData key_data;
+        pos.end = pos.ptr + len;
+        if (foil_asn1_parse_integer_bytes(&pos, &key_data.n) &&
+            foil_asn1_parse_integer_bytes(&pos, &key_data.e) &&
+            pos.ptr == pos.end) {
+            foil_key_rsa_public_set_data(self, &key_data);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static
+GBytes*
+foil_key_rsa_public_data_to_asn1(
+    const FoilKeyRsaPublicData* data)
+{
+    if (data) {
+        gsize seq_len = foil_asn1_block_length(data->n.len) +
+            foil_asn1_block_length(data->e.len);
+        GByteArray* buf = g_byte_array_sized_new(4 + seq_len);
+        FoilOutput* out = foil_output_mem_new(buf);
+        foil_asn1_encode_sequence_header(out, seq_len);
+        foil_asn1_encode_integer_bytes(out, &data->n);
+        foil_asn1_encode_integer_bytes(out, &data->e);
+        foil_output_unref(out);
+        return g_byte_array_free_to_bytes(buf);
+    }
+    return NULL;
+}
+
+/*
+ * Format defined in RFC 5208:
+ *
+ * SubjectPublicKeyInfo  ::=  SEQUENCE  {
+ *      algorithm           AlgorithmIdentifier,
+ *      subjectPublicKey    BIT STRING }
+ *
+ * AlgorithmIdentifier  ::=  SEQUENCE  {
+ *      algorithm           OBJECT IDENTIFIER,
+ *      parameters          ANY DEFINED BY algorithm OPTIONAL }
+ *
+ * For an RSA public key, the OID is 1.2.840.113549.1.1.1
+ * In binary form it's [06 09 2a 86 48 86 f7 0d 01 01 01]
+ * Algorithm parameters are ignored.
+ */
+static
+gboolean
+foil_key_rsa_public_parse_rfc5208(
+    FoilKeyRsaPublic* self,
+    const guint8* data,
+    gsize size)
+{
+    gboolean ok = FALSE;
+    guint32 len;
+    FoilParsePos pos;
+    pos.ptr = data;
+    pos.end = data + size;
+    if (foil_asn1_parse_start_sequence(&pos, &len)) {
+        const guint8* oid = RSA_PUBLIC_KEY_OID;
+        const guint oid_len = sizeof(RSA_PUBLIC_KEY_OID);
+        FoilParsePos aid;
+        pos.end = pos.ptr + len;
+        aid = pos;
+        /* Check AlgorithmIdentifier */
+        if (foil_asn1_parse_start_sequence(&aid, &len) && len >= oid_len &&
+            !memcmp(aid.ptr, oid, oid_len)) {
+            guint8 unused;
+            FoilBytes bits;
+            pos.ptr = aid.ptr + len;
+            if (foil_asn1_parse_bit_string(&pos, &bits, &unused) && !unused) {
+                return foil_key_rsa_public_parse_asn1(self, &bits);
+            }
+        }
+    }
+    return ok;
+}
+
+static
+gboolean
+foil_key_rsa_public_parse_pkcs8(
+    FoilKeyRsaPublic* self,
+    const guint8* data,
+    gsize len)
+{
+    gboolean ok = FALSE;
+    if (FOIL_KEY_RSA_PUBLIC_HAS_TEXT_PREFIX(data, len,
+        rsa_public_pkcs8_prefix)) {
+        FoilParsePos pos;
+        pos.ptr = data + G_N_ELEMENTS(rsa_public_pkcs8_prefix);
+        pos.end = data + len;
+        if (foil_parse_skip_to_next_line(&pos, TRUE) && (pos.ptr < pos.end) &&
+            (pos.ptr + G_N_ELEMENTS(rsa_public_pkcs8_prefix)) < pos.end) {
+            GBytes* decoded = foil_parse_base64(&pos,
+                FOIL_INPUT_BASE64_IGNORE_SPACES);
+            if (decoded) {
+                if (FOIL_KEY_RSA_PUBLIC_HAS_PREFIX(pos.ptr,
+                    pos.end - pos.ptr, rsa_public_pkcs8_suffix)) {
+                    pos.ptr += G_N_ELEMENTS(rsa_public_pkcs8_suffix);
+                    foil_parse_skip_spaces(&pos);
+                    if (pos.ptr == pos.end) {
+                        gsize n;
+                        const void* bin = g_bytes_get_data(decoded, &n);
+                        ok = foil_key_rsa_public_parse_rfc5208(self, bin, n);
+                    }
+                }
+                g_bytes_unref(decoded);
+            }
+        }
+    }
+    return ok;
+}
+
+static
+gboolean
 foil_key_rsa_public_parse_rfc4716(
     FoilKeyRsaPublic* self,
     const guint8* data,
@@ -252,36 +432,6 @@ foil_key_rsa_public_parse_rfc4716(
 
 static
 gboolean
-foil_key_rsa_public_parse_ssh_rsa_text(
-    FoilKeyRsaPublic* self,
-    const guint8* data,
-    gsize len)
-{
-    gboolean ok = FALSE;
-    if (FOIL_KEY_RSA_PUBLIC_HAS_TEXT_PREFIX(data, len, ssh_rsa_text_prefix)) {
-        FoilParsePos pos;
-        pos.ptr = data + G_N_ELEMENTS(ssh_rsa_text_prefix);
-        pos.end = data + len;
-        if (pos.ptr < pos.end && isspace(*pos.ptr)) {
-            GBytes* decoded;
-            foil_parse_skip_spaces(&pos);
-            decoded = foil_parse_base64(&pos, 0);
-            if (decoded) {
-                if (pos.ptr == pos.end || isspace(*pos.ptr)) {
-                    gsize size;
-                    const void* bin = g_bytes_get_data(decoded, &size);
-                    ok = foil_key_rsa_public_parse_ssh_rsa_binary(self,
-                        bin, size);
-                }
-                g_bytes_unref(decoded);
-            }
-        }
-    }
-    return ok;
-}
-
-static
-gboolean
 foil_key_rsa_public_parse_bytes(
     FoilKey* key,
     const void* data,
@@ -291,6 +441,7 @@ foil_key_rsa_public_parse_bytes(
 {
     FoilKeyRsaPublic* self = FOIL_KEY_RSA_PUBLIC_(key);
     if (foil_key_rsa_public_parse_ssh_rsa_text(self, data, len) ||
+        foil_key_rsa_public_parse_pkcs8(self, data, len) ||
         foil_key_rsa_public_parse_rfc4716(self, data, len) ||
         foil_key_rsa_public_parse_ssh_rsa_binary(self, data, len)) {
         g_clear_error(error);
@@ -304,6 +455,38 @@ foil_key_rsa_public_parse_bytes(
         GWARN("Unsupported RSA public key format");
         return FALSE;
     }
+}
+
+static
+gboolean
+foil_key_rsa_public_export_ssh_rsa(
+    FoilKeyRsaPublic* self,
+    FoilOutput* out,
+    const char* comment,
+    GError** error)
+{
+    const char space = ' ';
+    gboolean ok = foil_output_write_all(out, ssh_rsa_text_prefix,
+        sizeof(ssh_rsa_text_prefix)) && foil_output_write_all(out, &space, 1);
+    if (ok) {
+        GBytes* bytes = foil_key_rsa_public_data_to_bytes(self->data);
+        FoilOutput* base64 = foil_output_base64_new(out);
+        ok = foil_output_write_bytes_all(base64, bytes) &&
+            foil_output_flush(base64);
+        foil_output_unref(base64);
+        g_bytes_unref(bytes);
+        if (ok && comment) {
+            const char eol = '\n';
+            ok = foil_output_write_all(out, &space, 1) &&
+                foil_output_write_all(out, comment, strlen(comment)) &&
+                foil_output_write_all(out, &eol, 1);
+        }
+    }
+    if (!ok && error) {
+        g_propagate_error(error, g_error_new_literal(FOIL_ERROR,
+            FOIL_ERROR_KEY_WRITE, "Output error"));
+    }
+    return ok;
 }
 
 static
@@ -350,28 +533,39 @@ foil_key_rsa_public_export_rfc4716(
 
 static
 gboolean
-foil_key_rsa_public_export_ssh_rsa(
+foil_key_rsa_public_export_pkcs8(
     FoilKeyRsaPublic* self,
     FoilOutput* out,
     const char* comment,
     GError** error)
 {
-    const char space = ' ';
-    gboolean ok = foil_output_write_all(out, ssh_rsa_text_prefix,
-        sizeof(ssh_rsa_text_prefix)) && foil_output_write_all(out, &space, 1);
-    if (ok) {
-        GBytes* bytes = foil_key_rsa_public_data_to_bytes(self->data);
-        FoilOutput* base64 = foil_output_base64_new(out);
-        ok = foil_output_write_bytes_all(base64, bytes) &&
-            foil_output_flush(base64);
-        foil_output_unref(base64);
-        g_bytes_unref(bytes);
-        if (ok && comment) {
-            const char eol = '\n';
-            ok = foil_output_write_all(out, &space, 1) &&
-                foil_output_write_all(out, comment, strlen(comment)) &&
-                foil_output_write_all(out, &eol, 1);
+    gboolean ok = FALSE;
+    GBytes* bitstring = foil_key_rsa_public_data_to_asn1(self->data);
+    if (bitstring) {
+        const char eol = '\n';
+        ok = foil_output_write_all(out, rsa_public_pkcs8_prefix,
+            sizeof(rsa_public_pkcs8_prefix)) &&
+            foil_output_write_all(out, &eol, 1);
+        if (ok) {
+            const guint8* aid = RSA_PUBLIC_KEY_AID;
+            const guint aid_size = sizeof(RSA_PUBLIC_KEY_AID);
+            FoilOutput* base64 = foil_output_base64_new_full(out, 0, 64);
+            FoilBytes bytes;
+            foil_bytes_from_data(&bytes, bitstring);
+            ok = foil_asn1_encode_sequence_header(base64, aid_size +
+                foil_asn1_bit_string_block_length(bytes.len * 8)) &&
+                foil_output_write_all(base64, aid, aid_size) &&
+                foil_asn1_encode_bit_string_header(base64, bytes.len * 8) &&
+                foil_output_write_all(base64, bytes.val, bytes.len) &&
+                foil_output_flush(base64);
+            foil_output_unref(base64);
+            if (ok) {
+                ok = foil_output_write_all(out, rsa_public_pkcs8_suffix,
+                    sizeof(rsa_public_pkcs8_suffix)) &&
+                    foil_output_write_all(out, &eol, 1);
+            }
         }
+        g_bytes_unref(bitstring);
     }
     if (!ok && error) {
         g_propagate_error(error, g_error_new_literal(FOIL_ERROR,
@@ -405,6 +599,9 @@ foil_key_rsa_public_export(
             break;
         case FOIL_KEY_EXPORT_FORMAT_RFC4716:
             ok = foil_key_rsa_public_export_rfc4716(self, out, comment, error);
+            break;
+        case FOIL_KEY_EXPORT_FORMAT_PKCS8:
+            ok = foil_key_rsa_public_export_pkcs8(self, out, comment, error);
             break;
         default:
             if (error) {
