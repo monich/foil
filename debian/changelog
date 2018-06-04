@@ -1,3 +1,10 @@
+libfoil (1.0.7) unstable; urgency=low
+
+  * Added support RSA public keys in PKCS #8 format
+  * Relaxed restrictions on RSA private keys in text form
+
+ -- Slava Monich <slava@monich.com>  Sun, 03 Jun 2018 18:17:44 +0300
+
 libfoil (1.0.6) unstable; urgency=low
 
   * Explicitely include <glib-object.h> in one more place
