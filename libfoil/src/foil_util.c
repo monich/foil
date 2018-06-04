@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -418,6 +418,31 @@ foil_parse_base64(
     foil_input_unref(decoder);
     foil_input_unref(mem);
     return decoded;
+}
+
+const void*
+foil_memmem(
+    const void* haystack,
+    gsize haystacklen,
+    const void* needle,
+    gsize needlelen)
+{
+    if (needlelen > 0 && haystacklen >= needlelen) {
+        const guint8 c = *(guint8*)needle;
+        if (needlelen == 1) {
+            /* Trivial case */
+            return memchr(haystack, c, haystacklen);
+        } else {
+            const guint8* ptr = haystack;
+            const guint8* last = ptr + haystacklen - needlelen;
+            for (; ptr <= last; ptr++) {
+                if (*ptr == c && memcmp(ptr, needle, needlelen) == 0) {
+                    return ptr;
+                }
+            }
+        }
+    }
+    return NULL;
 }
 
 /*

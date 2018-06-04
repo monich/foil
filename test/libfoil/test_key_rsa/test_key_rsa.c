@@ -841,9 +841,13 @@ test_key_rsa_fingerprint_value(
 }
 
 #define TEST_(name) "/key_rsa/" name
-#define TEST_READ_OK(type,name) \
+#define TEST_READ_OK(type,name) TEST_READ_OK2(type,name,"")
+#define TEST_READ_OK1(type,name) \
     { TEST_("read-" name), test_key_rsa_##type##_read_ok, \
-      name, name ".bin" }
+      name }
+#define TEST_READ_OK2(type,name,suffix) \
+    { TEST_("read-" name suffix), test_key_rsa_##type##_read_ok, \
+      name suffix, name ".bin" }
 #define TEST_ENCRYPT(name, password, comment) \
     { TEST_("encrypt-" name), test_key_rsa_encrypt, \
       name, comment, password, FOIL_KEY_EXPORT_FORMAT_DEFAULT }
@@ -859,9 +863,6 @@ test_key_rsa_fingerprint_value(
 #define TEST_READ_PKCS8_OK(type,name) \
     { TEST_("read-" name ".PKCS8"), test_key_rsa_##type##_read_ok,  \
       name ".PKCS8", name ".bin" }
-#define TEST_READ_OK1(type,name) \
-    { TEST_("read-" name), test_key_rsa_##type##_read_ok, \
-      name }
 #define TEST_READ_ERR(type,name) \
     { TEST_("read-" name), test_key_rsa_##type##_read_err, \
       name }
@@ -908,6 +909,7 @@ static const TestKeyRsa tests[] = {
     TEST_READ_OK(public,   "rsa-1024.pub" ),
     TEST_READ_OK(public,   "rsa-1500.pub" ),
     TEST_READ_OK(public,   "rsa-2048.pub" ),
+    TEST_READ_OK2(private, "rsa-768", ".1" ),
     TEST_ENCRYPT("rsa-768", NULL, NULL),
     TEST_ENCRYPT("rsa-1024", "passphrase1", "Encrypted key"),
     TEST_ENCRYPT("rsa-1500", "passphrase2", ""),

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,6 +79,13 @@ foil_param_add(
     GHashTable* params,
     const char* key,
     const char* value);
+
+const void*
+foil_memmem(
+    const void* haystack,
+    gsize haystacklen,
+    const void* needle,
+    gsize needlelen);
 
 #endif /* FOIL_UTIL_P_H */
 

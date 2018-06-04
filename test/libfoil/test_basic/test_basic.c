@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -301,6 +301,53 @@ test_parse_headers(
     g_hash_table_destroy(headers);
 
     g_string_free(buf, TRUE);
+}
+
+static
+void
+test_base64(
+    void)
+{
+    static const guint8 a[] = { 0x01 };
+    static const guint8 b[] = { 0x01, 0x02 };
+    static const guint8 c[] = { 0x01, 0x02, 0x03 };
+    FoilParsePos pos;
+    GBytes* bytes;
+
+    foil_parse_init_string(&pos, "AQ");
+    bytes = foil_parse_base64(&pos, 0);
+    GBYTES_EQUAL(bytes, a);
+    g_bytes_unref(bytes);
+
+    foil_parse_init_string(&pos, "AQI");
+    bytes = foil_parse_base64(&pos, 0);
+    GBYTES_EQUAL(bytes, b);
+    g_bytes_unref(bytes);
+
+    foil_parse_init_string(&pos, "A Q I D");
+    bytes = foil_parse_base64(&pos, FOIL_INPUT_BASE64_IGNORE_SPACES);
+    GBYTES_EQUAL(bytes, c);
+    g_bytes_unref(bytes);
+
+    foil_parse_init_string(&pos, "A Q I D");
+    g_assert(!foil_parse_base64(&pos, FOIL_INPUT_BASE64_VALIDATE));
+}
+
+static
+void
+test_memmem(
+    void)
+{
+    static const guint8 a[] = { 0x01 };
+    static const guint8 b[] = { 0x01, 0x02 };
+    static const guint8 c[] = { 0x01, 0x02, 0x03 };
+    static const guint8 d[] = { 0x02, 0x03 };
+
+    g_assert(!foil_memmem(NULL, 0, NULL, 0));
+    g_assert(!foil_memmem(a, sizeof(a), NULL, 0));
+    g_assert(!foil_memmem(a, sizeof(a), b, sizeof(b)));
+    g_assert(foil_memmem(b, sizeof(b), a, sizeof(a)) == b);
+    g_assert(foil_memmem(c, sizeof(c), d, sizeof(d)) == c + 1);
 }
 
 static
@@ -1052,6 +1099,8 @@ int main(int argc, char* argv[])
     g_test_add_func(TEST_("skip"), test_skip);
     g_test_add_func(TEST_("format_header"), test_format_header);
     g_test_add_func(TEST_("parse_headers"), test_parse_headers);
+    g_test_add_func(TEST_("base64"), test_base64);
+    g_test_add_func(TEST_("memmem"), test_memmem);
     g_test_add_func(TEST_("asn1/Len"), test_asn1_len);
     g_test_add_func(TEST_("asn1/Seq"), test_asn1_seq);
     g_test_add_func(TEST_("asn1/BitString"), test_asn1_bit_string);
