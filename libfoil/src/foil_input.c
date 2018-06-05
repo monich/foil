@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@ foil_input_init(
     GASSERT(!in->bytes_read);
     GASSERT(!in->peek_offset);
     GASSERT(!in->peek_buf);
-    in->ref_count = 1;
+    g_atomic_int_set(&in->ref_count, 1);
     in->fn = fn;
     return in;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@ foil_output_init(
 {
     /* Caller is supposed to zero-initialize the whole thing */
     GASSERT(!out->bytes_written);
-    out->ref_count = 1;
+    g_atomic_int_set(&out->ref_count, 1);
     out->fn = fn;
     return out;
 }
