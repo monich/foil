@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -117,7 +117,9 @@ static const guint8 test_sha1_data4[] = {
 /* SHA256 examples from http://www.ietf.org/rfc/rfc4634 */
 
 #define SHA256_TEST1    "abc"
-#define SHA256_TEST2    "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+#define SHA256_TEST2a   "abcdbcdecdefdefgefghfghighij"
+#define SHA256_TEST2b   "hijkijkljklmklmnlmnomnopnopq"
+#define SHA256_TEST2    SHA256_TEST2a SHA256_TEST2b
 #define SHA256_TEST3    "a"                         /* times 1000000 */
 #define SHA256_TEST4a   "01234567012345670123456701234567"
 #define SHA256_TEST4b   "01234567012345670123456701234567"
@@ -150,7 +152,7 @@ static const guint8 test_sha256_data4[] = {
 
 static
 void
-test_run_basic(
+test_basic(
     gconstpointer param)
 {
     static const guchar data[1] = { 1 };
@@ -182,7 +184,69 @@ test_run_basic(
 
 static
 void
-test_run_digest(
+test_copy(
+    gconstpointer param)
+{
+    FoilDigest* d1 = foil_digest_new_md5();
+    FoilDigest* d2 = foil_digest_new_md5();
+    GBytes* b1;
+    GBytes* b2;
+
+    g_assert(!foil_digest_copy(NULL, NULL));
+    g_assert(!foil_digest_copy(d1, NULL));
+    g_assert(!foil_digest_copy(NULL, d1));
+    g_assert(foil_digest_copy(d1, d1));
+
+    /* MD5 */
+    foil_digest_update(d1, MD5_TEST2, strlen(MD5_TEST2));
+    g_assert(foil_digest_copy(d2, d1));
+    b1 = foil_digest_finish(d1);
+    b2 = foil_digest_finish(d2);
+
+    g_assert(g_bytes_equal(b1, b2));
+    g_assert(g_bytes_get_size(b1) == sizeof(test_md5_data2));
+    g_assert(!memcmp(g_bytes_get_data(b1, NULL), test_md5_data2,
+        sizeof(test_md5_data2)));
+
+    /* Mix */
+    foil_digest_unref(d1);
+    d1 = foil_digest_new_sha1();
+    g_assert(!foil_digest_copy(d1, d2));
+    g_assert(!foil_digest_copy(d2, d1));
+    foil_digest_unref(d2);
+    d2 = foil_digest_new_sha1();
+
+    /* SHA1 */
+    foil_digest_update(d1, SHA1_TEST1, strlen(SHA1_TEST1));
+    foil_digest_update(d2, SHA1_TEST2, strlen(SHA1_TEST2));
+    foil_digest_finish(d1);
+    b2 = foil_digest_finish(d2);
+
+    g_assert(foil_digest_copy(d1, d2));
+    g_assert(foil_digest_finish(d1) == b2);
+    g_assert(foil_digest_finish(d2) == b2);
+
+    foil_digest_unref(d1);
+    foil_digest_unref(d2);
+
+    /* SHA256 */
+    d1 = foil_digest_new_sha256();
+    d2 = foil_digest_new_sha256();
+    foil_digest_update(d1, SHA256_TEST1, strlen(SHA256_TEST1));
+    g_assert(foil_digest_copy(d1, d2));
+    foil_digest_update(d1, SHA256_TEST2, strlen(SHA256_TEST2));
+    b1 = foil_digest_finish(d1);
+    g_assert(g_bytes_get_size(b1) == sizeof(test_sha256_data2));
+    g_assert(!memcmp(g_bytes_get_data(b1, NULL), test_sha256_data2,
+        sizeof(test_sha256_data2)));
+
+    foil_digest_unref(d1);
+    foil_digest_unref(d2);
+}
+
+static
+void
+test_digest(
     gconstpointer param)
 {
     int i;
@@ -230,7 +294,7 @@ test_run_digest(
 #define TEST_NAME(name) "/digest/" name
 #define TEST_DATA(d) d, sizeof(d)
 #define TEST_(ALG,alg,i,n) { \
-    TEST_NAME(#ALG "_TEST" #i), test_run_digest, \
+    TEST_NAME(#ALG "_TEST" #i), test_digest, \
     foil_impl_digest_##alg##_get_type, \
     ALG##_TEST##i, n, TEST_DATA(test_##alg##_data##i) }
 #define TEST_MD5(i,n) TEST_(MD5,md5,i,n)
@@ -238,7 +302,8 @@ test_run_digest(
 #define TEST_SHA256(i,n) TEST_(SHA256,sha256,i,n)
 
 static const TestDigest tests[] = {
-    { TEST_NAME("Basic"), test_run_basic },
+    { TEST_NAME("Basic"), test_basic },
+    { TEST_NAME("Copy"), test_copy },
     /* MD5 */
     TEST_MD5(1,1),
     TEST_MD5(2,1),

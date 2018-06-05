@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,17 @@ foil_impl_digest_md5_get_type()
 
 static
 void
+foil_openssl_digest_md5_copy(
+    FoilDigest* digest,
+    FoilDigest* source)
+{
+    FoilOpensslDigestMD5* self = FOIL_OPENSSL_DIGEST_MD5(digest);
+    FoilOpensslDigestMD5* other = FOIL_OPENSSL_DIGEST_MD5(source);
+    self->ctx = other->ctx;
+}
+
+static
+void
 foil_openssl_digest_md5_update(
     FoilDigest* digest,
     const void* data,
@@ -101,6 +112,7 @@ foil_openssl_digest_md5_class_init(
     FoilOpensslDigestMD5Class* klass)
 {
     GASSERT(klass->size == MD5_DIGEST_LENGTH);
+    klass->fn_copy = foil_openssl_digest_md5_copy;
     klass->fn_digest = foil_openssl_digest_md5_digest;
     klass->fn_update = foil_openssl_digest_md5_update;
     klass->fn_finish = foil_openssl_digest_md5_finish;

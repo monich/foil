@@ -78,6 +78,11 @@ const char*
 foil_digest_name(
     FoilDigest* digest);
 
+gboolean
+foil_digest_copy(
+    FoilDigest* digest,
+    FoilDigest* source);        /* Since 1.0.8 */
+
 void
 foil_digest_update(
     FoilDigest* digest,

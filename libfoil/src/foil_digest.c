@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -153,6 +153,34 @@ foil_digest_unref(
     }
 }
 
+gboolean
+foil_digest_copy(
+    FoilDigest* self,
+    FoilDigest* source)
+{
+    if (G_LIKELY(self) && G_LIKELY(source)) {
+        if (self == source) {
+            /* Same object, nothing to copy */
+            return TRUE;
+        } else {
+            /* Both must be of the same class */
+            FoilDigestClass* klass = FOIL_DIGEST_GET_CLASS(self);
+            if (klass == FOIL_DIGEST_GET_CLASS(source) && klass->fn_copy) {
+                klass->fn_copy(self, source);
+                if (self->result) {
+                    g_bytes_unref(self->result);
+                    self->result = NULL;
+                }
+                if (source->result) {
+                    self->result = g_bytes_ref(source->result);
+                }
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
 void
 foil_digest_update(
     FoilDigest* self,
@@ -216,6 +244,7 @@ foil_digest_finalize(
     if (self->result) {
         g_bytes_unref(self->result);
     } else {
+        /* This clears the internal buffers */
         FOIL_DIGEST_GET_CLASS(self)->fn_finish(self, NULL);
     }
     G_OBJECT_CLASS(foil_digest_parent_class)->finalize(object);

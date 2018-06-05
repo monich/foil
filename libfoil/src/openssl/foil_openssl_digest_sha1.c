@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,17 @@ foil_impl_digest_sha1_get_type()
 
 static
 void
+foil_openssl_digest_sha1_copy(
+    FoilDigest* digest,
+    FoilDigest* source)
+{
+    FoilOpensslDigestSHA1* self = FOIL_OPENSSL_DIGEST_SHA1(digest);
+    FoilOpensslDigestSHA1* other = FOIL_OPENSSL_DIGEST_SHA1(source);
+    self->ctx = other->ctx;
+}
+
+static
+void
 foil_openssl_digest_sha1_update(
     FoilDigest* digest,
     const void* data,
@@ -101,6 +112,7 @@ foil_openssl_digest_sha1_class_init(
     FoilOpensslDigestSHA1Class* klass)
 {
     GASSERT(klass->size == SHA_DIGEST_LENGTH);
+    klass->fn_copy = foil_openssl_digest_sha1_copy;
     klass->fn_digest = foil_openssl_digest_sha1_digest;
     klass->fn_update = foil_openssl_digest_sha1_update;
     klass->fn_finish = foil_openssl_digest_sha1_finish;
