@@ -150,6 +150,24 @@ Package=<4>
 
 ###############################################################################
 
+Project: "test_hmac"=.\libfoil\test_hmac\test_hmac.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "test_input"=.\libfoil\test_input\test_input.dsp - Package Owner=<4>
 
 Package=<5>

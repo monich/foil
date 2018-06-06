@@ -58,6 +58,19 @@ foil_digest_type_size(
     return size;
 }
 
+gsize
+foil_digest_type_block_size(
+    GType type)
+{
+    gsize size = 0;
+    FoilDigestClass* klass = foil_digest_class_ref(type);
+    if (G_LIKELY(klass)) {
+        size = klass->block_size;
+        g_type_class_unref(klass);
+    }
+    return size;
+}
+
 const char*
 foil_digest_type_name(
     GType type)
@@ -110,6 +123,13 @@ foil_digest_size(
     FoilDigest* self)
 {
     return G_LIKELY(self) ? FOIL_DIGEST_GET_CLASS(self)->size : 0;
+}
+
+gsize
+foil_digest_block_size(
+    FoilDigest* self)
+{
+    return G_LIKELY(self) ? FOIL_DIGEST_GET_CLASS(self)->block_size : 0;
 }
 
 const char*

@@ -53,6 +53,7 @@ SRC = \
   foil_digest_md5.c \
   foil_digest_sha1.c \
   foil_digest_sha256.c \
+  foil_hmac.c \
   foil_input.c \
   foil_input_base64.c \
   foil_input_cipher.c \

@@ -42,6 +42,7 @@ typedef struct foil_digest_class {
     GObjectClass object;
     const char* name;
     gsize size;
+    gsize block_size;
     FoilBytes oid;
     void* (*fn_digest_alloc)(void);
     void (*fn_digest_free)(void* md);
@@ -71,6 +72,16 @@ GType foil_digest_sha256_get_type(void);
 
 #define FOIL_DIGEST_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
         FOIL_TYPE_DIGEST, FoilDigestClass))
+
+/* Internal API */
+
+gsize
+foil_digest_type_block_size(
+    GType type);
+
+gsize
+foil_digest_block_size(
+    FoilDigest* digest);
 
 #endif /* FOIL_DIGEST_P_H */
 

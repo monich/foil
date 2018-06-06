@@ -37,7 +37,8 @@
 
 #include <glib-object.h>
 
-#define TEST_ARRAY_AND_SIZE(array) array, G_N_ELEMENTS(array)
+#define TEST_ARRAY_AND_SIZE(array) array, sizeof(array)
+#define TEST_ARRAY_AND_COUNT(array) array, G_N_ELEMENTS(array)
 
 int
 test_run(

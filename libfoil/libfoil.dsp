@@ -120,6 +120,10 @@ SOURCE=.\src\foil_digest_sha256.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\foil_hmac.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_input.c
 # End Source File
 # Begin Source File
@@ -213,6 +217,10 @@ SOURCE=.\include\foil_cipher.h
 # Begin Source File
 
 SOURCE=.\include\foil_digest.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\foil_hmac.h
 # End Source File
 # Begin Source File
 
@@ -362,6 +370,10 @@ SOURCE=.\src\openssl\foil_openssl_random.c
 # Begin Group "Openssl Header Files"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\openssl\foil_openssl_random.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\src\openssl\foil_openssl_rsa.h

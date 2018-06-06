@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,50 +27,61 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_TYPES_H
-#define FOIL_TYPES_H
+#ifndef FOIL_HMAC_H
+#define FOIL_HMAC_H
 
-#include <gutil_types.h>
+#include "foil_types.h"
+
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
-typedef struct foil_digest FoilDigest;
-typedef struct foil_cipher FoilCipher;
-typedef struct foil_hmac FoilHmac;
-typedef struct foil_input FoilInput;
-typedef struct foil_key FoilKey;
-typedef struct foil_output FoilOutput;
-typedef struct foil_private_key FoilPrivateKey;
-typedef struct foil_random FoilRandom;
+/*
+ * HMAC: Keyed-Hashing for Message Authntication (RFC 2104)
+ *
+ * Since 1.0.8
+ */
 
-typedef struct foil_bytes {
-    const guint8* val;
-    gsize len;
-} FoilBytes;
+FoilHmac*
+foil_hmac_new(
+    GType digest,
+    const void* key,
+    gsize keylen);
 
-typedef struct foil_parse_pos {
-    const guint8* ptr;
-    const guint8* end;
-} FoilParsePos;
+FoilHmac*
+foil_hmac_ref(
+    FoilHmac* hmac);
 
-#define FOIL_ERROR (foil_error_quark())
-GQuark foil_error_quark(void);
+void
+foil_hmac_unref(
+    FoilHmac* hmac);
 
-typedef enum foil_error {
-    FOIL_ERROR_UNSPECIFIED,             /* Unspecified (internal?) error */
-    FOIL_ERROR_INVALID_ARG,             /* Invalid argument(s) */
-    FOIL_ERROR_KEY_UNSUPPORTED,         /* Unsupported operation */
-    FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT, /* Invalid or unsupported format */
-    FOIL_ERROR_KEY_ENCRYPTED,           /* Key is encrypted, need passphrase */
-    FOIL_ERROR_KEY_UNKNOWN_ENCRYPTION,  /* Unsupported key encryption */
-    FOIL_ERROR_KEY_DECRYPTION_FAILED,   /* Probably, invalid passphrase */
-    FOIL_ERROR_KEY_READ,                /* I/O error */
-    FOIL_ERROR_KEY_WRITE                /* I/O error */
-} FoilError;
+FoilHmac*
+foil_hmac_clone(
+    FoilHmac* hmac);
+
+void
+foil_hmac_copy(
+    FoilHmac* hmac,
+    FoilHmac* source);
+
+void
+foil_hmac_update(
+    FoilHmac* hmac,
+    const void* data,
+    gsize size);
+
+GBytes*
+foil_hmac_finish(
+    FoilHmac* hmac);
+
+GBytes*
+foil_hmac_free_to_bytes(
+    FoilHmac* hmac);
 
 G_END_DECLS
 
-#endif /* FOIL_TYPES_H */
+#endif /* FOIL_HMAC_H */
 
 /*
  * Local Variables:

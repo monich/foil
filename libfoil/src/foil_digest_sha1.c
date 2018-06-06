@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +30,7 @@
 #include "foil_digest_p.h"
 
 #define DIGEST_LENGTH (20)
+#define DIGEST_BLOCK_SIZE (64)
 
 G_DEFINE_ABSTRACT_TYPE(FoilDigestSHA1, foil_digest_sha1, FOIL_TYPE_DIGEST);
 
@@ -78,6 +79,7 @@ foil_digest_sha1_class_init(
 {
     klass->name = "SHA1";
     klass->size = DIGEST_LENGTH;
+    klass->block_size = DIGEST_BLOCK_SIZE;
     FOIL_BYTES_SET(klass->oid, foil_digest_sha1_digest_oid);
     klass->fn_digest_alloc = foil_digest_sha1_digest_alloc;
     klass->fn_digest_free = foil_digest_sha1_digest_free;

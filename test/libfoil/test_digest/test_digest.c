@@ -29,7 +29,7 @@
 
 #include "test_common.h"
 
-#include "foil_digest.h"
+#include "foil_digest_p.h"
 
 typedef struct test_digest {
     const char* name;
@@ -157,13 +157,15 @@ test_basic(
 {
     static const guchar data[1] = { 1 };
     GBytes* bytes = g_bytes_new_static(data, sizeof(data));
-    FoilDigest* digest = foil_digest_new_md5();
+    FoilDigest* md5 = foil_digest_new_md5();
     g_assert(!foil_digest_type_size(0));
+    g_assert(!foil_digest_type_block_size(0));
     g_assert(!foil_digest_type_name(0));
     g_assert(!foil_digest_new(0));
     g_assert(!foil_digest_clone(NULL));
     g_assert(!foil_digest_ref(NULL));
     g_assert(!foil_digest_size(NULL));
+    g_assert(!foil_digest_block_size(NULL));
     g_assert(!foil_digest_name(NULL));
     g_assert(!foil_digest_finish(NULL));
     g_assert(!foil_digest_free_to_bytes(NULL));
@@ -174,13 +176,18 @@ test_basic(
     g_assert(!foil_digest_data(0, data, 0));
     g_assert(!foil_digest_bytes(0, NULL));
     g_assert(!foil_digest_bytes(0, bytes));
+    g_assert(!foil_digest_type_block_size(FOIL_TYPE_DIGEST));
+    g_assert(foil_digest_type_block_size(FOIL_DIGEST_MD5) == 64u);
+    g_assert(foil_digest_type_block_size(FOIL_DIGEST_SHA1) == 64u);
+    g_assert(foil_digest_type_block_size(FOIL_DIGEST_SHA256) == 64u);
+    g_assert(foil_digest_block_size(md5) == 64u);
     foil_digest_update(NULL, NULL, 0);
     foil_digest_update_bytes(NULL, NULL);
-    foil_digest_update_bytes(digest, NULL);
+    foil_digest_update_bytes(md5, NULL);
     foil_digest_update_bytes(NULL, bytes);
     foil_digest_unref(NULL);
     g_bytes_unref(bytes);
-    foil_digest_unref(digest);
+    foil_digest_unref(md5);
 }
 
 static
