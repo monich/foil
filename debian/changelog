@@ -1,6 +1,14 @@
+libfoil (1.0.8) unstable; urgency=low
+
+  * Added HMAC API
+  * Added foil_digest_clone() and foil_digest_copy()
+  * Added support for RSA private keys in PKCS #8 format
+
+ -- Slava Monich <slava@monich.com>  Thu, 07 Jun 2018 01:10:02 +0300
+
 libfoil (1.0.7) unstable; urgency=low
 
-  * Added support RSA public keys in PKCS #8 format
+  * Added support for RSA public keys in PKCS #8 format
   * Relaxed restrictions on RSA private keys in text form
 
  -- Slava Monich <slava@monich.com>  Sun, 03 Jun 2018 18:17:44 +0300
