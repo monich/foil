@@ -31,8 +31,9 @@
 #include "foil_digest.h"
 #include "foil_output.h"
 #include "foil_input.h"
-#include "foil_asn1.h"
+#include "foil_asn1_p.h"
 #include "foil_util_p.h"
+#include "foil_oid.h"
 
 #include <ctype.h>
 
@@ -42,14 +43,13 @@
 
 G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPublic, foil_key_rsa_public, FOIL_TYPE_KEY);
 
-/* 1.2.840.113549.1.1.1 */
-# define RSA_PUBLIC_KEY_OID_BYTES \
-    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01
-static const guint8 RSA_PUBLIC_KEY_OID[] = { RSA_PUBLIC_KEY_OID_BYTES };
 static const guint8 RSA_PUBLIC_KEY_AID[] = {
-    0x30, sizeof(RSA_PUBLIC_KEY_OID) + 2,
-    RSA_PUBLIC_KEY_OID_BYTES,
-    0x05, 0x00 /* No idea what these two bytes mean */
+    ASN1_CLASS_STRUCTURED | ASN1_TAG_SEQUENCE,
+    ASN1_OID_RSA_LENGTH + 4,
+    ASN1_TAG_OBJECT_ID,
+    ASN1_OID_RSA_LENGTH,
+    ASN1_OID_RSA_BYTES,
+    ASN1_TAG_NULL, 0x00
 };
 
 #define FOIL_KEY_RSA_PUBLIC_HAS_PREFIX(data,len,prefix) ( \
@@ -327,24 +327,25 @@ foil_key_rsa_public_parse_rfc5208(
     const guint8* data,
     gsize size)
 {
+    static const guint8 oid_rsa_bytes[] = { ASN1_OID_RSA_BYTES };
+    static const FoilBytes oid_rsa = { oid_rsa_bytes, sizeof(oid_rsa_bytes) };
     gboolean ok = FALSE;
     guint32 len;
     FoilParsePos pos;
     pos.ptr = data;
     pos.end = data + size;
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
-        const guint8* oid = RSA_PUBLIC_KEY_OID;
-        const guint oid_len = sizeof(RSA_PUBLIC_KEY_OID);
         FoilParsePos aid;
         pos.end = pos.ptr + len;
         aid = pos;
         /* Check AlgorithmIdentifier */
-        if (foil_asn1_parse_start_sequence(&aid, &len) && len >= oid_len &&
-            !memcmp(aid.ptr, oid, oid_len)) {
+        if (foil_asn1_parse_start_sequence(&aid, &len)) {
             guint8 unused;
-            FoilBytes bits;
+            FoilBytes oid, bits;
             pos.ptr = aid.ptr + len;
-            if (foil_asn1_parse_bit_string(&pos, &bits, &unused) && !unused) {
+            if (foil_asn1_parse_object_id(&aid, &oid) &&
+                foil_bytes_equal(&oid, &oid_rsa) &&
+                foil_asn1_parse_bit_string(&pos, &bits, &unused) && !unused) {
                 return foil_key_rsa_public_parse_asn1(self, &bits);
             }
         }

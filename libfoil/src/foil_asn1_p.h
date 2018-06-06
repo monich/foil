@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,40 +27,40 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_KEY_P_H
-#define FOIL_KEY_P_H
+#ifndef FOIL_ASN1_P_H
+#define FOIL_ASN1_P_H
 
-#include "foil_types_p.h"
-#include "foil_key.h"
+#include "foil_asn1.h"
 
-struct foil_key {
-    GObject super;
-    GBytes* fingerprint;
-};
+#define ASN1_CLASS_UNIVERSAL            (0x00)
+#define ASN1_CLASS_APPLICATION          (0x40)
+#define ASN1_CLASS_CONTEXT_SPECIFIC     (0x80)
+#define ASN1_CLASS_PRIVATE              (0xC0)
+#define ASN1_CLASS_MASK                 (0xC0)
+#define ASN1_CLASS_STRUCTURED           (0x20)
 
-typedef struct foil_key_class {
-    GObjectClass super;
-    FoilKey* (*fn_generate)(guint bits);
-    gboolean (*fn_parse_bytes)(FoilKey* key, const void* data, gsize len,
-        GHashTable* param, GError** error);
-    gboolean (*fn_equal)(FoilKey* key1, FoilKey* key2);
-    GBytes* (*fn_to_bytes)(FoilKey* key);
-    gboolean (*fn_export)(FoilKey* key, FoilOutput* out,
-        FoilKeyExportFormat format, GHashTable* param, GError** error);
-    GBytes* (*fn_fingerprint)(FoilKey* key);
-} FoilKeyClass;
+#define ASN1_TAG_BOOLEAN                (0x01)
+#define ASN1_TAG_INTEGER                (0x02)
+#define ASN1_TAG_BIT_STRING             (0x03)
+#define ASN1_TAG_OCTET_STRING           (0x04)
+#define ASN1_TAG_NULL                   (0x05)
+#define ASN1_TAG_OBJECT_ID              (0x06)
+#define ASN1_TAG_ENUMERATED             (0x0A)
+#define ASN1_TAG_UTF8_STRING            (0x0C)
+#define ASN1_TAG_SEQUENCE               (0x10)
+#define ASN1_TAG_SET                    (0x11)
+#define ASN1_TAG_NUMERIC_STRING         (0x12)
+#define ASN1_TAG_PRINTABLE_STRING       (0x13)
+#define ASN1_TAG_TELETEX_STRING         (0x14)
+#define ASN1_TAG_IA5_STRING             (0x16)
+#define ASN1_TAG_UTC_TIME               (0x17)
+#define ASN1_TAG_GENERALIZED_TIME       (0x18)
+#define ASN1_TAG_VISIBLE_STRING         (0x1A)
+#define ASN1_TAG_GENERAL_STRING         (0x1B)
+#define ASN1_TAG_UNIVERSAL_STRING       (0x1C)
+#define ASN1_TAG_BMP_STRING             (0x1E)
 
-#define FOIL_IS_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
-        FOIL_TYPE_KEY)
-#define FOIL_KEY_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
-        FOIL_TYPE_KEY, FoilKeyClass))
-#define FOIL_KEY_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj),\
-        FOIL_TYPE_KEY, FoilKeyClass)
-
-#define PKCS1_RSA_VERSION (0)
-#define PKCS8_RSA_VERSION (0)
-
-#endif /* FOIL_KEY_P_H */
+#endif /* FOIL_ASN1_P_H */
 
 /*
  * Local Variables:

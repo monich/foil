@@ -98,6 +98,12 @@ foil_asn1_parse_bit_string(
     FoilBytes* bytes,
     guint8* unused_bits);
 
+/* Since 1.0.8 */
+gboolean
+foil_asn1_parse_object_id(
+    FoilParsePos* pos,
+    FoilBytes* oid_bytes);
+
 gboolean
 foil_asn1_parse_octet_string(
     FoilParsePos* pos,

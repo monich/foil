@@ -33,10 +33,12 @@
 #include "foil_random.h"
 #include "foil_cipher.h"
 #include "foil_digest.h"
+#include "foil_hmac.h"
 #include "foil_input.h"
 #include "foil_output.h"
 #include "foil_util_p.h"
 #include "foil_asn1.h"
+#include "foil_oid.h"
 
 #include <gutil_strv.h>
 #include <gutil_misc.h>
@@ -57,21 +59,40 @@ G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPrivate, foil_key_rsa_private,
 #define FOIL_PKCS5_SALT_LEN (8)
 G_STATIC_ASSERT(FOIL_AES_BLOCK_SIZE >= FOIL_PKCS5_SALT_LEN);
 
-static const guint8 rsa_private_key_prefix[] = {
+static const guint8 rsa_private_key_pkcs5_prefix[] = {
     '-','-','-','-','-','B','E','G','I','N',' ','R','S','A',' ','P',
     'R','I','V','A','T','E',' ','K','E','Y','-','-','-','-','-'
 };
-static const guint8 rsa_private_key_suffix[] = {
+static const guint8 rsa_private_key_pkcs5_suffix[] = {
     '-','-','-','-','-','E','N','D',' ','R','S','A',' ','P','R','I',
     'V','A','T','E',' ','K','E','Y','-','-','-','-','-'
 };
-static const FoilBytes rsa_private_key_prefix_bytes = {
-    rsa_private_key_prefix,
-    G_N_ELEMENTS(rsa_private_key_prefix)
+static const FoilBytes rsa_private_key_pkcs5_prefix_bytes = {
+    rsa_private_key_pkcs5_prefix,
+    G_N_ELEMENTS(rsa_private_key_pkcs5_prefix)
 };
-static const FoilBytes rsa_private_key_suffix_bytes = {
-    rsa_private_key_suffix,
-    G_N_ELEMENTS(rsa_private_key_suffix)
+static const FoilBytes rsa_private_key_pkcs5_suffix_bytes = {
+    rsa_private_key_pkcs5_suffix,
+    G_N_ELEMENTS(rsa_private_key_pkcs5_suffix)
+};
+
+static const guint8 rsa_private_key_pkcs8_prefix[] = {
+    '-','-','-','-','-','B','E','G','I','N',' ','E','N','C','R','Y',
+    'P','T','E','D',' ','P','R','I','V','A','T','E',' ','K','E','Y',
+    '-','-','-','-','-'
+};
+static const guint8 rsa_private_key_pkcs8_suffix[] = {
+    '-','-','-','-','-','E','N','D',' ','E','N','C','R','Y','P','T',
+    'E','D',' ','P','R','I','V','A','T','E',' ','K','E','Y','-','-',
+    '-','-','-'
+};
+static const FoilBytes rsa_private_key_pkcs8_prefix_bytes = {
+    rsa_private_key_pkcs8_prefix,
+    G_N_ELEMENTS(rsa_private_key_pkcs8_prefix)
+};
+static const FoilBytes rsa_private_key_pkcs8_suffix_bytes = {
+    rsa_private_key_pkcs8_suffix,
+    G_N_ELEMENTS(rsa_private_key_pkcs8_suffix)
 };
 
 static
@@ -145,7 +166,8 @@ foil_key_rsa_private_data_to_bytes(
             key_data->dmq1.len + key_data->iqmp.len);
         FoilOutput* seq_out;
         FoilOutput* data_out = foil_output_mem_new(buf);
-        foil_asn1_encode_integer(data_out, FOIL_RSA_VERSION);
+        /* PKCS #1 format https://www.ietf.org/rfc/rfc3447 */
+        foil_asn1_encode_integer(data_out, PKCS1_RSA_VERSION);
         foil_asn1_encode_integer_bytes(data_out, &key_data->n);
         foil_asn1_encode_integer_bytes(data_out, &key_data->e);
         foil_asn1_encode_integer_bytes(data_out, &key_data->d);
@@ -174,8 +196,38 @@ foil_key_rsa_private_to_bytes(
     return foil_key_rsa_private_data_to_bytes(self->data);
 }
 
-/**
- * https://www.ietf.org/rfc/rfc3447.txt (Appendix A)
+/*
+ * AlgorithmIdentifier is defined in RFC 5280 as follows:
+ *
+ * AlgorithmIdentifier  ::=  SEQUENCE  {
+ *      algorithm         OBJECT IDENTIFIER,
+ *      parameters        ANY DEFINED BY algorithm OPTIONAL }
+ */
+static
+gboolean
+foil_key_rsa_private_parse_aid(
+    FoilParsePos* pos,
+    FoilBytes* oid,
+    FoilBytes* params)
+{
+    guint32 len;
+    FoilParsePos parse = *pos;
+    if (foil_asn1_parse_start_sequence(&parse, &len)) {
+        parse.end = parse.ptr + len;
+        if (foil_asn1_parse_object_id(&parse, oid)) {
+            params->val = parse.ptr;
+            params->len = parse.end - parse.ptr;
+            pos->ptr = parse.end;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+/*
+ * PKCS #1
+ *
+ * https://www.ietf.org/rfc/rfc3447 (Appendix A)
  *
  * RSAPrivateKey ::= SEQUENCE {
  *     version           Version,
@@ -192,7 +244,7 @@ foil_key_rsa_private_to_bytes(
  */
 static
 gboolean
-foil_key_rsa_private_parse_asn1(
+foil_key_rsa_private_parse_pkcs1(
     FoilKeyRsaPrivate* self,
     const guint8* data,
     gsize size)
@@ -206,7 +258,7 @@ foil_key_rsa_private_parse_asn1(
         FoilKeyRsaPrivateData key_data;
         pos.end = pos.ptr + len;
         if (foil_asn1_parse_int32(&pos, &version) &&
-            version == FOIL_RSA_VERSION &&
+            version == PKCS1_RSA_VERSION &&
             foil_asn1_parse_integer_bytes(&pos, &key_data.n) &&
             foil_asn1_parse_integer_bytes(&pos, &key_data.e) &&
             foil_asn1_parse_integer_bytes(&pos, &key_data.d) &&
@@ -225,13 +277,56 @@ foil_key_rsa_private_parse_asn1(
     return FALSE;
 }
 
+/*
+ * PKCS #8
+ *
+ * https://tools.ietf.org/html/rfc3447
+ *
+ * PrivateKeyInfo ::= SEQUENCE {
+ *     version                   Version,
+ *     privateKeyAlgorithm       PrivateKeyAlgorithmIdentifier,
+ *     privateKey                PrivateKey,
+ *     attributes           [0]  IMPLICIT Attributes OPTIONAL }
+ */
+static
+gboolean
+foil_key_rsa_private_parse_pkcs8(
+    FoilKeyRsaPrivate* self,
+    const guint8* data,
+    gsize size)
+{
+    static const guint8 oid_rsa_bytes[] = { ASN1_OID_RSA_BYTES };
+    static const FoilBytes oid_rsa = { oid_rsa_bytes, sizeof(oid_rsa_bytes) };
+    guint32 len;
+    FoilParsePos pos;
+    pos.ptr = data;
+    pos.end = data + size;
+    /* PrivateKeyInfo */
+    if (foil_asn1_parse_start_sequence(&pos, &len)) {
+        gint32 version;
+        FoilBytes oid, params, key;
+        pos.end = pos.ptr + len;
+        if (foil_asn1_parse_int32(&pos, &version) &&
+            /* version */
+            version == PKCS8_RSA_VERSION &&
+            /* privateKeyAlgorithm */
+            foil_key_rsa_private_parse_aid(&pos, &oid, &params) &&
+            foil_bytes_equal(&oid, &oid_rsa) &&
+            /* privateKey */
+            foil_asn1_parse_octet_string(&pos, &key)) {
+            return foil_key_rsa_private_parse_pkcs1(self, key.val, key.len);
+        }
+    }
+    return FALSE;
+}
+
 /* This does kind of like what EVP_BytesToKey does with count=1 */
 static
 GBytes*
 foil_key_rsa_private_pass_key(
-     const char* pass,
-     const void* iv,
-     guint bits)
+    const char* pass,
+    const void* iv,
+    guint bits)
 {
     const guint key_size = bits/8;
     const guint total = key_size + FOIL_AES_BLOCK_SIZE;
@@ -266,7 +361,7 @@ foil_key_rsa_private_pass_key(
 
 static
 GBytes*
-foil_key_rsa_private_decrypt(
+foil_key_rsa_private_decrypt_pkcs5(
     GHashTable* headers,
     const guint8* data,
     gsize size,
@@ -276,12 +371,14 @@ foil_key_rsa_private_decrypt(
     /*
      * Proc-Type and DEK-Info header tags are described in RFC 1421:
      *
-     * https://www.ietf.org/rfc/rfc1421.txt
+     * https://www.ietf.org/rfc/rfc1421
      */
     GBytes* decrypted = NULL;
-    const char* proc_type = g_hash_table_lookup(headers, "Proc-Type");
-    const char* dek_info = g_hash_table_lookup(headers, "DEK-Info");
-    if (proc_type && dek_info) {
+    const char* proc_type;
+    const char* dek_info;
+    if (headers &&
+        (proc_type = g_hash_table_lookup(headers, "Proc-Type")) != NULL &&
+        (dek_info = g_hash_table_lookup(headers, "DEK-Info")) != NULL) {
 
         /* Proc-Type: 4,ENCRYPTED */
         GStrV* proc = gutil_strv_strip(g_strsplit(proc_type, ",", 0));
@@ -356,16 +453,258 @@ foil_key_rsa_private_decrypt(
     return decrypted;
 }
 
+/* PBKDF2 defined in RFC 2898 */
+static
+GBytes*
+foil_key_rsa_private_pbkdf2(
+    guint bits,
+    const char* pass,
+    FoilBytes* salt,
+    guint count,
+    GType digest,
+    FoilBytes* iv)
+{
+    const gsize hlen = foil_digest_type_size(digest);
+    const gsize pass_len = pass ? strlen(pass) : 0;
+    FoilHmac* tmpl = foil_hmac_new(digest, pass, pass_len);
+    FoilHmac* hmac = foil_hmac_clone(tmpl);
+    const gsize key_size = bits/8;
+    const guint total = key_size + iv->len;
+    guint8* data = g_malloc(total);
+    guint8* ptr = data;
+    gsize bytesleft = key_size;
+    gsize i = 1;
+
+    while (bytesleft > 0) {
+        const gsize cplen = MIN(bytesleft, hlen);
+        const guint8* h;
+        guint8 itmp[4];
+        GBytes* b;
+        gsize j;
+
+        itmp[0] = (unsigned char)((i >> 24) & 0xff);
+        itmp[1] = (unsigned char)((i >> 16) & 0xff);
+        itmp[2] = (unsigned char)((i >> 8) & 0xff);
+        itmp[3] = (unsigned char)(i & 0xff);
+
+        /* First time doesn't need a copy, it's already a clone */
+        if (ptr != data) {
+            foil_hmac_copy(hmac, tmpl);
+        }
+        foil_hmac_update(hmac, salt->val, salt->len);
+        foil_hmac_update(hmac, itmp, 4);
+
+        b = g_bytes_ref(foil_hmac_finish(hmac));
+        h = g_bytes_get_data(b, NULL);
+        memcpy(ptr, h, cplen);
+
+        for (j = 1; j < count; j++) {
+            gsize k;
+
+            foil_hmac_copy(hmac, tmpl);
+            foil_hmac_update(hmac, h, hlen);
+
+            g_bytes_unref(b);
+            b = g_bytes_ref(foil_hmac_finish(hmac));
+            h = g_bytes_get_data(b, NULL);
+
+            for (k = 0; k < cplen; k++) {
+                ptr[k] ^= h[k];
+            }
+        }
+
+        g_bytes_unref(b);
+        bytesleft -= cplen;
+        ptr += cplen;
+        i++;
+    }
+
+    foil_hmac_unref(hmac);
+    foil_hmac_unref(tmpl);
+    memcpy(ptr, iv->val, iv->len);
+    return g_bytes_new_take(data, total);
+}
+
+/* PBES2 defined in RFC 2898 */
+static
+GBytes*
+foil_key_rsa_private_decrypt_pbes2(
+    const FoilBytes* data,
+    const char* pass,
+    const FoilBytes* params,
+    GError** error)
+{
+    static const guint8 pbkdf2[] = { ASN1_OID_PBKDF2_BYTES };
+    static const guint8 aes128cbc[] = { ASN1_OID_AES128_CBC_BYTES };
+    static const guint8 aes192cbc[] = { ASN1_OID_AES192_CBC_BYTES };
+    static const guint8 aes256cbc[] = { ASN1_OID_AES256_CBC_BYTES };
+    static const FoilBytes oid_pbkdf2 = { pbkdf2, sizeof(pbkdf2) };
+    static const FoilBytes oid_aes128_cbc = { aes128cbc, sizeof(aes128cbc) };
+    static const FoilBytes oid_aes192_cbc = { aes192cbc, sizeof(aes192cbc) };
+    static const FoilBytes oid_aes256_cbc = { aes256cbc, sizeof(aes256cbc) };
+
+    GBytes* decrypted = NULL;
+    guint32 len;
+    FoilParsePos pos;
+    pos.ptr = params->val;
+    pos.end = params->val + params->len;
+    if (foil_asn1_parse_start_sequence(&pos, &len)) {
+        FoilBytes kdf, kdf_param, alg, alg_param;
+        pos.end = pos.ptr + len;
+        if (foil_key_rsa_private_parse_aid(&pos, &kdf, &kdf_param) &&
+            foil_key_rsa_private_parse_aid(&pos, &alg, &alg_param)) {
+            FoilBytes iv;
+            GType cipher = (GType)0;
+            guint bits = 0, ivsize = 0;
+            GType key_type = (GType)0;
+            /* Encryption scheme */
+            if (foil_bytes_equal(&alg, &oid_aes256_cbc)) {
+                /* AES256-CBC */
+                bits = 256;
+                key_type = FOIL_KEY_AES256;
+                ivsize = FOIL_AES_BLOCK_SIZE;
+                cipher = FOIL_CIPHER_AES_CBC_DECRYPT;
+            } else if (foil_bytes_equal(&alg, &oid_aes192_cbc)) {
+                /* AES192-CBC */
+                bits = 192;
+                key_type = FOIL_KEY_AES192;
+                ivsize = FOIL_AES_BLOCK_SIZE;
+                cipher = FOIL_CIPHER_AES_CBC_DECRYPT;
+            } else if (foil_bytes_equal(&alg, &oid_aes128_cbc)) {
+                /* AES128-CBC */
+                bits = 128;
+                key_type = FOIL_KEY_AES128;
+                ivsize = FOIL_AES_BLOCK_SIZE;
+                cipher = FOIL_CIPHER_AES_CBC_DECRYPT;
+            }
+            pos.ptr = alg_param.val;
+            pos.end = alg_param.val + alg_param.len;
+            if (bits && foil_asn1_parse_octet_string(&pos, &iv) &&
+                iv.len == ivsize) {
+                FoilKey* key = NULL;
+                /* Key derivation function */
+                if (foil_bytes_equal(&kdf, &oid_pbkdf2)) {
+                    /* PBKDF2 */
+                    pos.ptr = kdf_param.val;
+                    pos.end = kdf_param.val + alg_param.len;
+                    if (foil_asn1_parse_start_sequence(&pos, &len)) {
+                        FoilBytes salt;
+                        gint32 count;
+                        pos.end = pos.ptr + len;
+                        if (foil_asn1_parse_octet_string(&pos, &salt) &&
+                            foil_asn1_parse_int32(&pos, &count) && count > 0 &&
+                            /* keyLength and prf are optional, we assume
+                             * the defaults */
+                            pos.ptr == pos.end) {
+                            /* Default is hmacWithSHA1 */
+                            GType hmac_digest = FOIL_DIGEST_SHA1;
+                            GBytes* b = foil_key_rsa_private_pbkdf2(bits,
+                                pass, &salt, count, hmac_digest, &iv);
+                            if (b) {
+                                key = foil_key_new_from_bytes_full(key_type,
+                                    b, NULL, error);
+                                g_bytes_unref(b);
+                            }
+                        } else if (error && !*error) {
+                            *error = g_error_new(FOIL_ERROR,
+                                 FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT,
+                                 "Usupported PBKDF2 parameters");
+                        }
+                    }
+                } else if (error && !*error) {
+                    *error = g_error_new(FOIL_ERROR,
+                         FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT,
+                         "Usupported PBES2 key derivation function");
+                }
+                if (key) {
+                    decrypted = foil_cipher_data(cipher, key,
+                        data->val, data->len);
+                    foil_key_unref(key);
+                }
+            }
+        }
+    }
+    return decrypted;
+}
+
+/*
+ * Format of encrypted private-key information according to RFC 5208:
+ *
+ * EncryptedPrivateKeyInfo ::= SEQUENCE {
+ *   encryptionAlgorithm  AlgorithmIdentifier,
+ *   encryptedData        OCTET STRING }
+ */
+static
+GBytes*
+foil_key_rsa_private_decrypt_pkcs8(
+    GHashTable* headers,
+    const guint8* data,
+    gsize size,
+    const char* pass,
+    GError** error)
+{
+    /*
+     * RFC 2898:
+     *
+     * PBES2-params ::= SEQUENCE {
+     *     keyDerivationFunc AlgorithmIdentifier {{PBES2-KDFs}},
+     *     encryptionScheme AlgorithmIdentifier {{PBES2-Encs}} }
+     *
+     * PBES2-KDFs ALGORITHM-IDENTIFIER ::= {
+     *     {PBKDF2-params IDENTIFIED BY id-PBKDF2}, ... }
+     *
+     * PBES2-Encs ALGORITHM-IDENTIFIER ::= { ... }
+     */
+
+    /* ASN.1 encoding of OID 1.2.840.113549.1.5.13 (id-PBES2) */
+    static const guint8 OID_PBES2[] = {
+        0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,0x05,0x0D
+    };
+    static const FoilBytes oid_pbes2 = {
+        OID_PBES2, sizeof(OID_PBES2)
+    };
+    guint32 len;
+    FoilParsePos pos;
+    pos.ptr = data;
+    pos.end = data + size;
+    if (foil_asn1_parse_start_sequence(&pos, &len)) {
+        FoilBytes oid;
+        FoilBytes params;
+        FoilBytes enc;
+        pos.end = pos.ptr + len;
+        if (foil_key_rsa_private_parse_aid(&pos, &oid, &params) &&
+            foil_asn1_parse_octet_string(&pos, &enc)) {
+            if (foil_bytes_equal(&oid, &oid_pbes2)) {
+                /* PBES2 */
+                return foil_key_rsa_private_decrypt_pbes2(&enc, pass,
+                    &params, error);
+            }
+        }
+    }
+    return NULL;
+}
+
 static
 gboolean
-foil_key_rsa_private_parse_text_full(
+foil_key_rsa_private_parse_text(
     FoilKeyRsaPrivate* self,
     const guint8* data,
     gsize size,
     const char* pass,
     GError** error,
     const FoilBytes* prefix,
-    const FoilBytes* suffix)
+    const FoilBytes* suffix,
+    GBytes* (*decrypt)(
+        GHashTable* headers,
+        const guint8* data,
+        gsize size,
+        const char* pass,
+        GError** error),
+    gboolean (*parse_asn1)(
+        FoilKeyRsaPrivate* self,
+        const guint8* data,
+        gsize size)
+)
 {
     gboolean ok = FALSE;
     const guint8* start;
@@ -390,17 +729,16 @@ foil_key_rsa_private_parse_text_full(
                 /* And ignore the rest */
                 gsize len;
                 const void* bin = g_bytes_get_data(decoded, &len);
-                GBytes* decrypt = NULL;
-                if (headers) {
+                GBytes* decrypted = NULL;
+                if (headers || decrypt) {
                     /* The key may be encrypted */
-                    decrypt = foil_key_rsa_private_decrypt(headers, bin, len,
-                        pass, error);
+                    decrypted = decrypt(headers, bin, len, pass, error);
                 }
-                if (decrypt) {
+                if (decrypted) {
                     gsize len1;
-                    const void* asn1 = g_bytes_get_data(decrypt, &len1);
-                    ok = foil_key_rsa_private_parse_asn1(self, asn1, len1);
-                    g_bytes_unref(decrypt);
+                    const void* asn1 = g_bytes_get_data(decrypted, &len1);
+                    ok = parse_asn1(self, asn1, len1);
+                    g_bytes_unref(decrypted);
                     if (!ok) {
                         g_propagate_error(error, g_error_new_literal(
                             FOIL_ERROR, (pass && pass[0]) ?
@@ -409,7 +747,7 @@ foil_key_rsa_private_parse_text_full(
                            "Failed to decrypt RSA private key"));
                     }
                 } else if (!error || !*error) {
-                    ok = foil_key_rsa_private_parse_asn1(self, bin, len);
+                    ok = parse_asn1(self, bin, len);
                 }
             }
             g_bytes_unref(decoded);
@@ -423,15 +761,34 @@ foil_key_rsa_private_parse_text_full(
 
 static
 gboolean
-foil_key_rsa_private_parse_text(
+foil_key_rsa_private_parse_text_pkcs5(
     FoilKeyRsaPrivate* self,
     const guint8* data,
     gsize size,
     const char* pass,
     GError** error)
 {
-    return foil_key_rsa_private_parse_text_full(self, data, size, pass, error,
-        &rsa_private_key_prefix_bytes, &rsa_private_key_suffix_bytes);
+    return foil_key_rsa_private_parse_text(self, data, size, pass, error,
+        &rsa_private_key_pkcs5_prefix_bytes,
+        &rsa_private_key_pkcs5_suffix_bytes,
+        foil_key_rsa_private_decrypt_pkcs5,
+        foil_key_rsa_private_parse_pkcs1);
+}
+
+static
+gboolean
+foil_key_rsa_private_parse_text_pkcs8(
+    FoilKeyRsaPrivate* self,
+    const guint8* data,
+    gsize size,
+    const char* pass,
+    GError** error)
+{
+    return foil_key_rsa_private_parse_text(self, data, size, pass, error,
+        &rsa_private_key_pkcs8_prefix_bytes,
+        &rsa_private_key_pkcs8_suffix_bytes,
+        foil_key_rsa_private_decrypt_pkcs8,
+        foil_key_rsa_private_parse_pkcs8);
 }
 
 static
@@ -452,8 +809,10 @@ foil_key_rsa_private_parse_bytes(
             pass = g_variant_get_string(var, NULL);
         }
     }
-    if (foil_key_rsa_private_parse_text(self, data, len, pass, error) ||
-        foil_key_rsa_private_parse_asn1(self, data, len)) {
+    if (foil_key_rsa_private_parse_text_pkcs8(self, data, len, pass, error) ||
+        foil_key_rsa_private_parse_text_pkcs5(self, data, len, pass, error) ||
+        foil_key_rsa_private_parse_pkcs1(self, data, len) ||
+        foil_key_rsa_private_parse_pkcs8(self, data, len)) {
         g_clear_error(error);
         return TRUE;
     } else {
@@ -521,8 +880,9 @@ foil_key_rsa_private_export_default(
     GError** error)
 {
     const char eol = '\n';
-    gboolean ok = foil_output_write_all(out, rsa_private_key_prefix,
-        sizeof(rsa_private_key_prefix)) && foil_output_write_all(out, &eol, 1);
+    gboolean ok = foil_output_write_all(out, rsa_private_key_pkcs5_prefix,
+        sizeof(rsa_private_key_pkcs5_prefix)) &&
+        foil_output_write_all(out, &eol, 1);
     if (ok && comment) {
         char* header = foil_format_header("Comment", comment);
         if (header) {
@@ -576,8 +936,8 @@ foil_key_rsa_private_export_default(
             FoilOutput* base64 = foil_output_base64_new_full(out, 0, 64);
             ok = foil_output_write_bytes_all(base64, bytes) &&
                 foil_output_flush(base64) &&
-                foil_output_write_all(out, rsa_private_key_suffix,
-                sizeof(rsa_private_key_suffix)) &&
+                foil_output_write_all(out, rsa_private_key_pkcs5_suffix,
+                sizeof(rsa_private_key_pkcs5_suffix)) &&
                 foil_output_write_all(out, &eol, 1);
             foil_output_unref(base64);
             g_bytes_unref(bytes);

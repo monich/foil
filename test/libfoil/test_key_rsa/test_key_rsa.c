@@ -930,6 +930,9 @@ static const TestKeyRsa tests[] = {
         "LongLongLongLongLongLongLongLongLongLongLongLongLongLongLongLongLong"
         "LongLongLongLongLongLongLongLongLongComment"),
     TEST_READ_PASSPHRASE_OK("rsa-768-passphrase", "aes128", "passphrase"),
+    TEST_READ_PASSPHRASE_OK("rsa-768-passphrase", "pkcs8.aes128", "passwd"),
+    TEST_READ_PASSPHRASE_OK("rsa-768-passphrase", "pkcs8.aes192", "passwd"),
+    TEST_READ_PASSPHRASE_OK("rsa-768-passphrase", "pkcs8.aes256", "passwd"),
     TEST_READ_PASSPHRASE_OK("rsa-1024-passphrase", "aes192", "passphrase"),
     TEST_READ_PASSPHRASE_OK("rsa-1500-passphrase", "aes256", "passphrase"),
     TEST_READ_PASSPHRASE_ERR("rsa-2048-passphrase", "camellia256", NULL,

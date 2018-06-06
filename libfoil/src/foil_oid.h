@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,40 +27,37 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_KEY_P_H
-#define FOIL_KEY_P_H
+#ifndef FOIL_OID_H
+#define FOIL_OID_H
 
-#include "foil_types_p.h"
-#include "foil_key.h"
+/* ASN.1 encoded OID values */
 
-struct foil_key {
-    GObject super;
-    GBytes* fingerprint;
-};
+/* 1.2.840.113549.1.1.1 - RSA */
+#define ASN1_OID_RSA_LENGTH (9)
+#define ASN1_OID_RSA_BYTES \
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01
 
-typedef struct foil_key_class {
-    GObjectClass super;
-    FoilKey* (*fn_generate)(guint bits);
-    gboolean (*fn_parse_bytes)(FoilKey* key, const void* data, gsize len,
-        GHashTable* param, GError** error);
-    gboolean (*fn_equal)(FoilKey* key1, FoilKey* key2);
-    GBytes* (*fn_to_bytes)(FoilKey* key);
-    gboolean (*fn_export)(FoilKey* key, FoilOutput* out,
-        FoilKeyExportFormat format, GHashTable* param, GError** error);
-    GBytes* (*fn_fingerprint)(FoilKey* key);
-} FoilKeyClass;
+/* 1.2.840.113549.1.5.12 - PBKDF2 (Key Derivation Function) */
+#define ASN1_OID_PBKDF2_LENGTH (9)
+#define ASN1_OID_PBKDF2_BYTES \
+    0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x05, 0x0C
 
-#define FOIL_IS_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
-        FOIL_TYPE_KEY)
-#define FOIL_KEY_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
-        FOIL_TYPE_KEY, FoilKeyClass))
-#define FOIL_KEY_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj),\
-        FOIL_TYPE_KEY, FoilKeyClass)
+/* 2.16.840.1.101.3.4.1.2 (AES128-CBC) */
+#define ASN1_OID_AES128_CBC_LENGTH (9)
+#define ASN1_OID_AES128_CBC_BYTES \
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x02
 
-#define PKCS1_RSA_VERSION (0)
-#define PKCS8_RSA_VERSION (0)
+/* 2.16.840.1.101.3.4.1.22 (AES192-CBC) */
+#define ASN1_OID_AES192_CBC_LENGTH (9)
+#define ASN1_OID_AES192_CBC_BYTES \
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x16
 
-#endif /* FOIL_KEY_P_H */
+/* 2.16.840.1.101.3.4.1.42 (AES256-CBC) */
+#define ASN1_OID_AES256_CBC_LENGTH (9)
+#define ASN1_OID_AES256_CBC_BYTES \
+    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x01, 0x2A
+
+#endif /* FOIL_OID_H */
 
 /*
  * Local Variables:
