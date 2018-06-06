@@ -153,6 +153,21 @@ foil_digest_unref(
     }
 }
 
+FoilDigest*
+foil_digest_clone(
+    FoilDigest* self)
+{
+    if (G_LIKELY(self)) {
+        GType type = G_TYPE_FROM_INSTANCE(self);
+        FoilDigest* clone = foil_digest_new(type);
+        if (foil_digest_copy(clone, self)) {
+            return clone;
+        }
+        foil_digest_unref(clone);
+    }
+    return NULL;
+}
+
 gboolean
 foil_digest_copy(
     FoilDigest* self,

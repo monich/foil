@@ -161,6 +161,7 @@ test_basic(
     g_assert(!foil_digest_type_size(0));
     g_assert(!foil_digest_type_name(0));
     g_assert(!foil_digest_new(0));
+    g_assert(!foil_digest_clone(NULL));
     g_assert(!foil_digest_ref(NULL));
     g_assert(!foil_digest_size(NULL));
     g_assert(!foil_digest_name(NULL));
@@ -180,6 +181,47 @@ test_basic(
     foil_digest_unref(NULL);
     g_bytes_unref(bytes);
     foil_digest_unref(digest);
+}
+
+static
+void
+test_clone(
+    gconstpointer param)
+{
+    FoilDigest* d1 = foil_digest_new_md5();
+    FoilDigest* d2;
+    GBytes* b1;
+    GBytes* b2;
+
+    /* Clone unfinished digest */
+    foil_digest_update(d1, MD5_TEST2, strlen(MD5_TEST2));
+    d2 = foil_digest_clone(d1);
+    b1 = foil_digest_finish(d1);
+    b2 = foil_digest_finish(d2);
+
+    g_assert(g_bytes_equal(b1, b2));
+    g_assert(g_bytes_get_size(b1) == sizeof(test_md5_data2));
+    g_assert(!memcmp(g_bytes_get_data(b1, NULL), test_md5_data2,
+        sizeof(test_md5_data2)));
+
+    foil_digest_unref(d1);
+    foil_digest_unref(d2);
+
+    /* Clone finished digest */
+    d1 = foil_digest_new_sha1();
+    foil_digest_update(d1, SHA1_TEST1, strlen(SHA1_TEST1));
+    b1 = foil_digest_finish(d1);
+
+    d2 = foil_digest_clone(d1);
+    b2 = foil_digest_finish(d2);
+
+    g_assert(g_bytes_equal(b1, b2));
+    g_assert(g_bytes_get_size(b1) == sizeof(test_sha1_data1));
+    g_assert(!memcmp(g_bytes_get_data(b1, NULL), test_sha1_data1,
+        sizeof(test_sha1_data1)));
+
+    foil_digest_unref(d1);
+    foil_digest_unref(d2);
 }
 
 static
@@ -303,6 +345,7 @@ test_digest(
 
 static const TestDigest tests[] = {
     { TEST_NAME("Basic"), test_basic },
+    { TEST_NAME("Clone"), test_clone },
     { TEST_NAME("Copy"), test_copy },
     /* MD5 */
     TEST_MD5(1,1),
