@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,6 +62,14 @@ foil_output_write_bytes_all(
     FoilOutput* out,
     GBytes* bytes);
 
+/* Since 1.0.9 */
+guint
+foil_output_write_eol(
+    FoilOutput* out);
+
+#define foil_output_write_all(out,buf,size) \
+    (foil_output_write(out,buf,size) == (gssize)(size))
+
 gboolean
 foil_output_flush(
     FoilOutput* out);
@@ -77,9 +85,6 @@ foil_output_close(
 gsize
 foil_output_bytes_written(
     FoilOutput* out);
-
-#define foil_output_write_all(out,buf,size) \
-    (foil_output_write(out,buf,size) == (gssize)(size))
 
 /* Implementations */
 

@@ -879,15 +879,13 @@ foil_key_rsa_private_export_default(
     const char* pass,
     GError** error)
 {
-    const char eol = '\n';
     gboolean ok = foil_output_write_all(out, rsa_private_key_pkcs5_prefix,
-        sizeof(rsa_private_key_pkcs5_prefix)) &&
-        foil_output_write_all(out, &eol, 1);
+        sizeof(rsa_private_key_pkcs5_prefix)) && foil_output_write_eol(out);
     if (ok && comment) {
         char* header = foil_format_header("Comment", comment);
         if (header) {
             ok = foil_output_write_all(out, header, strlen(header)) &&
-                foil_output_write_all(out, &eol, 1);
+                foil_output_write_eol(out);
             g_free(header);
         }
     }
@@ -911,8 +909,7 @@ foil_key_rsa_private_export_default(
                 }
                 ok = foil_output_write_all(out, tags, sizeof(tags) - 1) &&
                     foil_output_write_all(out, hiv, sizeof(hiv)) &&
-                    foil_output_write_all(out, &eol, 1) &&
-                    foil_output_write_all(out, &eol, 1);
+                    foil_output_write_eol(out) && foil_output_write_eol(out);
                 if (ok) {
                     GBytes* b = foil_key_rsa_private_pass_key(pass, iv, bits);
                     FoilKey* key = foil_key_new_from_bytes(key_type, b);
@@ -938,7 +935,7 @@ foil_key_rsa_private_export_default(
                 foil_output_flush(base64) &&
                 foil_output_write_all(out, rsa_private_key_pkcs5_suffix,
                 sizeof(rsa_private_key_pkcs5_suffix)) &&
-                foil_output_write_all(out, &eol, 1);
+                foil_output_write_eol(out);
             foil_output_unref(base64);
             g_bytes_unref(bytes);
         }

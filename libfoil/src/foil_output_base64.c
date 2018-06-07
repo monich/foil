@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -127,9 +127,9 @@ gboolean
 foil_output_base64_linebreak(
     FoilOutputBase64* self)
 {
-    static const char eol[] = { '\n' };
-    if (foil_output_write_all(self->out, eol, sizeof(eol))) {
-        self->total_count += sizeof(eol);
+    guint written = foil_output_write_eol(self->out);
+    if (written) {
+        self->total_count += written;
         return TRUE;
     } else {
         return FALSE;

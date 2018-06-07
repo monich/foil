@@ -140,6 +140,21 @@ foil_output_write_bytes_all(
     return FALSE;
 }
 
+/**
+ * foil_output_write_eol() returns number of bytes written (currently, just
+ * one but could be more if we decide to support e.g. Windows eol sequence),
+ * zero on failure. Meaning that its return value can be safely interpreted
+ * as a boolean.
+ */
+guint
+foil_output_write_eol(
+    FoilOutput* out)
+{
+    static const char eol = '\n';
+    gssize written = foil_output_write(out, &eol, 1);
+    return written > 0 ? 1 : 0;
+}
+
 gboolean
 foil_output_flush(
     FoilOutput* out)

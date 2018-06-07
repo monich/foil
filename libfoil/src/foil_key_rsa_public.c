@@ -477,10 +477,9 @@ foil_key_rsa_public_export_ssh_rsa(
         foil_output_unref(base64);
         g_bytes_unref(bytes);
         if (ok && comment) {
-            const char eol = '\n';
             ok = foil_output_write_all(out, &space, 1) &&
                 foil_output_write_all(out, comment, strlen(comment)) &&
-                foil_output_write_all(out, &eol, 1);
+                foil_output_write_eol(out);
         }
     }
     if (!ok && error) {
@@ -498,16 +497,14 @@ foil_key_rsa_public_export_rfc4716(
     const char* comment,
     GError** error)
 {
-    const char eol = '\n';
     gboolean ok = foil_output_write_all(out, rsa_public_rfc4716_prefix,
-        sizeof(rsa_public_rfc4716_prefix)) &&
-        foil_output_write_all(out, &eol, 1);
+        sizeof(rsa_public_rfc4716_prefix)) && foil_output_write_eol(out);
     if (ok) {
         if (comment) {
             char* header = foil_format_header("Comment", comment);
             if (header) {
                 ok = foil_output_write_all(out, header, strlen(header)) &&
-                    foil_output_write_all(out, &eol, 1);
+                    foil_output_write_eol(out);
                 g_free(header);
             }
         }
@@ -521,7 +518,7 @@ foil_key_rsa_public_export_rfc4716(
             if (ok) {
                 ok = foil_output_write_all(out, rsa_public_rfc4716_suffix,
                     sizeof(rsa_public_rfc4716_suffix)) &&
-                    foil_output_write_all(out, &eol, 1);
+                    foil_output_write_eol(out);
             }
         }
     }
@@ -543,10 +540,8 @@ foil_key_rsa_public_export_pkcs8(
     gboolean ok = FALSE;
     GBytes* bitstring = foil_key_rsa_public_data_to_asn1(self->data);
     if (bitstring) {
-        const char eol = '\n';
         ok = foil_output_write_all(out, rsa_public_pkcs8_prefix,
-            sizeof(rsa_public_pkcs8_prefix)) &&
-            foil_output_write_all(out, &eol, 1);
+            sizeof(rsa_public_pkcs8_prefix)) && foil_output_write_eol(out);
         if (ok) {
             const guint8* aid = RSA_PUBLIC_KEY_AID;
             const guint aid_size = sizeof(RSA_PUBLIC_KEY_AID);
@@ -563,7 +558,7 @@ foil_key_rsa_public_export_pkcs8(
             if (ok) {
                 ok = foil_output_write_all(out, rsa_public_pkcs8_suffix,
                     sizeof(rsa_public_pkcs8_suffix)) &&
-                    foil_output_write_all(out, &eol, 1);
+                    foil_output_write_eol(out);
             }
         }
         g_bytes_unref(bitstring);
