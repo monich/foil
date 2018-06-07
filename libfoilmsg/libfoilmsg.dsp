@@ -113,6 +113,10 @@ SOURCE=.\src\foilmsg_p.h
 # End Group
 # Begin Source File
 
+SOURCE=.\Makefile
+# End Source File
+# Begin Source File
+
 SOURCE=.\README
 # End Source File
 # End Target

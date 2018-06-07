@@ -264,6 +264,10 @@ SOURCE=.\include\foil_util.h
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\foil_asn1_p.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_cipher_aes.h
 # End Source File
 # Begin Source File
@@ -301,6 +305,10 @@ SOURCE=.\src\foil_key_rsa_public.h
 # Begin Source File
 
 SOURCE=.\src\foil_log_p.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\foil_oid.h
 # End Source File
 # Begin Source File
 
@@ -379,5 +387,25 @@ SOURCE=.\src\openssl\foil_openssl_random.h
 SOURCE=.\src\openssl\foil_openssl_rsa.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\libfoil.pc.in
+# End Source File
+# Begin Source File
+
+SOURCE=..\LICENSE
+# End Source File
+# Begin Source File
+
+SOURCE=.\Makefile
+# End Source File
+# Begin Source File
+
+SOURCE=..\README
+# End Source File
+# Begin Source File
+
+SOURCE=..\VERSION
+# End Source File
 # End Target
 # End Project
