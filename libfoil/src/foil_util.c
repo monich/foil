@@ -223,6 +223,19 @@ foil_parse_skip_to_next_line(
     return (pos->ptr < pos->end);
 }
 
+gboolean
+foil_parse_skip_bytes(
+    FoilParsePos* pos,
+    const FoilBytes* bytes)
+{
+    if (pos->end >= pos->ptr + bytes->len &&
+        !memcmp(pos->ptr, bytes->val, bytes->len)) {
+        pos->ptr += bytes->len;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static
 char
 foil_parse_read_line2(

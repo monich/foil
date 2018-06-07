@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,6 +32,12 @@
 #include <foil_random.h>
 #include <foil_util.h>
 #include <gutil_log.h>
+
+/* Text prefix for BASE64 encoded foilmsg blob */
+const FoilBytes foilmsg_prefix = {
+    (const void*)FOILMSG_PREFIX,
+    FOILMSG_PREFIX_LENGTH
+};
 
 /* SEQUENCE { tag INTEGER data OCTET STRING } */
 static
@@ -464,8 +470,9 @@ foilmsg_encrypt_text(
             if (bytes64) {
                 gsize len64;
                 const char* base64 = g_bytes_get_data(bytes64, &len64);
-                result = g_string_sized_new(FOILMSG_PREFIX_LENGTH+1+len64);
-                g_string_append(result, FOILMSG_PREFIX);
+                result = g_string_sized_new(foilmsg_prefix.len + 1 + len64);
+                g_string_append_len(result, (const char*)foilmsg_prefix.val,
+                    foilmsg_prefix.len);
                 g_string_append_c(result, '\n');
                 g_string_append_len(result, base64, len64);
                 g_bytes_unref(bytes64);

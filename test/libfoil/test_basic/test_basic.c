@@ -162,6 +162,7 @@ test_skip(
     void)
 {
     FoilParsePos pos;
+    static const FoilBytes bytes = { (const void*)"xyz", 3 };
 
     /* Test NULL resistance */
     g_assert(!foil_parse_init_string(NULL, NULL));
@@ -178,6 +179,20 @@ test_skip(
     g_assert(foil_parse_init_string(&pos, "      \\\r\nx"));
     g_assert(!foil_parse_skip_to_next_line(&pos, TRUE));
     g_assert(!g_strcmp0((char*)pos.ptr, ""));
+
+    g_assert(foil_parse_init_string(&pos, "xy"));
+    g_assert(!foil_parse_skip_bytes(&pos, &bytes));
+
+    g_assert(foil_parse_init_string(&pos, "xxx"));
+    g_assert(!foil_parse_skip_bytes(&pos, &bytes));
+
+    g_assert(foil_parse_init_string(&pos, "xyz"));
+    g_assert(foil_parse_skip_bytes(&pos, &bytes));
+    g_assert(pos.ptr == pos.end);
+
+    g_assert(foil_parse_init_string(&pos, "xyz "));
+    g_assert(foil_parse_skip_bytes(&pos, &bytes));
+    g_assert(!g_strcmp0((char*)pos.ptr, " "));
 }
 
 static

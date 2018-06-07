@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -106,6 +106,13 @@ typedef struct foilmsg_encrypt_options {
 #define FOILMSG_FLAG_ENCRYPT_FOR_SELF (0x01)
 
 } FoilMsgEncryptOptions;
+
+/*
+ * Text prefix for BASE64 encoded foilmsg blob. A space (or line break)
+ * between the prefix and BASE64 encoded data is encouraged but not really
+ * required.
+ */
+extern const FoilBytes foilmsg_prefix;
 
 gsize
 foilmsg_encrypt(

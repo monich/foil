@@ -53,6 +53,11 @@ void
 foil_parse_skip_spaces(
     FoilParsePos* pos);
 
+gboolean
+foil_parse_skip_bytes(
+    FoilParsePos* pos,
+    const FoilBytes* bytes);
+
 GBytes*
 foil_parse_base64(
     FoilParsePos* pos,

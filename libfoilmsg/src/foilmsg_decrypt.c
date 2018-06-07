@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -607,13 +607,11 @@ foilmsg_to_binary(
         pos.ptr = data->val;
         pos.end = pos.ptr + data->len;
         foil_parse_skip_spaces(&pos);
-        if (pos.end >= pos.ptr + FOILMSG_PREFIX_LENGTH &&
-            !memcmp(pos.ptr, FOILMSG_PREFIX, FOILMSG_PREFIX_LENGTH)) {
+        if (foil_parse_skip_bytes(&pos, &foilmsg_prefix)) {
             FoilInput* mem;
             FoilInput* base64;
             /* TODO: use temporary file for large amounts of input data */
             FoilOutput* out = foil_output_mem_new(NULL);
-            pos.ptr += FOILMSG_PREFIX_LENGTH;
             mem = foil_input_mem_new_static(pos.ptr, pos.end - pos.ptr);
             base64 = foil_input_base64_new_full(mem,
                 FOIL_INPUT_BASE64_IGNORE_SPACES |
@@ -644,10 +642,8 @@ foilmsg_decrypt_text_bytes(
         pos.ptr = text->val;
         pos.end = pos.ptr + text->len;
         foil_parse_skip_spaces(&pos);
-        if (pos.end > pos.ptr + FOILMSG_PREFIX_LENGTH &&
-            !memcmp(pos.ptr, FOILMSG_PREFIX, FOILMSG_PREFIX_LENGTH)) {
+        if (foil_parse_skip_bytes(&pos, &foilmsg_prefix)) {
             GBytes* decoded;
-            pos.ptr += FOILMSG_PREFIX_LENGTH;
             decoded = foil_parse_base64(&pos, FOIL_INPUT_BASE64_IGNORE_SPACES);
             if (decoded) {
                 FoilBytes bytes;

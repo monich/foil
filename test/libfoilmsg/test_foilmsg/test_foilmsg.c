@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -471,7 +471,7 @@ test_foilmsg_verify_error(
 
 #define TEST_(name) "/foilmsg/" name
 
-static const char foilmsg_prefix[] = FOILMSG_PREFIX;
+static const char foilmsg_prefix_only[] = FOILMSG_PREFIX;
 static const char foilmsg_prefix_and_spaces[] = " " FOILMSG_PREFIX "  ";
 static const char foilmsg_no_prefix[] = " WHATEVER ";
 static const char foilmsg_invalid_base64[] = FOILMSG_PREFIX " ABCD....";
@@ -479,15 +479,15 @@ static const char foilmsg_invalid_base64[] = FOILMSG_PREFIX " ABCD....";
 static const TestFoilMsgConvertToBinary foilmsg_convert_tests[] = {
     {
         TEST_("ConvertEmpty"),
-        { (gconstpointer)foilmsg_prefix, 0 },
+        { (gconstpointer)foilmsg_prefix_only, 0 },
         NULL, 0
     },{
         TEST_("ConvertShort1"),
-        { (gconstpointer)foilmsg_prefix, 1 },
-        foilmsg_prefix, 1
+        { (gconstpointer)foilmsg_prefix_only, 1 },
+        foilmsg_prefix_only, 1
     }, {
         TEST_("ConvertPrefix"),
-        { (gconstpointer)foilmsg_prefix, FOILMSG_PREFIX_LENGTH },
+        { (gconstpointer)foilmsg_prefix_only, FOILMSG_PREFIX_LENGTH },
         NULL, 0
     }, {
         TEST_("ConvertPrefixAndSpaces"),
