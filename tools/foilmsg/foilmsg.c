@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +31,7 @@
 
 #include <foil_key.h>
 #include <foil_input.h>
+#include <foil_output.h>
 #include <foil_util.h>
 #include <foil_private_key.h>
 #include <gutil_log.h>
@@ -41,6 +42,9 @@
 #define RET_OK 0
 #define RET_ERR 1
 #define RET_CMDLINE 2
+
+#define DEFAULT_PRIV_KEY "/.ssh/id_rsa" /* Relative to $HOME */
+#define FILENAME_HEADER "Filename"
 
 static
 const char*
@@ -217,24 +221,26 @@ foilmsg_bytes_to_hex(
 
 static
 int
-foilmsg_encode(
-    FoilKey* recipient,
-    FoilPrivateKey* sender,
-    const char* text,
-    int cols,
+foilmsg_encode_base64(
+    FoilKey* to,
+    FoilPrivateKey* from,
+    const FoilBytes* data,
+    const char* type,
+    const FoilMsgHeaders* hdrs,
+    FoilOutput* out,
+    int linebreaks,
     const FoilMsgEncryptOptions* opts)
 {
-    GString* enc = foilmsg_encrypt_text(text, sender, recipient, cols, opts);
-    if (enc) {
-        /* Make sure that the last line is terminated */
-        if (enc->len > 0 && enc->str[enc->len-1] != '\n') {
-            g_string_append_c(enc, '\n');
+    int ret = RET_ERR;
+    if (foil_output_write_all(out, foilmsg_prefix.val, foilmsg_prefix.len) &&
+        foil_output_write_eol(out)) {
+        FoilOutput* out64 = foil_output_base64_new_full(out, 0, linebreaks);
+        if (foilmsg_encrypt(out64, data, type, hdrs, from, to, opts, NULL)) {
+            ret = RET_OK;
         }
-        printf("%s", enc->str);
-        g_string_free(enc, TRUE);
-        return RET_OK;
+        foil_output_unref(out64);
     }
-    return RET_ERR;
+    return ret;
 }
 
 static
@@ -281,14 +287,16 @@ main(
     gboolean decrypt = FALSE;
     gboolean show_info = FALSE;
     gboolean for_self = FALSE;
+    gboolean binary = FALSE;
 #ifdef VERSION
     gboolean print_version = FALSE;
 #endif
     GError* error = NULL;
     char* priv_key = NULL;
     char* pub_key = NULL;
-    char* enc_file = NULL;
     char* in_file = NULL;
+    char* out_file = NULL;
+    char* type = NULL;
     int key_size = 128;
     int columns = 64;
     GOptionContext* options;
@@ -298,7 +306,7 @@ main(
         { "decrypt", 'd', 0, G_OPTION_ARG_NONE, &decrypt,
           "Decrypt the data", NULL },
         { "secret", 's', 0, G_OPTION_ARG_FILENAME, &priv_key,
-          "Your private key [~/.ssh/id_rsa]", "FILE" },
+          "Your private key [~" DEFAULT_PRIV_KEY "]", "FILE" },
         { "public", 'p', 0, G_OPTION_ARG_FILENAME, &pub_key,
           "Public key of the other party", "FILE" },
         { "file", 'f', 0, G_OPTION_ARG_FILENAME, &in_file,
@@ -312,10 +320,16 @@ main(
         { NULL }
     };
     GOptionEntry encrypt_entries[] = {
+        { "type", 't', 0, G_OPTION_ARG_STRING, &type,
+          "Specify content type", "TYPE" },
         { "bits", 'b', 0, G_OPTION_ARG_INT, &key_size,
           "Encryption key size (128, 192 or 256) [128]", "BITS" },
+        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &out_file,
+          "Write output to FILE", "FILE" },
         { "columns", 'c', 0, G_OPTION_ARG_INT, &columns,
           "Wrap lines at the specified column [64]", "COLS" },
+        { "binary", 'B', 0, G_OPTION_ARG_NONE, &binary,
+          "Output binary data in ASN.1 format", NULL },
         { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
           "Encrypt to self and the recipient", NULL },
         { NULL }
@@ -362,7 +376,7 @@ main(
 
     /* Use ~/.ssh/id_rsa as the default private key */
     if (ok && !priv_key) {
-        priv_key = g_strconcat(getenv("HOME"), "/.ssh/id_rsa", NULL);
+        priv_key = g_strconcat(getenv("HOME"), DEFAULT_PRIV_KEY, NULL);
         if (priv_key && !g_file_test(priv_key, G_FILE_TEST_EXISTS)) {
             g_free(priv_key);
             priv_key = NULL;
@@ -374,8 +388,8 @@ main(
         ok = FALSE;
     }
 
-    if (show_info && !decrypt) {
-        GWARN("Ignoring --info option because we are not decrypting");
+    if (show_info) {
+        decrypt = TRUE;
     }
 
 #ifdef VERSION
@@ -448,12 +462,15 @@ main(
                     } else {
                         ret = foilmsg_decode(pub, priv, &bytes);
                     }
-                } else if (g_utf8_validate((void*)bytes.val, bytes.len, 0)) {
-                    /* NULL terminate the text */
+                } else {
+                    FoilMsgHeaders headers;
+                    FoilMsgHeader filename_header;
+                    const FoilMsgHeaders* encode_headers = NULL;
+                    FoilOutput* tmp = foil_output_file_new_tmp();
+                    FoilOutput* out = NULL;
+                    char* tmpfilename = NULL;
                     FoilMsgEncryptOptions opt;
-                    char* text = g_malloc(bytes.len + 1);
-                    memcpy(text, bytes.val, bytes.len);
-                    text[bytes.len] = 0;
+
                     memset(&opt, 0, sizeof(opt));
                     /* Without a public key, encrypt to self */
                     if (for_self || !pub) {
@@ -464,11 +481,46 @@ main(
                     case 192: opt.key_type = FOILMSG_KEY_AES_192; break;
                     case 256: opt.key_type = FOILMSG_KEY_AES_256; break;
                     }
-                    ret = foilmsg_encode(pub, priv, text, columns, &opt);
-                    g_free(text);
-                } else {
-                    GERR("The input doesn't seem to be valid UTF-8");
-                    ret = RET_ERR;
+
+                    if (in_file) {
+                        /* Store the file name in the headers */
+                        char* basename = g_path_get_basename(in_file);
+                        tmpfilename = g_filename_to_utf8(basename, -1,
+                            NULL, NULL, NULL);
+                        g_free(basename);
+                        if (tmpfilename) {
+                            filename_header.name = FILENAME_HEADER;
+                            filename_header.value = tmpfilename;
+                            headers.header = &filename_header;
+                            headers.count = 1;
+                            encode_headers = &headers;
+                        }
+                    }
+
+                    if (out_file) {
+                        out = foil_output_file_new_open(out_file);
+                        if (!out) {
+                            GERR("Failed to open %s", out_file);
+                        }
+                    } else {
+                        out = foil_output_file_new(stdout, 0);
+                    }
+
+                    if (out) {
+                        if (binary) {
+                            if (foilmsg_encrypt(out, &bytes, type,
+                                encode_headers, priv, pub, &opt, tmp)) {
+                                ret = RET_OK;
+                            }
+                        } else {
+                            ret = foilmsg_encode_base64(pub, priv, &bytes,
+                                type, encode_headers, out, columns, &opt);
+                        }
+                        foil_output_unref(out);
+                    }
+
+                    g_free(tmpfilename);
+                    foil_output_unref(tmp);
                 }
                 g_bytes_unref(in);
             }
@@ -490,7 +542,9 @@ main(
     g_option_context_free(options);
     g_free(priv_key);
     g_free(pub_key);
-    g_free(enc_file);
+    g_free(in_file);
+    g_free(out_file);
+    g_free(type);
     return ret;
 }
 
