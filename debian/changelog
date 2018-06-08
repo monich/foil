@@ -1,3 +1,10 @@
+libfoil (1.0.9) unstable; urgency=low
+
+  * Added foil_output_write_eol() and foil_parse_skip_bytes()
+  * Added -t, -o and -B options to foilmsg command line tool
+
+ -- Slava Monich <slava@monich.com>  Sat, 09 Jun 2018 01:31:55 +0300
+
 libfoil (1.0.8) unstable; urgency=low
 
   * Added HMAC API
