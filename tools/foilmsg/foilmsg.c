@@ -297,6 +297,7 @@ main(
     char* in_file = NULL;
     char* out_file = NULL;
     char* type = NULL;
+    char* pass = NULL;
     int key_size = 128;
     int columns = 64;
     GOptionContext* options;
@@ -307,6 +308,8 @@ main(
           "Decrypt the data", NULL },
         { "secret", 's', 0, G_OPTION_ARG_FILENAME, &priv_key,
           "Your private key [~" DEFAULT_PRIV_KEY "]", "FILE" },
+        { "pass", 'P', 0, G_OPTION_ARG_STRING, &pass,
+          "Passphrase to decrypt your private key", "PASS" },
         { "public", 'p', 0, G_OPTION_ARG_FILENAME, &pub_key,
           "Public key of the other party", "FILE" },
         { "file", 'f', 0, G_OPTION_ARG_FILENAME, &in_file,
@@ -398,13 +401,21 @@ main(
         ret = RET_OK;
     } else
 #endif
+
     if (ok && priv_key && argc == 1) {
         FoilKey* pub = NULL;
         FoilPrivateKey* priv;
         const char* pub_pad = "";
 
         /* Load the keys */
-        priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_key);
+        if (pass) {
+            priv = foil_private_key_decrypt_from_file(FOIL_KEY_RSA_PRIVATE,
+                priv_key, pass, &error);
+        } else {
+            priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE,
+                priv_key);
+        }
+
         if (priv) {
             if (GLOG_ENABLED(GLOG_LEVEL_DEBUG)) {
                 GBytes* fp = foil_private_key_fingerprint(priv);
@@ -413,6 +424,9 @@ main(
                 g_string_free(buf, TRUE);
                 pub_pad = " "; /* Align output for public and private keys */
             }
+        } else if (error) {
+            GERR("Failed to load private key from %s (%s)", priv_key,
+                GERRMSG(error));
         } else {
             GERR("Failed to load private key from %s", priv_key);
         }
@@ -436,7 +450,6 @@ main(
             /* Read the input data */
             GBytes* in = NULL;
             if (in_file) {
-                GError* error = NULL;
                 GMappedFile* map = g_mapped_file_new(in_file, FALSE, &error);
                 if (map) {
                     /* g_mapped_file_get_bytes() appeared in glib 2.34 */
@@ -544,6 +557,7 @@ main(
     g_free(pub_key);
     g_free(in_file);
     g_free(out_file);
+    g_free(pass);
     g_free(type);
     return ret;
 }
