@@ -1,5 +1,5 @@
 Name: libfoil
-Version: 1.0.9
+Version: 1.0.10
 Release: 0
 Summary: Yet another glib-style crypto API
 Group: Development/Libraries
@@ -31,7 +31,7 @@ This package contains the development library for %{name}.
 %package -n foil-tools
 Summary: Encryption/decryption utilities
 Group: Applications/File
-Requires: libfoil
+Requires: libfoil >= 1.0.9
 
 %description -n foil-tools
 Command line encryption/decryption utilities.

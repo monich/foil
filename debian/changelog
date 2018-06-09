@@ -1,3 +1,9 @@
+libfoil (1.0.10) unstable; urgency=low
+
+  * Added -P option to foilmsg command line tool
+
+ -- Slava Monich <slava@monich.com>  Sat, 09 Jun 2018 13:05:56 +0300
+
 libfoil (1.0.9) unstable; urgency=low
 
   * Added foil_output_write_eol() and foil_parse_skip_bytes()

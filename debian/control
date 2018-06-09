@@ -20,5 +20,5 @@ Description: Development files for libfoil
 Package: foil-tools
 Section: misc
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libfoil (>= 1.0.9), ${shlibs:Depends}, ${misc:Depends}
 Description: Encryption/decryption utility
