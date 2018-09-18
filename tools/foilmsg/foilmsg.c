@@ -248,30 +248,42 @@ int
 foilmsg_decode(
     FoilKey* sender,
     FoilPrivateKey* recipient,
-    const FoilBytes* bytes)
+    const FoilBytes* bytes,
+    FoilOutput* out)
 {
-    FoilMsg* msg = foilmsg_decrypt_text_bytes(recipient, bytes);
-    if (!msg) {
-        msg = foilmsg_decrypt(recipient, bytes, NULL);
+    FoilMsg* msg = foilmsg_decrypt_text_bytes(recipient, bytes, out);
+    if (!msg && (!out || foil_output_reset(out))) {
+        msg = foilmsg_decrypt(recipient, bytes, out);
     }
     if (msg) {
         gsize len;
-        const void* data = g_bytes_get_data(msg->data, &len);
-        GString* text = g_string_new_len(data, len);
+        const char* data = g_bytes_get_data(msg->data, &len);
         if (sender) {
             if (foilmsg_verify(msg, sender)) {
-                printf("%s", text->str);
-                g_string_free(text, TRUE);
+                if (!out) {
+                    printf("%.*s", (int)len, data);
+                }
                 return RET_OK;
             } else {
                 GERR("Signature verification failed");
             }
         } else {
-            printf("[UNVERIFIED] %s", text->str);
-            g_string_free(text, TRUE);
+            /* Try to validate against the private key */
+            FoilKey* pub = foil_public_key_new_from_private(recipient);
+            if (foilmsg_verify(msg, pub)) {
+                if (!out) {
+                    printf("%.*s", (int)len, data);
+                }
+            } else {
+                if (out) {
+                    printf("[UNVERIFIED] %.*s", (int)len, data);
+                } else {
+                    printf("[UNVERIFIED]\n");
+                }
+            }
+            foil_key_unref(pub);
             return RET_OK;
         }
-        g_string_free(text, TRUE);
     }
     return RET_ERR;
 }
@@ -314,6 +326,8 @@ main(
           "Public key of the other party", "FILE" },
         { "file", 'f', 0, G_OPTION_ARG_FILENAME, &in_file,
           "Read input from FILE", "FILE" },
+        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &out_file,
+          "Write output to FILE", "FILE" },
         { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
           "Enable verbose output", NULL },
 #ifdef VERSION
@@ -327,8 +341,6 @@ main(
           "Specify content type", "TYPE" },
         { "bits", 'b', 0, G_OPTION_ARG_INT, &key_size,
           "Encryption key size (128, 192 or 256) [128]", "BITS" },
-        { "output", 'o', 0, G_OPTION_ARG_FILENAME, &out_file,
-          "Write output to FILE", "FILE" },
         { "columns", 'c', 0, G_OPTION_ARG_INT, &columns,
           "Wrap lines at the specified column [64]", "COLS" },
         { "binary", 'B', 0, G_OPTION_ARG_NONE, &binary,
@@ -473,7 +485,17 @@ main(
                     if (show_info) {
                         ret = foilmsg_info(&bytes);
                     } else {
-                        ret = foilmsg_decode(pub, priv, &bytes);
+                        FoilOutput* out = NULL;
+                        if (out_file) {
+                            out = foil_output_file_new_open(out_file);
+                            if (!out) {
+                                GERR("Failed to open %s", out_file);
+                            }
+                        }
+                        if (!out_file || out) {
+                            ret = foilmsg_decode(pub, priv, &bytes, out);
+                        }
+                        foil_output_unref(out);
                     }
                 } else {
                     FoilMsgHeaders headers;

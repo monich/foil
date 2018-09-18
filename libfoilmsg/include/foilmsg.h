@@ -220,7 +220,8 @@ foilmsg_decrypt_text_len(
 FoilMsg*
 foilmsg_decrypt_text_bytes(
     FoilPrivateKey* recipient,
-    const FoilBytes* bytes);
+    const FoilBytes* bytes,
+    FoilOutput* out);   /* optional */
 
 /* Verify the signature */
 gboolean

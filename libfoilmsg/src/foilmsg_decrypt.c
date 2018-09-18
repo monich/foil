@@ -591,7 +591,7 @@ foilmsg_decrypt_text_len(
         FoilBytes bytes;
         bytes.val = (const void*)message;
         bytes.len = length;
-        return foilmsg_decrypt_text_bytes(recipient, &bytes);
+        return foilmsg_decrypt_text_bytes(recipient, &bytes, NULL);
     } else {
         return NULL;
     }
@@ -634,7 +634,8 @@ foilmsg_to_binary(
 FoilMsg*
 foilmsg_decrypt_text_bytes(
     FoilPrivateKey* recipient,
-    const FoilBytes* text)
+    const FoilBytes* text,
+    FoilOutput* out)
 {
     FoilMsg* ret = NULL;
     if (G_LIKELY(recipient) && G_LIKELY(text)) {
@@ -648,7 +649,7 @@ foilmsg_decrypt_text_bytes(
             if (decoded) {
                 FoilBytes bytes;
                 foil_bytes_from_data(&bytes, decoded);
-                ret = foilmsg_decrypt(recipient, &bytes, NULL);
+                ret = foilmsg_decrypt(recipient, &bytes, out);
                 g_bytes_unref(decoded);
             }
         }

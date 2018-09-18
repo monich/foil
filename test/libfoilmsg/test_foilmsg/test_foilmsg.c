@@ -156,8 +156,8 @@ test_foilmsg_invalid(
     g_assert(!foilmsg_decrypt_text(priv, NULL));
     g_assert(!foilmsg_decrypt_text_len(NULL, NULL, 0));
     g_assert(!foilmsg_decrypt_text_len(priv, NULL, 0));
-    g_assert(!foilmsg_decrypt_text_bytes(NULL, NULL));
-    g_assert(!foilmsg_decrypt_text_bytes(priv, NULL));
+    g_assert(!foilmsg_decrypt_text_bytes(NULL, NULL, NULL));
+    g_assert(!foilmsg_decrypt_text_bytes(priv, NULL, NULL));
     g_assert(!foilmsg_verify(NULL, NULL));
     foil_private_key_unref(priv);
     g_free(tmp);
