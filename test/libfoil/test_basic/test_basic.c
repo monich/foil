@@ -87,7 +87,7 @@ test_bytes(
     g_assert(!bytes_123c.val);
     g_assert(foil_bytes_from_data(&bytes_123c, data_123) == &bytes_123c);
     g_assert(foil_bytes_equal(NULL, NULL));
-    g_assert(foil_bytes_equal(&bytes_123, &bytes_123a));
+    g_assert(foil_bytes_equal(&bytes_123, &bytes_123));
     g_assert(foil_bytes_equal(&bytes_123, &bytes_123a));
     g_assert(foil_bytes_equal(&bytes_123, &bytes_123b));
     g_assert(foil_bytes_equal(&bytes_123, &bytes_123c));
