@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -91,8 +91,16 @@ foil_key_fingerprint(
     if (G_LIKELY(self)) {
         if (!self->fingerprint) {
             FoilKeyClass* klass = FOIL_KEY_GET_CLASS(self);
-            self->fingerprint = klass->fn_fingerprint(self);
-            GASSERT(self->fingerprint);
+            GBytes* fingerprint = klass->fn_fingerprint(self);
+            GASSERT(fingerprint);
+            /* FoilKey is an immutable object and should be safe
+             * to use in multi-threaded environment. Make sure that
+             * foil_key_fingerprint() being invoked simultaneously
+             * by multiple threads don't leak fingerprint bytes. */
+            if (fingerprint && !g_atomic_pointer_compare_and_exchange
+               (&self->fingerprint, NULL, fingerprint)) {
+                g_bytes_unref(fingerprint);
+            }
         }
         return self->fingerprint;
     }
