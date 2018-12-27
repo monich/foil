@@ -1,3 +1,10 @@
+libfoil (1.0.11) unstable; urgency=low
+
+  * Allow foilmsg to decrypt binary data to file
+  * Make foil_key_fingerprint() thread safe
+
+ -- Slava Monich <slava@monich.com>  Thu, 27 Dec 2018 05:05:52 +0200
+
 libfoil (1.0.10) unstable; urgency=low
 
   * Added -P option to foilmsg command line tool
