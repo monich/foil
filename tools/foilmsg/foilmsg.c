@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -45,6 +48,15 @@
 
 #define DEFAULT_PRIV_KEY "/.ssh/id_rsa" /* Relative to $HOME */
 #define FILENAME_HEADER "Filename"
+
+typedef struct header {
+    char* name;
+    char* value;
+} Header;
+
+typedef struct encrypt_opts {
+    GSList* headers;
+} EncryptOpts;
 
 static
 const char*
@@ -256,8 +268,20 @@ foilmsg_decode(
         msg = foilmsg_decrypt(recipient, bytes, out);
     }
     if (msg) {
+        guint i;
         gsize len;
         const char* data = g_bytes_get_data(msg->data, &len);
+
+        if (msg->headers.count) {
+            GVERBOSE("Found %u header(s)", msg->headers.count);
+            for (i = 0; i < msg->headers.count; i++) {
+                const FoilMsgHeader* hdr = msg->headers.header + i;
+                GVERBOSE("  %s: %s", hdr->name, hdr->value);
+            }
+        } else {
+            GVERBOSE("No headers");
+        }
+
         if (sender) {
             if (foilmsg_verify(msg, sender)) {
                 if (!out) {
@@ -288,6 +312,58 @@ foilmsg_decode(
     return RET_ERR;
 }
 
+static
+const Header*
+foilmsg_header_find(
+    GSList* list,
+    const char* name)
+{
+    GSList* l;
+
+    for (l = list; l; l = l->next) {
+        const Header* header = l->data;
+
+        if (!g_strcmp0(header->name, name)) {
+            return header;
+        }
+    }
+    return NULL;
+}
+
+static
+gboolean
+foilmsg_header_opt(
+    const gchar* name,
+    const gchar* value,
+    gpointer data,
+    GError** error)
+{
+    EncryptOpts* opts = data;
+    Header* header = g_new0(Header, 1);
+    const char* sep = strchr(value, ':');
+
+    if (sep) {
+        header->name = g_strstrip(g_strndup(value, sep - value));
+        header->value = g_strstrip(g_strdup(sep + 1));
+    } else {
+        header->name = g_strstrip(g_strdup(value));
+    }
+    opts->headers = g_slist_append(opts->headers, header);
+    return TRUE;
+}
+
+static
+void
+foilmsg_header_free(
+    gpointer data)
+{
+    Header* header = data;
+
+    g_free(header->name);
+    g_free(header->value);
+    g_free(header);
+}
+
 int
 main(
     int argc,
@@ -312,6 +388,7 @@ main(
     char* pass = NULL;
     int key_size = 128;
     int columns = 64;
+    EncryptOpts encrypt_opts;
     GOptionContext* options;
     GOptionGroup* encrypt_group;
     GOptionGroup* decrypt_group;
@@ -343,6 +420,8 @@ main(
           "Encryption key size (128, 192 or 256) [128]", "BITS" },
         { "columns", 'c', 0, G_OPTION_ARG_INT, &columns,
           "Wrap lines at the specified column [64]", "COLS" },
+        { "header", 'H', 0, G_OPTION_ARG_CALLBACK, foilmsg_header_opt,
+          "Add metadata header (repeatable)", "NAME:VALUE"},
         { "binary", 'B', 0, G_OPTION_ARG_NONE, &binary,
           "Output binary data in ASN.1 format", NULL },
         { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
@@ -368,9 +447,10 @@ main(
     g_type_init();
     G_GNUC_END_IGNORE_DEPRECATIONS;
 
+    memset(&encrypt_opts, 0, sizeof(encrypt_opts));
     options = g_option_context_new("- encrypt or decrypt text messages");
     encrypt_group = g_option_group_new("encrypt", "Encryption Options:",
-        "Show encryption options", NULL, NULL);
+        "Show encryption options", &encrypt_opts, NULL);
     decrypt_group = g_option_group_new("decrypt", "Decryption Options:",
         "Show decryption options", NULL, NULL);
     g_option_context_add_main_entries(options, entries, NULL);
@@ -500,6 +580,7 @@ main(
                 } else {
                     FoilMsgHeaders headers;
                     FoilMsgHeader filename_header;
+                    FoilMsgHeader* alloc_headers = NULL;
                     const FoilMsgHeaders* encode_headers = NULL;
                     FoilOutput* tmp = foil_output_file_new_tmp();
                     FoilOutput* out = NULL;
@@ -517,7 +598,9 @@ main(
                     case 256: opt.key_type = FOILMSG_KEY_AES_256; break;
                     }
 
-                    if (in_file) {
+                    memset(&filename_header, 0, sizeof(filename_header));
+                    if (in_file && !foilmsg_header_find(encrypt_opts.headers,
+                        FILENAME_HEADER)) {
                         /* Store the file name in the headers */
                         char* basename = g_path_get_basename(in_file);
                         tmpfilename = g_filename_to_utf8(basename, -1,
@@ -530,6 +613,41 @@ main(
                             headers.count = 1;
                             encode_headers = &headers;
                         }
+                    }
+
+                    /* Buld the list of headers */
+                    if (encrypt_opts.headers) {
+                        GSList* l;
+                        guint n = g_slist_length(encrypt_opts.headers);
+
+                        if (filename_header.name) n++;
+
+                        alloc_headers = g_new(FoilMsgHeader, n);
+                        headers.header = alloc_headers;
+                        headers.count = 0;
+                        encode_headers = &headers;
+
+                        GVERBOSE("Adding %u header(s)", n);
+                        if (filename_header.name) {
+                            alloc_headers[headers.count++] = filename_header;
+                            GVERBOSE("  %s: %s", filename_header.name,
+                                filename_header.value);
+                        }
+                        for (l = encrypt_opts.headers; l; l = l->next) {
+                            const Header* user_header = l->data;
+                            FoilMsgHeader* msg_header = alloc_headers +
+                                (headers.count++);
+
+                            msg_header->name = user_header->name;
+                            msg_header->value = user_header->value ?
+                                user_header->value : "";
+                            GVERBOSE("  %s: %s", msg_header->name,
+                                msg_header->value);
+                        }
+                    } else if (filename_header.name) {
+                        headers.header = &filename_header;
+                        headers.count = 1;
+                        encode_headers = &headers;
                     }
 
                     if (out_file) {
@@ -554,6 +672,7 @@ main(
                         foil_output_unref(out);
                     }
 
+                    g_free(alloc_headers);
                     g_free(tmpfilename);
                     foil_output_unref(tmp);
                 }
@@ -575,6 +694,7 @@ main(
         ret = RET_CMDLINE;
     }
     g_option_context_free(options);
+    g_slist_free_full(encrypt_opts.headers, foilmsg_header_free);
     g_free(priv_key);
     g_free(pub_key);
     g_free(in_file);
