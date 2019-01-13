@@ -272,15 +272,17 @@ foilmsg_decode(
         gsize len;
         const char* data = g_bytes_get_data(msg->data, &len);
 
+#if GUTIL_LOG_DEBUG
         if (msg->headers.count) {
-            GVERBOSE("Found %u header(s)", msg->headers.count);
+            GDEBUG("Found %u header(s)", msg->headers.count);
             for (i = 0; i < msg->headers.count; i++) {
-                const FoilMsgHeader* hdr = msg->headers.header + i;
-                GVERBOSE("  %s: %s", hdr->name, hdr->value);
+                GDEBUG("  %s: %s", msg->headers.header[i].name,
+                    msg->headers.header[i].value);
             }
         } else {
-            GVERBOSE("No headers");
+            GDEBUG("No headers");
         }
+#endif /* GUTIL_LOG_DEBUG */
 
         if (sender) {
             if (foilmsg_verify(msg, sender)) {
@@ -627,10 +629,10 @@ main(
                         headers.count = 0;
                         encode_headers = &headers;
 
-                        GVERBOSE("Adding %u header(s)", n);
+                        GDEBUG("Adding %u header(s)", n);
                         if (filename_header.name) {
                             alloc_headers[headers.count++] = filename_header;
-                            GVERBOSE("  %s: %s", filename_header.name,
+                            GDEBUG("  %s: %s", filename_header.name,
                                 filename_header.value);
                         }
                         for (l = encrypt_opts.headers; l; l = l->next) {
@@ -641,7 +643,7 @@ main(
                             msg_header->name = user_header->name;
                             msg_header->value = user_header->value ?
                                 user_header->value : "";
-                            GVERBOSE("  %s: %s", msg_header->name,
+                            GDEBUG("  %s: %s", msg_header->name,
                                 msg_header->value);
                         }
                     } else if (filename_header.name) {
