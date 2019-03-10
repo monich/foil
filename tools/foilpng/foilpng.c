@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2017 by Slava Monich
+ * Copyright (C) 2017-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -402,6 +405,7 @@ main(
 #endif
     GError* error = NULL;
     char* type = NULL;
+    char* pass = NULL;
     char* priv_key = NULL;
     char* pub_key = NULL;
     int key_size = 128;
@@ -412,6 +416,8 @@ main(
           "Decrypt the data", NULL },
         { "secret", 's', 0, G_OPTION_ARG_FILENAME, &priv_key,
           "Your private key [~" DEFAULT_PRIV_KEY "]", "FILE" },
+        { "pass", 'P', 0, G_OPTION_ARG_STRING, &pass,
+          "Passphrase to decrypt your private key", "PASS" },
         { "public", 'p', 0, G_OPTION_ARG_FILENAME, &pub_key,
           "Public key of the other party", "FILE" },
         { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
@@ -492,7 +498,8 @@ main(
         const char* pub_pad = "";
 
         /* Load the keys */
-        priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_key);
+        priv = foil_private_key_decrypt_from_file(FOIL_KEY_RSA_PRIVATE,
+            priv_key, pass, &error);
         if (priv) {
             if (GLOG_ENABLED(GLOG_LEVEL_DEBUG)) {
                 GBytes* fp = foil_private_key_fingerprint(priv);
@@ -502,7 +509,26 @@ main(
                 pub_pad = " "; /* Align output for public and private keys */
             }
         } else {
-            GERR("Failed to load private key from %s", priv_key);
+            if (error->domain == FOIL_ERROR) {
+                switch (error->code) {
+                case FOIL_ERROR_KEY_ENCRYPTED:
+                    GERR("Private key %s is encrypted (use -P option to "
+                        "supply the password)", priv_key);
+                    break;
+                case FOIL_ERROR_KEY_DECRYPTION_FAILED:
+                    GERR("Invalid password for %s", priv_key);
+                    break;
+                default:
+                    GERR("Failed to load private key from %s (%s)", priv_key,
+                        GERRMSG(error));
+                    break;
+                }
+            } else {
+                GERR("Failed to load private key from %s (%s)", priv_key,
+                    GERRMSG(error));
+            }
+            g_error_free(error);
+            error = NULL;
         }
 
         if (pub_key) {
@@ -563,6 +589,7 @@ main(
                     GERR("Failed to open input file %s: %s", in_file,
                         GERRMSG(error));
                     g_error_free(error);
+                    error = NULL;
                 }
             } else {
                 /* Read the standard input into a temporary file */
@@ -648,6 +675,7 @@ main(
     g_option_context_free(options);
     g_free(priv_key);
     g_free(pub_key);
+    g_free(pass);
     g_free(type);
     return ret;
 }
