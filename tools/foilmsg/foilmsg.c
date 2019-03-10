@@ -502,13 +502,8 @@ main(
         const char* pub_pad = "";
 
         /* Load the keys */
-        if (pass) {
-            priv = foil_private_key_decrypt_from_file(FOIL_KEY_RSA_PRIVATE,
-                priv_key, pass, &error);
-        } else {
-            priv = foil_private_key_new_from_file(FOIL_KEY_RSA_PRIVATE,
-                priv_key);
-        }
+        priv = foil_private_key_decrypt_from_file(FOIL_KEY_RSA_PRIVATE,
+            priv_key, pass, &error);
 
         if (priv) {
             if (GLOG_ENABLED(GLOG_LEVEL_DEBUG)) {
@@ -518,11 +513,27 @@ main(
                 g_string_free(buf, TRUE);
                 pub_pad = " "; /* Align output for public and private keys */
             }
-        } else if (error) {
-            GERR("Failed to load private key from %s (%s)", priv_key,
-                GERRMSG(error));
         } else {
-            GERR("Failed to load private key from %s", priv_key);
+            if (error->domain == FOIL_ERROR) {
+                switch (error->code) {
+                case FOIL_ERROR_KEY_ENCRYPTED:
+                    GERR("Private key %s is encrypted (use -P option to "
+                        "supply the password)", priv_key);
+                    break;
+                case FOIL_ERROR_KEY_DECRYPTION_FAILED:
+                    GERR("Invalid password for %s", priv_key);
+                    break;
+                default:
+                    GERR("Failed to load private key from %s (%s)", priv_key,
+                        GERRMSG(error));
+                    break;
+                }
+            } else {
+                GERR("Failed to load private key from %s (%s)", priv_key,
+                    GERRMSG(error));
+            }
+            g_error_free(error);
+            error = NULL;
         }
 
         if (pub_key) {
@@ -554,6 +565,7 @@ main(
                 } else {
                     GERR("Failed to read %s: %s", in_file, GERRMSG(error));
                     g_error_free(error);
+                    error = NULL;
                 }
             } else {
                 FoilInput* input = foil_input_file_new(stdin, 0);
