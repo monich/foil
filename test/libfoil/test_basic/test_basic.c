@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 #include "foil_digest.h"
 #include "foil_input.h"
 #include "foil_output.h"
-#include "foil_random.h"
+#include "foil_random_p.h"
 
 #define BYTES_SET(b,d) ((b).val = (d), (b).len = sizeof(d))
 #define BYTES_IN(d) foil_input_mem_new_static(d,sizeof(d))
@@ -147,6 +147,7 @@ test_random(
     const guint len = 256;
     GBytes* bytes1 = foil_random_generate_bytes(FOIL_RANDOM_DEFAULT, len);
     GBytes* bytes2 = foil_random_generate_bytes(FOIL_RANDOM_DEFAULT, len);
+    g_assert(!foil_random_generate(FOIL_TYPE_RANDOM, NULL, 0));
     g_assert(!foil_random_generate(0, NULL, 0));
     g_assert(!foil_random_generate_bytes(0, 0));
     g_assert(!foil_random_generate_bytes(FOIL_DIGEST_MD5, 10));

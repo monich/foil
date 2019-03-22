@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
  */
 
 #include "foil_random_p.h"
+#include "foil_util_p.h"
 
 /* Logging */
 #define GLOG_MODULE_NAME foil_log_random
@@ -43,13 +44,11 @@ FoilRandomClass*
 foil_random_class_ref(
     GType type)
 {
-    if (G_LIKELY(type)) {
-        GTypeClass* klass = g_type_class_ref(type);
+    const GType base = FOIL_TYPE_RANDOM;
+    if (type != base) {
+        FoilRandomClass* klass = foil_abstract_class_ref(type, base);
         if (klass) {
-            if (FOIL_IS_RANDOM_TYPE(klass)) {
-                return FOIL_RANDOM_CLASS(klass);
-            }
-            g_type_class_unref(klass);
+            return klass;
         }
         GERR("Not a random class");
     }
