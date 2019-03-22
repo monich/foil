@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,42 +27,80 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_KEY_P_H
-#define FOIL_KEY_P_H
+#include "foil_pool.h"
+#include "foil_log_p.h"
 
-#include "foil_types_p.h"
-#include "foil_key.h"
-
-typedef struct foil_key_class FoilKeyClass;
-
-struct foil_key {
-    GObject super;
-    GBytes* fingerprint;
+struct foil_pool_item {
+    FoilPoolItem* next;
+    gpointer pointer;
+    GDestroyNotify destroy;
 };
 
-struct foil_key_class {
-    GObjectClass super;
-    FoilKey* (*fn_generate)(FoilKeyClass* klass, guint bits);
-    FoilKey* (*fn_from_data)(FoilKeyClass* klass, const void* data, gsize len,
-        GHashTable* param, GError** error);
-    gboolean (*fn_equal)(FoilKey* key1, FoilKey* key2);
-    GBytes* (*fn_to_bytes)(FoilKey* key);
-    gboolean (*fn_export)(FoilKey* key, FoilOutput* out,
-        FoilKeyExportFormat format, GHashTable* param, GError** error);
-    GBytes* (*fn_fingerprint)(FoilKey* key);
-};
+void
+foil_pool_init(
+    FoilPool* self)
+{
+    memset(self, 0, sizeof(*self));
+}
 
-#define FOIL_IS_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
-        FOIL_TYPE_KEY)
-#define FOIL_KEY_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
-        FOIL_TYPE_KEY, FoilKeyClass))
-#define FOIL_KEY_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj),\
-        FOIL_TYPE_KEY, FoilKeyClass)
+void
+foil_pool_drain(
+    FoilPool* self)
+{
+    FoilPoolItem* items = self->first;
+    while (items) {
+        FoilPoolItem* item = items;
+        self->first = self->last = NULL;
+        while (item) {
+            item->destroy(item->pointer);
+            item = item->next;
+        }
+        g_slice_free_chain(FoilPoolItem, items, next);
+        items = self->first;
+    }
+}
 
-#define PKCS1_RSA_VERSION (0)
-#define PKCS8_RSA_VERSION (0)
+void
+foil_pool_add(
+    FoilPool* self,
+    gpointer pointer,
+    GDestroyNotify destroy)
+{
+    FoilPoolItem* item = g_slice_new(FoilPoolItem);
 
-#endif /* FOIL_KEY_P_H */
+    GASSERT(destroy);
+    item->next = NULL;
+    item->pointer = pointer;
+    item->destroy = destroy;
+
+    if (self->last) {
+        self->last->next = item;
+    } else {
+        GASSERT(!self->first);
+        self->first = item;
+    }
+    self->last = item;
+}
+
+void
+foil_pool_add_bytes(
+    FoilPool* self,
+    GBytes* bytes)
+{
+    if (G_LIKELY(bytes)) {
+        foil_pool_add(self, bytes, (GDestroyNotify)g_bytes_unref);
+    }
+}
+
+void
+foil_pool_add_bytes_ref(
+    FoilPool* self,
+    GBytes* bytes)
+{
+    if (G_LIKELY(bytes)) {
+        foil_pool_add_bytes(self, g_bytes_ref(bytes));
+    }
+}
 
 /*
  * Local Variables:

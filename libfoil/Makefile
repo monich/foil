@@ -73,6 +73,7 @@ SRC = \
   foil_output_digest.c \
   foil_output_file.c \
   foil_output_mem.c \
+  foil_pool.c \
   foil_private_key.c \
   foil_random.c \
   foil_sign.c \

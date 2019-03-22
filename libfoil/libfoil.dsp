@@ -188,6 +188,10 @@ SOURCE=.\src\foil_output_mem.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\foil_pool.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_private_key.c
 # End Source File
 # Begin Source File
@@ -313,6 +317,10 @@ SOURCE=.\src\foil_oid.h
 # Begin Source File
 
 SOURCE=.\src\foil_output_p.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\foil_pool.h
 # End Source File
 # Begin Source File
 

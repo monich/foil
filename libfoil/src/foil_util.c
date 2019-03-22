@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -164,6 +164,36 @@ foil_abstract_class_ref(
         }
     }
     return NULL;
+}
+
+gsize
+foil_parse_init_data(
+    FoilParsePos* pos,
+    const FoilBytes* data)
+{
+    if (data) {
+        pos->end = (pos->ptr = data->val) + data->len;
+        return data->len;
+    } else {
+        pos->ptr = pos->end = NULL;
+        return 0;
+    }
+}
+
+gsize
+foil_parse_init_bytes(
+    FoilParsePos* pos,
+    GBytes* bytes)
+{
+    if (bytes) {
+        gsize len;
+        pos->ptr = g_bytes_get_data(bytes, &len);
+        pos->end = pos->ptr + len;
+        return len;
+    } else {
+        pos->ptr = pos->end = NULL;
+        return 0;
+    }
 }
 
 gsize
@@ -435,21 +465,19 @@ foil_parse_base64(
 
 const void*
 foil_memmem(
-    const void* haystack,
-    gsize haystacklen,
-    const void* needle,
-    gsize needlelen)
+    const FoilBytes* haystack,
+    const FoilBytes* needle)
 {
-    if (needlelen > 0 && haystacklen >= needlelen) {
-        const guint8 c = *(guint8*)needle;
-        if (needlelen == 1) {
+    if (needle && haystack && needle->len > 0 && haystack->len >= needle->len) {
+        const guint8 c = *(needle->val);
+        if (needle->len == 1) {
             /* Trivial case */
-            return memchr(haystack, c, haystacklen);
+            return memchr(haystack->val, c, haystack->len);
         } else {
-            const guint8* ptr = haystack;
-            const guint8* last = ptr + haystacklen - needlelen;
+            const guint8* ptr = haystack->val;
+            const guint8* last = ptr + haystack->len - needle->len;
             for (; ptr <= last; ptr++) {
-                if (*ptr == c && memcmp(ptr, needle, needlelen) == 0) {
+                if (*ptr == c && memcmp(ptr, needle->val, needle->len) == 0) {
                     return ptr;
                 }
             }

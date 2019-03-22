@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,6 +55,16 @@ foil_abstract_class_ref(
     GType base);
 
 gsize
+foil_parse_init_data(
+    FoilParsePos* pos,
+    const FoilBytes* data);
+
+gsize
+foil_parse_init_bytes(
+    FoilParsePos* pos,
+    GBytes* bytes);
+
+gsize
 foil_parse_init_string(
     FoilParsePos* pos,
     const char* str);
@@ -82,10 +92,8 @@ foil_param_add(
 
 const void*
 foil_memmem(
-    const void* haystack,
-    gsize haystacklen,
-    const void* needle,
-    gsize needlelen);
+    const FoilBytes* haystack,
+    const FoilBytes* needle);
 
 #endif /* FOIL_UTIL_P_H */
 

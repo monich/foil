@@ -34,6 +34,7 @@
 #include "foil_digest.h"
 #include "foil_input.h"
 #include "foil_output.h"
+#include "foil_pool.h"
 #include "foil_random_p.h"
 
 #define BYTES_SET(b,d) ((b).val = (d), (b).len = sizeof(d))
@@ -175,6 +176,16 @@ test_skip(
     /* Test NULL resistance */
     g_assert(!foil_parse_init_string(NULL, NULL));
     g_assert(!foil_parse_init_string(&pos, NULL));
+
+    memset(&pos, 0xff, sizeof(pos));
+    g_assert(!foil_parse_init_data(&pos, NULL));
+    g_assert(!pos.ptr);
+    g_assert(!pos.end);
+
+    memset(&pos, 0xff, sizeof(pos));
+    g_assert(!foil_parse_init_bytes(&pos, NULL));
+    g_assert(!pos.ptr);
+    g_assert(!pos.end);
 
     g_assert(foil_parse_init_string(&pos, "") == 0);
     g_assert(!foil_parse_skip_to_next_line(&pos, TRUE));
@@ -365,12 +376,47 @@ test_memmem(
     static const guint8 b[] = { 0x01, 0x02 };
     static const guint8 c[] = { 0x01, 0x02, 0x03 };
     static const guint8 d[] = { 0x02, 0x03 };
+    const FoilBytes bytes_null = { NULL, 0 };
+    const FoilBytes bytes_a = { TEST_ARRAY_AND_SIZE(a) };
+    const FoilBytes bytes_b = { TEST_ARRAY_AND_SIZE(b) };
+    const FoilBytes bytes_c = { TEST_ARRAY_AND_SIZE(c) };
+    const FoilBytes bytes_d = { TEST_ARRAY_AND_SIZE(d) };
 
-    g_assert(!foil_memmem(NULL, 0, NULL, 0));
-    g_assert(!foil_memmem(a, sizeof(a), NULL, 0));
-    g_assert(!foil_memmem(a, sizeof(a), b, sizeof(b)));
-    g_assert(foil_memmem(b, sizeof(b), a, sizeof(a)) == b);
-    g_assert(foil_memmem(c, sizeof(c), d, sizeof(d)) == c + 1);
+    g_assert(!foil_memmem(NULL, NULL));
+    g_assert(!foil_memmem(NULL, &bytes_a));
+    g_assert(!foil_memmem(&bytes_a, NULL));
+    g_assert(!foil_memmem(&bytes_a, &bytes_null));
+    g_assert(!foil_memmem(&bytes_a, &bytes_b));
+    g_assert(foil_memmem(&bytes_b, &bytes_a) == b);
+    g_assert(foil_memmem(&bytes_c, &bytes_d) == c + 1);
+}
+
+static
+void
+test_pool_cb(
+    gpointer data)
+{
+    (*((int*)data))++;
+}
+
+static
+void
+test_pool(
+    void)
+{
+    FoilPool pool;
+    int n1 = 0, n2 = 0;
+
+    foil_pool_init(&pool);
+    foil_pool_add_bytes(&pool, NULL); /* No effect */
+    foil_pool_add_bytes_ref(&pool, NULL); /* No effect */
+    foil_pool_drain(&pool); /* Nothing to drain */
+
+    foil_pool_add(&pool, &n1, test_pool_cb);
+    foil_pool_add(&pool, &n2, test_pool_cb);
+    foil_pool_drain(&pool); /* Invokes both callbacks */
+    g_assert(n1 == 1);
+    g_assert(n2 == 1);
 }
 
 static
@@ -1124,6 +1170,7 @@ int main(int argc, char* argv[])
     g_test_add_func(TEST_("parse_headers"), test_parse_headers);
     g_test_add_func(TEST_("base64"), test_base64);
     g_test_add_func(TEST_("memmem"), test_memmem);
+    g_test_add_func(TEST_("pool"), test_pool);
     g_test_add_func(TEST_("asn1/Len"), test_asn1_len);
     g_test_add_func(TEST_("asn1/Seq"), test_asn1_seq);
     g_test_add_func(TEST_("asn1/BitString"), test_asn1_bit_string);

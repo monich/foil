@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,42 +27,43 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_KEY_P_H
-#define FOIL_KEY_P_H
+#ifndef FOIL_POOL_H
+#define FOIL_POOL_H
 
-#include "foil_types_p.h"
-#include "foil_key.h"
+#include "foil_types.h"
 
-typedef struct foil_key_class FoilKeyClass;
+typedef struct foil_pool_item FoilPoolItem;
 
-struct foil_key {
-    GObject super;
-    GBytes* fingerprint;
-};
+typedef struct foil_pool {
+    FoilPoolItem* first;
+    FoilPoolItem* last;
+} FoilPool;
 
-struct foil_key_class {
-    GObjectClass super;
-    FoilKey* (*fn_generate)(FoilKeyClass* klass, guint bits);
-    FoilKey* (*fn_from_data)(FoilKeyClass* klass, const void* data, gsize len,
-        GHashTable* param, GError** error);
-    gboolean (*fn_equal)(FoilKey* key1, FoilKey* key2);
-    GBytes* (*fn_to_bytes)(FoilKey* key);
-    gboolean (*fn_export)(FoilKey* key, FoilOutput* out,
-        FoilKeyExportFormat format, GHashTable* param, GError** error);
-    GBytes* (*fn_fingerprint)(FoilKey* key);
-};
+void
+foil_pool_init(
+    FoilPool* pool);
 
-#define FOIL_IS_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
-        FOIL_TYPE_KEY)
-#define FOIL_KEY_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
-        FOIL_TYPE_KEY, FoilKeyClass))
-#define FOIL_KEY_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj),\
-        FOIL_TYPE_KEY, FoilKeyClass)
+void
+foil_pool_drain(
+    FoilPool* pool);
 
-#define PKCS1_RSA_VERSION (0)
-#define PKCS8_RSA_VERSION (0)
+void
+foil_pool_add(
+    FoilPool* pool,
+    gpointer pointer,
+    GDestroyNotify destroy);
 
-#endif /* FOIL_KEY_P_H */
+void
+foil_pool_add_bytes(
+    FoilPool* pool,
+    GBytes* bytes);
+
+void
+foil_pool_add_bytes_ref(
+    FoilPool* pool,
+    GBytes* bytes);
+
+#endif /* FOIL_POOL_H */
 
 /*
  * Local Variables:

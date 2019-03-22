@@ -103,7 +103,7 @@ foil_key_aes_generate_specific(
 
 static
 gboolean
-foil_key_aes_parse_binary(
+foil_key_aes_init_from_data(
     FoilKeyAes* self,
     FoilKeyAesClass* klass,
     const guint8* data,
@@ -118,19 +118,19 @@ foil_key_aes_parse_binary(
 }
 
 static
-gboolean
-foil_key_aes_parse_bytes(
-    FoilKey* key,
+FoilKey*
+foil_key_aes_from_data(
+    FoilKeyClass* key_class,
     const void* data,
     gsize len,
     GHashTable* param,
     GError** error)
 {
-    FoilKeyAes* self = FOIL_KEY_AES_(key);
-    FoilKeyAesClass* klass = FOIL_KEY_AES_GET_CLASS(self);
-    if (foil_key_aes_parse_binary(self, klass, data, len)) {
+    FoilKeyAesClass* klass = FOIL_KEY_AES_CLASS(key_class);
+    FoilKey* key = g_object_new(G_TYPE_FROM_CLASS(klass), NULL);
+    if (foil_key_aes_init_from_data(FOIL_KEY_AES_(key), klass, data, len)) {
         g_clear_error(error);
-        return TRUE;
+        return key;
     } else {
         if (error) {
             g_propagate_error(error, g_error_new(FOIL_ERROR,
@@ -138,7 +138,8 @@ foil_key_aes_parse_bytes(
                 "Unsupported AES%d key format", klass->size*8));
         }
         GWARN("Unsupported AES%d key format", klass->size*8);
-        return FALSE;
+        foil_key_unref(key);
+        return NULL;
     }
 }
 
@@ -189,7 +190,7 @@ foil_key_aes_class_init(
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
     key_class->fn_generate = foil_key_aes_generate_any;
     key_class->fn_equal = foil_key_aes_equal;
-    key_class->fn_parse_bytes = foil_key_aes_parse_bytes;
+    key_class->fn_from_data = foil_key_aes_from_data;
     key_class->fn_to_bytes = foil_key_aes_to_bytes;
 }
 

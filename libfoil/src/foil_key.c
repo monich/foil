@@ -295,9 +295,8 @@ foil_key_decrypt_from_file(
 }
 
 static
-gboolean
-foil_key_parse_data(
-    FoilKey* key,
+FoilKey*
+foil_key_from_bytes(
     FoilKeyClass* klass,
     const void* data,
     guint len,
@@ -307,7 +306,7 @@ foil_key_parse_data(
     GBytes* bytes;
     FoilParsePos pos;
     GString* buf = NULL;
-    gboolean ok = FALSE;
+    FoilKey* key = NULL;
 
     /* Try BASE64 first */
     pos.ptr = data;
@@ -317,11 +316,11 @@ foil_key_parse_data(
         if (pos.ptr == pos.end) {
             gsize size;
             const guint8* bin = g_bytes_get_data(bytes, &size);
-            ok = klass->fn_parse_bytes(key, bin, size, params, error);
+            key = klass->fn_from_data(klass, bin, size, params, error);
         }
         g_bytes_unref(bytes);
-        if (ok) {
-            return TRUE;
+        if (key) {
+            return key;
         }
     }
 
@@ -344,7 +343,7 @@ foil_key_parse_data(
         void* bin = g_malloc(size);
         /* hex2bin must succeed since we have validated the input */
         gutil_hex2bin(buf->str, buf->len, bin);
-        ok = klass->fn_parse_bytes(key, bin, size, params, error);
+        key = klass->fn_from_data(klass, bin, size, params, error);
         g_free(bin);
     }
 
@@ -352,13 +351,13 @@ foil_key_parse_data(
         g_string_free(buf, TRUE);
     }
 
-    if (!ok) {
+    if (!key) {
         /* Otherwise let the class to decide how to interpret that */
         g_clear_error(error);
-        ok = klass->fn_parse_bytes(key, data, len, params, error);
+        key = klass->fn_from_data(klass, data, len, params, error);
     }
 
-    return ok;
+    return key;
 }
 
 FoilKey*
@@ -372,14 +371,9 @@ foil_key_new_from_data_full(
     if (G_LIKELY(type) && G_LIKELY(data) && G_LIKELY(len)) {
         FoilKeyClass* klass = foil_key_class_ref(type);
         if (G_LIKELY(klass)) {
-            /* This must succeed since we checked the type */
-            FoilKey* key = g_object_new(type, NULL);
-            GASSERT(FOIL_IS_KEY(key));
+            FoilKey* key = foil_key_from_bytes(klass, data, len, param, error);
             g_type_class_unref(klass);
-            if (foil_key_parse_data(key, klass, data, len, param, error)) {
-                return key;
-            }
-            g_object_unref(key);
+            return key;
         } else if (error) {
             g_propagate_error(error, g_error_new_literal(FOIL_ERROR,
                 FOIL_ERROR_INVALID_ARG, "Invalid key type"));
