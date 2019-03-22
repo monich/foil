@@ -1,6 +1,8 @@
 # -*- Mode: makefile-gmake -*-
 
-.PHONY: clean distclean all debug release
+.PHONY: clean distclean all debug release pkgconfig
+.PHONY: print_debug_lib print_release_lib print_coverage_lib
+.PHONY: print_debug_so print_release_so
 
 #
 # Required packages
@@ -34,11 +36,12 @@ PCVERSION = $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_RELEASE)
 
 NAME = foil
 LIB_NAME = lib$(NAME)
+LIB = $(LIB_NAME).a
 LIB_DEV_SYMLINK = $(LIB_NAME).so
 LIB_SYMLINK1 = $(LIB_DEV_SYMLINK).$(VERSION_MAJOR)
 LIB_SYMLINK2 = $(LIB_SYMLINK1).$(VERSION_MINOR)
 LIB_SONAME = $(LIB_SYMLINK1)
-LIB = $(LIB_SONAME).$(VERSION_MINOR).$(VERSION_RELEASE)
+LIB_SO = $(LIB_SONAME).$(VERSION_MINOR).$(VERSION_RELEASE)
 
 #
 # Sources
@@ -97,21 +100,10 @@ INCLUDE_DIR = include
 BUILD_DIR = build
 DEBUG_BUILD_DIR = $(BUILD_DIR)/debug
 RELEASE_BUILD_DIR = $(BUILD_DIR)/release
+COVERAGE_BUILD_DIR = $(BUILD_DIR)/coverage
 IMPL_DEBUG_BUILD_DIR = $(DEBUG_BUILD_DIR)/$(IMPL)
 IMPL_RELEASE_BUILD_DIR = $(RELEASE_BUILD_DIR)/$(IMPL)
-
-#
-# Code coverage
-#
-
-ifndef GCOV
-GCOV = 0
-endif
-
-ifneq ($(GCOV),0)
-CFLAGS += --coverage
-LDFLAGS += --coverage
-endif
+IMPL_COVERAGE_BUILD_DIR = $(COVERAGE_BUILD_DIR)/$(IMPL)
 
 #
 # Tools and flags
@@ -128,6 +120,7 @@ FULL_LDFLAGS = $(BASE_FLAGS) $(LDFLAGS) -shared -Wl,-soname,$(LIB_SONAME) \
   $(shell pkg-config --libs $(PKGS))
 DEBUG_FLAGS = -g
 RELEASE_FLAGS =
+COVERAGE_FLAGS = -g
 
 ifndef KEEP_SYMBOLS
 KEEP_SYMBOLS = 0
@@ -139,8 +132,11 @@ endif
 
 DEBUG_LDFLAGS = $(FULL_LDFLAGS) $(DEBUG_FLAGS)
 RELEASE_LDFLAGS = $(FULL_LDFLAGS) $(RELEASE_FLAGS)
+COVERAGE_LDFLAGS = $(FULL_LDFLAGS) $(COVERAGE_FLAGS) --coverage
+
 DEBUG_CFLAGS = $(FULL_CFLAGS) $(DEBUG_FLAGS) -DDEBUG
 RELEASE_CFLAGS = $(FULL_CFLAGS) $(RELEASE_FLAGS) -O2
+COVERAGE_CFLAGS = $(FULL_CFLAGS) $(COVERAGE_FLAGS) --coverage
 
 #
 # Files
@@ -149,11 +145,14 @@ RELEASE_CFLAGS = $(FULL_CFLAGS) $(RELEASE_FLAGS) -O2
 PKGCONFIG = $(BUILD_DIR)/$(LIB_NAME).pc
 BASE_DEBUG_OBJS = $(SRC:%.c=$(DEBUG_BUILD_DIR)/%.o)
 BASE_RELEASE_OBJS = $(SRC:%.c=$(RELEASE_BUILD_DIR)/%.o)
+BASE_COVERAGE_OBJS = $(SRC:%.c=$(COVERAGE_BUILD_DIR)/%.o)
 IMPL_DEBUG_OBJS = $(IMPL_SRC:%.c=$(IMPL_DEBUG_BUILD_DIR)/%.o)
 IMPL_RELEASE_OBJS = $(IMPL_SRC:%.c=$(IMPL_RELEASE_BUILD_DIR)/%.o)
+IMPL_COVERAGE_OBJS = $(IMPL_SRC:%.c=$(IMPL_COVERAGE_BUILD_DIR)/%.o)
 
 DEBUG_OBJS = $(BASE_DEBUG_OBJS) $(IMPL_DEBUG_OBJS)
 RELEASE_OBJS = $(BASE_RELEASE_OBJS) $(IMPL_RELEASE_OBJS)
+COVERAGE_OBJS = $(BASE_COVERAGE_OBJS) $(IMPL_COVERAGE_OBJS)
 
 #
 # Dependencies
@@ -169,23 +168,36 @@ endif
 $(PKGCONFIG): | $(BUILD_DIR)
 $(DEBUG_OBJS) $(DEBUG_LIB): | $(DEBUG_BUILD_DIR)
 $(RELEASE_OBJS) $(RELEASE_LIB): | $(RELEASE_BUILD_DIR)
+$(COVERAGE_OBJS) $(COVERAGE_LIB): | $(COVERAGE_BUILD_DIR)
 $(IMPL_DEBUG_OBJS): | $(IMPL_DEBUG_BUILD_DIR)
 $(IMPL_RELEASE_OBJS): | $(IMPL_RELEASE_BUILD_DIR)
+$(IMPL_COVERAGE_OBJS): | $(IMPL_COVERAGE_BUILD_DIR)
 
 #
 # Rules
 #
 
+DEBUG_SO = $(DEBUG_BUILD_DIR)/$(LIB_SO)
 DEBUG_LIB = $(DEBUG_BUILD_DIR)/$(LIB)
+RELEASE_SO = $(RELEASE_BUILD_DIR)/$(LIB_SO)
 RELEASE_LIB = $(RELEASE_BUILD_DIR)/$(LIB)
+COVERAGE_LIB = $(COVERAGE_BUILD_DIR)/$(LIB)
 DEBUG_LINK = $(DEBUG_BUILD_DIR)/$(LIB_SYMLINK1)
 RELEASE_LINK = $(RELEASE_BUILD_DIR)/$(LIB_SYMLINK1)
 
-debug: $(DEBUG_LIB) $(DEBUG_LINK)
+debug: $(DEBUG_LIB) $(DEBUG_SO) $(DEBUG_LINK)
 
-release: $(RELEASE_LIB) $(RELEASE_LINK)
+release: $(RELEASE_LIB) $(RELEASE_SO) $(RELEASE_LINK)
+
+coverage: $(COVERAGE_LIB)
 
 pkgconfig: $(PKGCONFIG)
+
+print_debug_so:
+	@echo $(DEBUG_SO)
+
+print_release_so:
+	@echo $(RELEASE_SO)
 
 print_debug_lib:
 	@echo $(DEBUG_LIB)
@@ -193,11 +205,8 @@ print_debug_lib:
 print_release_lib:
 	@echo $(RELEASE_LIB)
 
-print_debug_link:
-	@echo $(DEBUG_LINK)
-
-print_release_link:
-	@echo $(RELEASE_LINK)
+print_coverage_lib:
+	@echo $(COVERAGE_LIB)
 
 print_debug_path:
 	@echo $(DEBUG_BUILD_DIR)
@@ -220,10 +229,16 @@ $(DEBUG_BUILD_DIR):
 $(RELEASE_BUILD_DIR):
 	mkdir -p $@
 
+$(COVERAGE_BUILD_DIR):
+	mkdir -p $@
+
 $(IMPL_DEBUG_BUILD_DIR):
 	mkdir -p $@
 
 $(IMPL_RELEASE_BUILD_DIR):
+	mkdir -p $@
+
+$(IMPL_COVERAGE_BUILD_DIR):
 	mkdir -p $@
 
 $(DEBUG_BUILD_DIR)/%.o : $(SRC_DIR)/%.c
@@ -232,26 +247,44 @@ $(DEBUG_BUILD_DIR)/%.o : $(SRC_DIR)/%.c
 $(RELEASE_BUILD_DIR)/%.o : $(SRC_DIR)/%.c
 	$(CC) -c $(RELEASE_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
 
+$(COVERAGE_BUILD_DIR)/%.o : $(SRC_DIR)/%.c
+	$(CC) -c $(COVERAGE_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
+
 $(IMPL_DEBUG_BUILD_DIR)/%.o : $(IMPL_SRC_DIR)/%.c
 	$(CC) -c $(DEBUG_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
 
 $(IMPL_RELEASE_BUILD_DIR)/%.o : $(IMPL_SRC_DIR)/%.c
 	$(CC) -c $(RELEASE_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
 
-$(DEBUG_LIB): $(DEBUG_OBJS)
+$(IMPL_COVERAGE_BUILD_DIR)/%.o : $(IMPL_SRC_DIR)/%.c
+	$(CC) -c $(COVERAGE_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
+
+$(DEBUG_SO): $(DEBUG_OBJS)
 	$(LD) $(DEBUG_OBJS) $(DEBUG_LDFLAGS) -o $@
 
-$(RELEASE_LIB): $(RELEASE_OBJS)
+$(RELEASE_SO): $(RELEASE_OBJS)
 	$(LD) $(RELEASE_OBJS) $(RELEASE_LDFLAGS) -o $@
 ifeq ($(KEEP_SYMBOLS),0)
 	strip $@
 endif
 
+$(DEBUG_LIB): $(DEBUG_OBJS)
+	$(AR) rc $@ $?
+	ranlib $@
+
+$(RELEASE_LIB): $(RELEASE_OBJS)
+	$(AR) rc $@ $?
+	ranlib $@
+
+$(COVERAGE_LIB): $(COVERAGE_OBJS)
+	$(AR) rc $@ $?
+	ranlib $@
+
 $(DEBUG_LINK):
-	ln -sf $(LIB) $@
+	ln -sf $(LIB_SO) $@
 
 $(RELEASE_LINK):
-	ln -sf $(LIB) $@
+	ln -sf $(LIB_SO) $@
 
 $(PKGCONFIG): $(LIB_NAME).pc.in
 	sed -e 's/\[version\]/'$(PCVERSION)/g $< > $@
@@ -269,8 +302,8 @@ INSTALL_INCLUDE_DIR = $(DESTDIR)/usr/include/$(NAME)
 INSTALL_PKGCONFIG_DIR = $(DESTDIR)/usr/lib/pkgconfig
 
 install: $(INSTALL_LIB_DIR)
-	$(INSTALL_FILES) $(RELEASE_LIB) $(INSTALL_LIB_DIR)
-	ln -sf $(LIB) $(INSTALL_LIB_DIR)/$(LIB_SYMLINK2)
+	$(INSTALL_FILES) $(RELEASE_SO) $(INSTALL_LIB_DIR)
+	ln -sf $(LIB_SO) $(INSTALL_LIB_DIR)/$(LIB_SYMLINK2)
 	ln -sf $(LIB_SYMLINK2) $(INSTALL_LIB_DIR)/$(LIB_SYMLINK1)
 
 install-dev: install $(INSTALL_INCLUDE_DIR) $(INSTALL_PKGCONFIG_DIR)

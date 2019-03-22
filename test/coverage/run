@@ -19,7 +19,7 @@ test_sign"
 LIBFOILMSG_TESTS="\
 test_foilmsg"
 
-FLAVOR="release"
+FLAVOR="coverage"
 
 function require() {
     if ! which $1 >> /dev/null ; then
@@ -51,17 +51,17 @@ LIBFOILMSG_BUILD_DIR="$LIBFOILMSG_DIR/build/$FLAVOR"
 
 export LD_LIBRARY_PATH="$LIBFOIL_BUILD_DIR"
 
-make GCOV=1 -C "$LIBFOIL_DIR" clean $FLAVOR || exit 1
-make GCOV=1 -C "$LIBFOILMSG_DIR" clean $FLAVOR || exit 1
+make -C "$LIBFOIL_DIR" clean $FLAVOR || exit 1
+make -C "$LIBFOILMSG_DIR" clean $FLAVOR || exit 1
 for t in $LIBFOIL_TESTS ; do
     pushd "$TEST_DIR/libfoil/$t"
-    make GCOV=1 clean $FLAVOR || exit 1
+    make clean $FLAVOR || exit 1
     build/$FLAVOR/$t || exit 1
     popd
 done
 for t in $LIBFOILMSG_TESTS ; do
     pushd "$TEST_DIR/libfoilmsg/$t"
-    make GCOV=1 clean $FLAVOR || exit 1
+    make clean $FLAVOR || exit 1
     build/$FLAVOR/$t || exit 1
     popd
 done

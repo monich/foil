@@ -1,17 +1,22 @@
 # -*- Mode: makefile-gmake -*-
 
+.PHONY: libfoilmsg-debug libfoilmsg-release libfoilmsg-coverage
+
 QUIET_MAKE = make --no-print-directory
 
 LIBFOILMSG_DIR ?= ../../../libfoilmsg
 
 DEBUG_LIBFOILMSG_FILE := $(shell $(QUIET_MAKE) -C $(LIBFOILMSG_DIR) print_debug_lib)
 RELEASE_LIBFOILMSG_FILE := $(shell $(QUIET_MAKE) -C $(LIBFOILMSG_DIR) print_release_lib)
+COVERAGE_LIBFOILMSG_FILE := $(shell $(QUIET_MAKE) -C $(LIBFOILMSG_DIR) print_coverage_lib)
 
 INCLUDES += -I$(LIBFOILMSG_DIR)/include -I$(LIBFOILMSG_DIR)/src
 DEBUG_LIBS += $(LIBFOILMSG_DIR)/$(DEBUG_LIBFOILMSG_FILE)
 RELEASE_LIBS += $(LIBFOILMSG_DIR)/$(RELEASE_LIBFOILMSG_FILE)
+COVERAGE_LIBS += $(LIBFOILMSG_DIR)/$(COVERAGE_LIBFOILMSG_FILE)
 DEBUG_DEPS += libfoilmsg-debug
 RELEASE_DEPS += libfoilmsg-release
+COVERAGE_DEPS += libfoilmsg-coverage
 
 include $(COMMON_DIR)/Makefile
 
@@ -20,3 +25,6 @@ libfoilmsg-debug:
 
 libfoilmsg-release:
 	@make $(SUBMAKE_OPTS) -C $(LIBFOILMSG_DIR) release
+
+libfoilmsg-coverage:
+	@make $(SUBMAKE_OPTS) -C $(LIBFOILMSG_DIR) coverage
