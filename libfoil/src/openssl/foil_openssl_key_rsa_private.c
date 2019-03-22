@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -91,13 +91,14 @@ foil_key_rsa_private_data_from_rsa(
 static
 FoilKey*
 foil_openssl_key_rsa_private_generate(
+    FoilKeyClass* klass,
     guint bits)
 {
     FoilKey* key = NULL;
     BIGNUM* pub_exp = BN_new();
     if (pub_exp) {
         /* Make sure RNG is seeded */
-        GTypeClass* klass = g_type_class_ref(foil_openssl_random_get_type());
+        GTypeClass* rng = g_type_class_ref(foil_openssl_random_get_type());
         if (BN_set_word(pub_exp, RSA_F4)) {
             RSA* rsa = RSA_new();
             if (rsa) {
@@ -115,7 +116,7 @@ foil_openssl_key_rsa_private_generate(
             }
         }
         BN_free(pub_exp);
-        g_type_class_unref(klass);
+        g_type_class_unref(rng);
     }
     return key;
 }

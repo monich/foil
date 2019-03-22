@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,14 +33,16 @@
 #include "foil_types_p.h"
 #include "foil_key.h"
 
+typedef struct foil_key_class FoilKeyClass;
+
 struct foil_key {
     GObject super;
     GBytes* fingerprint;
 };
 
-typedef struct foil_key_class {
+struct foil_key_class {
     GObjectClass super;
-    FoilKey* (*fn_generate)(guint bits);
+    FoilKey* (*fn_generate)(FoilKeyClass* klass, guint bits);
     gboolean (*fn_parse_bytes)(FoilKey* key, const void* data, gsize len,
         GHashTable* param, GError** error);
     gboolean (*fn_equal)(FoilKey* key1, FoilKey* key2);
@@ -48,7 +50,7 @@ typedef struct foil_key_class {
     gboolean (*fn_export)(FoilKey* key, FoilOutput* out,
         FoilKeyExportFormat format, GHashTable* param, GError** error);
     GBytes* (*fn_fingerprint)(FoilKey* key);
-} FoilKeyClass;
+};
 
 #define FOIL_IS_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
         FOIL_TYPE_KEY)

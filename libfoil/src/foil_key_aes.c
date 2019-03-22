@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,6 +71,7 @@ foil_key_aes_generate(
 static
 FoilKey*
 foil_key_aes_generate_any(
+    FoilKeyClass* klass,
     guint bits)
 {
     switch (bits) {
@@ -80,6 +81,22 @@ foil_key_aes_generate_any(
     case 256: return foil_key_aes_generate(FOIL_KEY_AES256, bits);
     default:
         GERR("Unsupported number of bits for AES (%u)", bits);
+        return NULL;
+    }
+}
+
+static
+FoilKey*
+foil_key_aes_generate_specific(
+    FoilKeyClass* klass,
+    guint bits)
+{
+    FoilKeyAesClass* aes = FOIL_KEY_AES_CLASS(klass);
+    const guint klass_bits = aes->size * 8;
+    if (bits == FOIL_KEY_BITS_DEFAULT || bits == klass_bits) {
+        return foil_key_aes_generate(G_TYPE_FROM_CLASS(aes), klass_bits);
+    } else {
+        GERR("Invalid number of bits for AES%u (%u)", klass_bits, bits);
         return NULL;
     }
 }
@@ -179,15 +196,6 @@ foil_key_aes_class_init(
 /* AES128 */
 
 static
-FoilKey*
-foil_key_aes128_generate(
-    guint bits)
-{
-    return (bits == FOIL_KEY_BITS_DEFAULT || bits == 128) ?
-        foil_key_aes_generate(FOIL_KEY_AES128, 128) : NULL;
-}
-
-static
 void
 foil_key_aes128_init(
     FoilKeyAes* self)
@@ -201,21 +209,12 @@ foil_key_aes128_class_init(
     FoilKeyAesClass* klass)
 {
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
-    key_class->fn_generate = foil_key_aes128_generate;
+    key_class->fn_generate = foil_key_aes_generate_specific;
     klass->size = 16;
     g_type_class_add_private(klass, klass->size);
 }
 
 /* AES192 */
-
-static
-FoilKey*
-foil_key_aes192_generate(
-    guint bits)
-{
-    return (bits == FOIL_KEY_BITS_DEFAULT || bits == 192) ?
-        foil_key_aes_generate(FOIL_KEY_AES192, 192) : NULL;
-}
 
 static
 void
@@ -231,21 +230,12 @@ foil_key_aes192_class_init(
     FoilKeyAesClass* klass)
 {
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
-    key_class->fn_generate = foil_key_aes192_generate;
+    key_class->fn_generate = foil_key_aes_generate_specific;
     klass->size = 24;
     g_type_class_add_private(klass, klass->size);
 }
 
 /* AES256 */
-
-static
-FoilKey*
-foil_key_aes256_generate(
-    guint bits)
-{
-    return (bits == FOIL_KEY_BITS_DEFAULT || bits == 256) ?
-        foil_key_aes_generate(FOIL_KEY_AES256, 256) : NULL;
-}
 
 static
 void
@@ -261,7 +251,7 @@ foil_key_aes256_class_init(
     FoilKeyAesClass* klass)
 {
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
-    key_class->fn_generate = foil_key_aes256_generate;
+    key_class->fn_generate = foil_key_aes_generate_specific;
     klass->size = 32;
     g_type_class_add_private(klass, klass->size);
 }

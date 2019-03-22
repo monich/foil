@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -464,7 +464,7 @@ foil_key_generate_new(
     FoilKeyClass* klass = foil_abstract_key_class_ref(type);
     if (G_LIKELY(klass)) {
         if (G_LIKELY(klass->fn_generate)) {
-            key = klass->fn_generate(bits);
+            key = klass->fn_generate(klass, bits);
         }
         g_type_class_unref(klass);
     }
