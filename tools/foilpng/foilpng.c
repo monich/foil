@@ -203,8 +203,7 @@ foilpng_save(
                             copied = bytes->len - written;
                             memcpy(row, ptr, copied);
                         }
-                        foil_random_generate(FOIL_RANDOM_DEFAULT,
-                            row + copied, rowsize - copied);
+                        foil_random(row + copied, rowsize - copied);
                         png_write_row(png, row);
                     } else {
                         png_write_row(png, (void*)ptr);

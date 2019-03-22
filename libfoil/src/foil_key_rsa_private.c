@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -899,7 +899,7 @@ foil_key_rsa_private_export_default(
             GType key_type = FOIL_KEY_AES256;
             GType cipher = FOIL_CIPHER_AES_CBC_ENCRYPT;
             guint8 iv[FOIL_AES_BLOCK_SIZE];
-            if (foil_random_generate(FOIL_RANDOM_DEFAULT, iv, sizeof(iv))) {
+            if (foil_random(iv, sizeof(iv))) {
                 char hiv[2*sizeof(iv)];
                 guint i;
                 for (i=0; i<sizeof(iv); i++) {

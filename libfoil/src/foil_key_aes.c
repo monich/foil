@@ -62,7 +62,7 @@ foil_key_aes_generate(
     guint8 data[FOIL_AES_MAX_KEY_SIZE + FOIL_AES_BLOCK_SIZE];
     /* The caller guarantees that the number of bits is sane */
     GASSERT(bits && !(bits % 8) && bits <= FOIL_AES_MAX_KEY_SIZE*8);
-    if (foil_random_generate(FOIL_RANDOM_DEFAULT, data, size)) {
+    if (foil_random(data, size)) {
         key = foil_key_new_from_data(type, data, size);
     }
     return key;

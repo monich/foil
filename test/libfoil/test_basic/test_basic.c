@@ -144,15 +144,22 @@ void
 test_random(
     void)
 {
-    const guint len = 256;
+    guint bytes[256];
+    const guint len = sizeof(bytes);
     GBytes* bytes1 = foil_random_generate_bytes(FOIL_RANDOM_DEFAULT, len);
-    GBytes* bytes2 = foil_random_generate_bytes(FOIL_RANDOM_DEFAULT, len);
-    g_assert(!foil_random_generate(FOIL_TYPE_RANDOM, NULL, 0));
+    GBytes* bytes2 = foil_random_bytes(len);
+    g_assert(foil_random(bytes, len));
+    g_assert(!foil_random(bytes, 0));
+    g_assert(!foil_random(NULL, 0));
+    g_assert(!foil_random_bytes(0));
+    g_assert(!foil_random_generate(FOIL_TYPE_RANDOM, bytes, len));
+    g_assert(!foil_random_generate(0, bytes, 0));
     g_assert(!foil_random_generate(0, NULL, 0));
     g_assert(!foil_random_generate_bytes(0, 0));
     g_assert(!foil_random_generate_bytes(FOIL_DIGEST_MD5, 10));
     g_assert(g_bytes_get_size(bytes1) == len);
     g_assert(!g_bytes_equal(bytes1, bytes2));
+    g_assert(memcmp(bytes, g_bytes_get_data(bytes2, NULL), len));
     g_bytes_unref(bytes1);
     g_bytes_unref(bytes2);
 }

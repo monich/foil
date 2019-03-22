@@ -39,6 +39,8 @@ G_DEFINE_ABSTRACT_TYPE(FoilRandom, foil_random, G_TYPE_OBJECT);
 #define FOIL_IS_RANDOM_TYPE(klass) G_TYPE_CHECK_CLASS_TYPE(klass, \
         FOIL_TYPE_RANDOM)
 
+static FoilRandomClass* foil_random_default = NULL;
+
 static
 FoilRandomClass*
 foil_random_class_ref(
@@ -55,6 +57,17 @@ foil_random_class_ref(
     return NULL;
 }
 
+static
+FoilRandomClass*
+foil_random_get_default(
+    void)
+{
+    if (!foil_random_default) {
+        foil_random_default = foil_random_class_ref(FOIL_RANDOM_DEFAULT);
+    }
+    return foil_random_default;
+}
+
 gboolean
 foil_random_generate(
     GType type,
@@ -62,10 +75,12 @@ foil_random_generate(
     guint len)
 {
     gboolean ok = FALSE;
-    FoilRandomClass* klass = foil_random_class_ref(type);
-    if (G_LIKELY(klass)) {
-        ok = klass->fn_generate(data, len);
-        g_type_class_unref(klass);
+    if (G_LIKELY(data) && G_LIKELY(len)) {
+        FoilRandomClass* klass = foil_random_class_ref(type);
+        if (G_LIKELY(klass)) {
+            ok = klass->fn_generate(data, len);
+            g_type_class_unref(klass);
+        }
     }
     return ok;
 }
@@ -86,6 +101,39 @@ foil_random_generate_bytes(
                 g_free(data);
             }
             g_type_class_unref(klass);
+        }
+    }
+    return result;
+}
+
+gboolean
+foil_random(
+    void* data,
+    guint len) /* Since 1.0.13 */
+{
+    /* Same as foil_random_generate() but always using the default RNG */
+    if (G_LIKELY(data) && G_LIKELY(len)) {
+        FoilRandomClass* klass = foil_random_get_default();
+        return G_LIKELY(klass) && klass->fn_generate(data, len);
+    }
+    return FALSE;
+}
+
+GBytes*
+foil_random_bytes(
+    guint len) /* Since 1.0.13 */
+{
+    /* Same as foil_random_generate_bytes() but always using the default RNG */
+    GBytes* result = NULL;
+    if (G_LIKELY(len)) {
+        FoilRandomClass* klass = foil_random_get_default();
+        if (G_LIKELY(klass)) {
+            void* data = g_malloc(len);
+            if (klass->fn_generate(data, len)) {
+                result = g_bytes_new_take(data, len);
+            } else {
+                g_free(data);
+            }
         }
     }
     return result;

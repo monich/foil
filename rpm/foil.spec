@@ -31,7 +31,7 @@ This package contains the development library for %{name}.
 %package -n foil-tools
 Summary: Encryption/decryption utilities
 Group: Applications/File
-Requires: libfoil >= 1.0.9
+Requires: libfoil >= 1.0.13
 
 %description -n foil-tools
 Command line encryption/decryption utilities.

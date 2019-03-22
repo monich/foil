@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,15 @@ GBytes*
 foil_random_generate_bytes(
     GType type,
     guint len);
+
+gboolean
+foil_random(
+    void* data,
+    guint len); /* Since 1.0.13 */
+
+GBytes*
+foil_random_bytes(
+    guint len); /* Since 1.0.13 */
 
 /* Implementation */
 GType foil_impl_random_get_type(void);

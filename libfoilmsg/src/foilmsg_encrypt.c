@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -313,7 +313,7 @@ foilmsg_encode_part5(
     GByteArray* buf = g_byte_array_sized_new(2*len);
     g_byte_array_set_size(buf, 2*len);
     memcpy(buf->data, data, len);
-    foil_random_generate(FOIL_RANDOM_DEFAULT, buf->data + len, len);
+    foil_random(buf->data + len, len);
     foilmsg_encode_unref_tagged_data(out, FOILMSG_SIGNATURE_FORMAT,
         foil_cipher_data(FOIL_CIPHER_RSA_ENCRYPT, FOIL_KEY(sender),
             buf->data, buf->len));
