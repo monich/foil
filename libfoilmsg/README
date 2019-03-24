@@ -4,7 +4,7 @@ Binary encoding
 Encrypted message is encoded according to the following ASN.1 rules:
 
 TaggedData ::= SEQUENCE {
-    format          INTEGER
+    format          INTEGER,
     data            OCTET STRING
 }
 
@@ -55,8 +55,8 @@ EncryptedKey ::= SEQUENCE {
 }
 
 EncryptedKeys ::= SEQUENCE {
-    keyFormat       INTEGER
-    keys            SEQUENCE OF EncryptedKey,
+    keyFormat       INTEGER,
+    keys            SEQUENCE OF EncryptedKey
 }
 
 The fingerprint format tag is 1 for RSA public key fingerprint
@@ -81,12 +81,12 @@ The original data being encrypted is also ASN.1 formatted according
 to the following rules:
 
 Header ::= SEQUENCE {
-    name            IA5String
+    name            IA5String,
     value           IA5String
 }
 
 PlainData ::= SEQUENCE {
-    format          INTEGER
+    format          INTEGER,
     contentType     IA5String OPTIONAL,
     headers         SEQUENCE OF Header OPTIONAL,
     data            OCTET STRING
