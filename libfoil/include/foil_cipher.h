@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -105,6 +105,10 @@ foil_cipher_input_block_size(
 int
 foil_cipher_output_block_size(
     FoilCipher* cipher);
+
+gboolean
+foil_cipher_symmetric(
+    FoilCipher* cipher); /* Since 1.0.14 */
 
 /*
  * By default, foil block cipher would pad the remaining part of the last

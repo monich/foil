@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,39 +51,21 @@ test_cipher_rsa_basic(
     const TestCipherRsa* test = param;
     char* priv_path = g_strconcat(DATA_DIR, test->priv, NULL);
     FoilKey* priv = foil_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_path);
-    FoilCipher* dec = foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, priv);
-    FoilKey* aes = foil_key_generate_new(FOIL_KEY_AES128,
+    FoilCipher* rsa = foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, priv);
+    FoilKey* aes_key = foil_key_generate_new(FOIL_KEY_AES128,
         FOIL_KEY_BITS_DEFAULT);
 
-    /* Test resistance to NULL and all kinds of invalid parameters */
-    foil_cipher_unref(NULL);
-    g_assert(!foil_cipher_type_name(0));
-    g_assert(!foil_cipher_type_supports_key(0,0));
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_RSA_ENCRYPT, 0));
     g_assert(!foil_cipher_type_supports_key(FOIL_KEY_RSA_PRIVATE, 0));
-    g_assert(!foil_cipher_set_padding_func(NULL, NULL));
-    g_assert(!foil_cipher_set_padding_func(dec, NULL));
-    g_assert(!foil_cipher_new(FOIL_CIPHER_RSA_ENCRYPT, aes));
-    g_assert(!foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, aes));
-    g_assert(!foil_cipher_new(0, NULL));
-    g_assert(!foil_cipher_new(0, NULL));
+    g_assert(!foil_cipher_new(FOIL_CIPHER_RSA_ENCRYPT, aes_key));
+    g_assert(!foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, aes_key));
+    g_assert(!foil_cipher_symmetric(rsa));
     g_assert(!foil_cipher_new(0, priv));
-    g_assert(!foil_cipher_ref(NULL));
-    g_assert(!foil_cipher_key(NULL));
-    g_assert(!foil_cipher_name(NULL));
-    g_assert(!foil_cipher_input_block_size(NULL));
-    g_assert(!foil_cipher_output_block_size(NULL));
-    g_assert(foil_cipher_step(NULL, NULL, NULL) < 0);
-    g_assert(foil_cipher_step(dec, NULL, NULL) < 0);
-    g_assert(foil_cipher_step(dec, priv_path, NULL) < 0);
-    g_assert(foil_cipher_finish(NULL, NULL, 0, NULL) < 0);
-    g_assert(!foil_cipher_data(0, NULL, NULL, 0));
-    g_assert(!foil_cipher_data(0, NULL, NULL, 1));
-    g_assert(!foil_cipher_bytes(0, NULL, NULL));
+    g_assert(foil_cipher_step(rsa, priv_path, NULL) < 0);
 
     foil_key_unref(priv);
-    foil_key_unref(aes);
-    foil_cipher_unref(dec);
+    foil_key_unref(aes_key);
+    foil_cipher_unref(rsa);
     g_free(priv_path);
 }
 

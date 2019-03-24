@@ -6,6 +6,7 @@
 LIBFOIL_TESTS="\
 test_basic \
 test_cavp_aes \
+test_cipher \
 test_cipher_aes \
 test_cipher_rsa \
 test_digest \

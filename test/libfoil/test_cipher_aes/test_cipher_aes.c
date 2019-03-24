@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,40 +66,13 @@ test_cipher_aes_basic(
     FoilCipher* enc = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
     FoilCipher* dec = foil_cipher_new(FOIL_CIPHER_AES_CBC_DECRYPT, key);
 
-    /* Test resistance to NULL and all kinds of invalid parameters */
-    foil_cipher_unref(NULL);
-    foil_cipher_cancel_all(NULL);
-    g_assert(!foil_cipher_type_name(0));
-    g_assert(!foil_cipher_type_supports_key(0,0));
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_AES_CBC_ENCRYPT,0));
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_AES_CBC_DECRYPT,0));
     g_assert(!foil_cipher_type_supports_key(FOIL_KEY_AES128, 0));
-    g_assert(!foil_cipher_type_supports_key(0,0));
-    g_assert(!foil_cipher_set_padding_func(NULL, NULL));
-    g_assert(!foil_cipher_set_padding_func(dec, NULL));
-    g_assert(foil_cipher_set_padding_func(enc, NULL));
+    g_assert(foil_cipher_symmetric(enc));
+    g_assert(foil_cipher_symmetric(dec));
     g_assert(foil_cipher_set_padding_func(enc, test_padding));
-    g_assert(!foil_cipher_new(0, NULL));
-    g_assert(!foil_cipher_new(0, NULL));
-    g_assert(!foil_cipher_new(0, key));
-    g_assert(!foil_cipher_ref(NULL));
-    g_assert(!foil_cipher_key(NULL));
-    g_assert(!foil_cipher_name(NULL));
-    g_assert(!foil_cipher_input_block_size(NULL));
-    g_assert(!foil_cipher_output_block_size(NULL));
-    g_assert(foil_cipher_step(NULL, NULL, NULL) < 0);
-    g_assert(foil_cipher_step(dec, NULL, NULL) < 0);
     g_assert(foil_cipher_step(dec, key_path, NULL) < 0);
-    g_assert(!foil_cipher_step_async(NULL, NULL, NULL, NULL, NULL));
-    g_assert(!foil_cipher_step_async(dec, NULL, NULL, NULL, NULL));
-    g_assert(foil_cipher_finish(NULL, NULL, 0, NULL) < 0);
-    g_assert(foil_cipher_finish(dec, NULL, -1, NULL) < 0);
-    g_assert(foil_cipher_finish(dec, NULL, 0, NULL) == 0);
-    g_assert(!foil_cipher_finish_async(NULL, NULL, 0, NULL, NULL, NULL));
-    g_assert(!foil_cipher_finish_async(dec, NULL, -1, NULL, NULL, NULL));
-    g_assert(!foil_cipher_data(0, NULL, NULL, 0));
-    g_assert(!foil_cipher_data(0, NULL, NULL, 1));
-    g_assert(!foil_cipher_bytes(0, NULL, NULL));
 
     foil_key_unref(key);
     foil_cipher_unref(enc);
@@ -159,6 +132,7 @@ test_cipher_aes_cancel(
     g_assert(foil_cipher_output_block_size(enc) == sizeof(out));
     memset(out, 0, sizeof(out));
     memcpy(original, out, sizeof(out));
+    g_assert(!foil_cipher_step_async(enc, in, NULL /* error */, NULL, NULL));
     id = foil_cipher_step_async(enc, in, out, NULL, NULL);
     g_assert(id);
     g_source_remove(id);

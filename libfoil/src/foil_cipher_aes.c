@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,6 +119,7 @@ foil_cipher_aes_class_init(
 {
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "AES";
+    cipher->flags |= FOIL_CIPHER_SYMMETRIC;
     cipher->fn_supports_key = foil_cipher_aes_supports_key;
     cipher->fn_set_padding_func = foil_cipher_aes_set_padding_func;
     cipher->fn_post_init = foil_cipher_aes_post_init;

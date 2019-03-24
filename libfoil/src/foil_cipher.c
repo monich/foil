@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -175,6 +175,14 @@ foil_cipher_output_block_size(
     FoilCipher* self)
 {
     return G_LIKELY(self) ? self->output_block_size : 0;
+}
+
+gboolean
+foil_cipher_symmetric(
+    FoilCipher* self) /* Since 1.0.14 */
+{
+    return G_LIKELY(self) &&
+        (FOIL_CIPHER_GET_CLASS(self)->flags & FOIL_CIPHER_SYMMETRIC);
 }
 
 gboolean

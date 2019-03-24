@@ -4,6 +4,7 @@ all:
 %:
 	@$(MAKE) -C test_basic $*
 	@$(MAKE) -C test_cavp_aes $*
+	@$(MAKE) -C test_cipher $*
 	@$(MAKE) -C test_cipher_aes $*
 	@$(MAKE) -C test_cipher_rsa $*
 	@$(MAKE) -C test_digest $*

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2018 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,11 +33,17 @@
 #include "foil_types_p.h"
 #include "foil_cipher.h"
 
+typedef enum foil_cipher_flags {
+    FOIL_CIPHER_DEFAULT = 0x0,
+    FOIL_CIPHER_SYMMETRIC = 0x1
+} FOIL_CIPHER_FLAGS;
+
 typedef struct foil_cipher_class FoilCipherClass;
 typedef struct foil_cipher_priv FoilCipherPriv;
 struct foil_cipher_class {
     GObjectClass object;
     const char* name;
+    FOIL_CIPHER_FLAGS flags;
     gboolean (*fn_supports_key)(FoilCipherClass* klass, GType key_type);
     void (*fn_set_padding_func)(FoilCipher* cipher, FoilCipherPaddingFunc fn);
     void (*fn_post_init)(FoilCipher* cipher);
