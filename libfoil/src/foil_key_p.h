@@ -34,10 +34,11 @@
 #include "foil_key.h"
 
 typedef struct foil_key_class FoilKeyClass;
+typedef struct foil_key_priv FoilKeyPriv;
 
 struct foil_key {
     GObject super;
-    GBytes* fingerprint;
+    FoilKeyPriv* priv;
 };
 
 struct foil_key_class {

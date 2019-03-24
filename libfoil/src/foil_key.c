@@ -42,6 +42,10 @@
 #include "foil_log_p.h"
 GLOG_MODULE_DEFINE2("foil-key", FOIL_LOG_MODULE);
 
+struct foil_key_priv {
+    GBytes* fingerprint;
+};
+
 G_DEFINE_ABSTRACT_TYPE(FoilKey, foil_key, G_TYPE_OBJECT);
 #define foil_abstract_key_class_ref(type) ((FoilKeyClass*) \
         foil_abstract_class_ref(type, FOIL_TYPE_KEY))
@@ -89,7 +93,8 @@ foil_key_fingerprint(
     FoilKey* self)
 {
     if (G_LIKELY(self)) {
-        if (!self->fingerprint) {
+        FoilKeyPriv* priv = self->priv;
+        if (!priv->fingerprint) {
             FoilKeyClass* klass = FOIL_KEY_GET_CLASS(self);
             GBytes* fingerprint = klass->fn_fingerprint(self);
             GASSERT(fingerprint);
@@ -98,11 +103,11 @@ foil_key_fingerprint(
              * foil_key_fingerprint() being invoked simultaneously
              * by multiple threads don't leak fingerprint bytes. */
             if (fingerprint && !g_atomic_pointer_compare_and_exchange
-               (&self->fingerprint, NULL, fingerprint)) {
+               (&priv->fingerprint, NULL, fingerprint)) {
                 g_bytes_unref(fingerprint);
             }
         }
-        return self->fingerprint;
+        return priv->fingerprint;
     }
     return NULL;
 }
@@ -473,7 +478,7 @@ foil_key_default_fingerprint(
     FoilKeyClass* klass = FOIL_KEY_GET_CLASS(self);
     GBytes* bytes = klass->fn_to_bytes(self);
     GBytes* fingerprint = foil_digest_bytes(FOIL_DIGEST_MD5, bytes);
-    GASSERT(!self->fingerprint);
+    GASSERT(!self->priv->fingerprint);
     g_bytes_unref(bytes);
     return fingerprint;
 }
@@ -484,8 +489,9 @@ foil_key_finalize(
     GObject* object)
 {
     FoilKey* self = FOIL_KEY(object);
-    if (self->fingerprint) {
-        g_bytes_unref(self->fingerprint);
+    FoilKeyPriv* priv = self->priv;
+    if (priv->fingerprint) {
+        g_bytes_unref(priv->fingerprint);
     }
     G_OBJECT_CLASS(foil_key_parent_class)->finalize(object);
 }
@@ -495,6 +501,8 @@ void
 foil_key_init(
     FoilKey* self)
 {
+    self->priv = G_TYPE_INSTANCE_GET_PRIVATE(self, FOIL_TYPE_KEY,
+        FoilKeyPriv);
 }
 
 static
@@ -502,8 +510,9 @@ void
 foil_key_class_init(
     FoilKeyClass* klass)
 {
-    G_OBJECT_CLASS(klass)->finalize = foil_key_finalize;
     klass->fn_fingerprint = foil_key_default_fingerprint;
+    G_OBJECT_CLASS(klass)->finalize = foil_key_finalize;
+    g_type_class_add_private(klass, sizeof(FoilKeyPriv));
 }
 
 /*
