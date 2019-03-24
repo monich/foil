@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -387,12 +387,13 @@ FoilKey*
 foil_public_key_new_from_private(
     FoilPrivateKey* self)
 {
-    FoilKey* pub = NULL;
     if (G_LIKELY(self)) {
         FoilPrivateKeyClass* klass = FOIL_PRIVATE_KEY_GET_CLASS(self);
-        pub = klass->create_public(self);
+        if (klass->fn_create_public) {
+            return klass->fn_create_public(self);
+        }
     }
-    return pub;
+    return NULL;
 }
 
 static

@@ -150,7 +150,6 @@ foil_key_rsa_public_set_data(
 {
     GASSERT(!self->data);
     self->data = foil_key_rsa_public_data_copy(key_data);
-    FOIL_KEY_RSA_PUBLIC_GET_CLASS(self)->fn_apply(self);
 }
 
 static
@@ -633,23 +632,6 @@ foil_key_rsa_public_equal(
     return FALSE;
 }
 
-int
-foil_key_rsa_public_num_bits(
-    FoilKeyRsaPublic* self)
-{
-    if (G_LIKELY(self)) {
-        return FOIL_KEY_RSA_PUBLIC_GET_CLASS(self)->fn_num_bits(self);
-    }
-    return 0;
-}
-
-static
-void
-foil_key_rsa_public_apply(
-    FoilKeyRsaPublic* self)
-{
-}
-
 GBytes*
 foil_key_rsa_public_data_fingerprint(
     const FoilKeyRsaPublicData* data)
@@ -697,7 +679,6 @@ foil_key_rsa_public_class_init(
     key_class->fn_to_bytes = foil_key_rsa_public_to_bytes;
     key_class->fn_export = foil_key_rsa_public_export;
     key_class->fn_fingerprint = foil_key_rsa_public_fingerprint;
-    klass->fn_apply = foil_key_rsa_public_apply;
     G_OBJECT_CLASS(klass)->finalize = foil_key_rsa_public_finalize;
 }
 

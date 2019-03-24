@@ -41,6 +41,8 @@ typedef struct test_cipher_rsa {
     GTestDataFunc fn;
     const char* priv;
     const char* pub;
+    const void* input;
+    gsize input_size;
 } TestCipherRsa;
 
 static
@@ -98,6 +100,10 @@ test_cipher_rsa_key_check(
     FoilCipher* enc = foil_cipher_new(FOIL_CIPHER_RSA_ENCRYPT, pub);
     FoilCipher* dec = foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, priv);
 
+    g_assert(priv);
+    g_assert(pub);
+    g_assert(enc);
+    g_assert(dec);
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_RSA_ENCRYPT,
                                             FOIL_KEY_AES128));
     g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_RSA_DECRYPT,
@@ -134,13 +140,12 @@ test_cipher_rsa_key_check(
 
 static
 GBytes*
-test_cipher_rsa_decrypt(
-    FoilKey* key,
+test_cipher_bytes(
+    FoilCipher* cipher,
     GBytes* bytes)
 {
     gsize size = 0;
     const void* data = g_bytes_get_data(bytes, &size);
-    FoilCipher* cipher = foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, key);
     const gsize in_size = foil_cipher_input_block_size(cipher);
     const gsize out_size = foil_cipher_output_block_size(cipher);
     const guint8* ptr = data;
@@ -148,35 +153,49 @@ test_cipher_rsa_decrypt(
     const guint n = size / in_size;
     void* out_block = g_malloc(out_size);
     GByteArray* out = g_byte_array_new();
-    guint i, nout;
+    int nout = 0;
+    guint i;
 
     /* Full input blocks */
-    for (i=0; i<n; i++) {
+    for (i = 0; i < n; i++) {
         nout = foil_cipher_step(cipher, ptr, out_block);
+        g_assert(nout >= 0);
         g_byte_array_append(out, out_block, nout);
         ptr += in_size;
     }
 
     /* Finish the process */
     nout = foil_cipher_finish(cipher, ptr, tail, out_block);
-    foil_cipher_unref(cipher);
+    g_assert(nout >= 0);
     g_byte_array_append(out, out_block, nout);
     g_free(out_block);
     return g_byte_array_free_to_bytes(out);
 }
 
 static
+GBytes*
+test_cipher_rsa_decrypt(
+    FoilKey* key,
+    GBytes* bytes)
+{
+    FoilCipher* cipher = foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, key);
+    GBytes* out = test_cipher_bytes(cipher, bytes);
+    foil_cipher_unref(cipher);
+    return out;
+}
+
+static
 void
 test_cipher_rsa(
-    const TestCipherRsa* test,
-    const void* input,
-    gssize input_size)
+    gconstpointer param)
 {
+    const TestCipherRsa* test = param;
+    const gssize input_size = test->input_size;
     char* priv_path = g_strconcat(DATA_DIR, test->priv, NULL);
     char* pub_path = g_strconcat(DATA_DIR, test->pub, NULL);
     FoilKey* priv = foil_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_path);
     FoilKey* pub = foil_key_new_from_file(FOIL_KEY_RSA_PUBLIC, pub_path);
-    GBytes* in = g_bytes_new_static(input, input_size);
+    GBytes* in = g_bytes_new_static(test->input, input_size);
     GBytes* out = foil_cipher_bytes(FOIL_CIPHER_RSA_ENCRYPT, pub, in);
     GBytes* decrypted = test_cipher_rsa_decrypt(priv, out);
     GBytes* decrypted2;
@@ -242,55 +261,44 @@ test_cipher_rsa(
 
 static
 void
-test_cipher_rsa_short(
+test_cipher_rsa_clone(
     gconstpointer param)
 {
-    /* Exactly one block for 768-bit key (54 bytes)*/
-    static const char clear_text[] =
-        "This is a secret.This is a secret.This is a secret.Th";
-    test_cipher_rsa(param, clear_text, sizeof(clear_text)-1);
-}
-
-static
-void
-test_cipher_rsa_long(
-    gconstpointer param)
-{
-    static const char clear_text[] =
-        "When in the Course of human events, it becomes necessary for one "
-        "people to dissolve the political bands which have connected them "
-        "with another, and to assume among the powers of the earth, the "
-        "separate and equal station to which the Laws of Nature and of "
-        "Nature's God entitle them, a decent respect to the opinions of "
-        "mankind requires that they should declare the causes which impel "
-        "them to the separation.\n\n"
-        "We hold these truths to be self-evident, that all men are created "
-        "equal, that they are endowed by their Creator with certain "
-        "unalienable Rights, that among these are Life, Liberty and the "
-        "pursuit of Happiness.--That to secure these rights, Governments "
-        "are instituted among Men, deriving their just powers from the "
-        "consent of the governed, --That whenever any Form of Government "
-        "becomes destructive of these ends, it is the Right of the People "
-        "to alter or to abolish it, and to institute new Government, laying "
-        "its foundation on such principles and organizing its powers in such "
-        "form, as to them shall seem most likely to effect their Safety and "
-        "Happiness. Prudence, indeed, will dictate that Governments long "
-        "established should not be changed for light and transient causes; "
-        "and accordingly all experience hath shewn, that mankind are more "
-        "disposed to suffer, while evils are sufferable, than to right "
-        "themselves by abolishing the forms to which they are accustomed. "
-        "But when a long train of abuses and usurpations, pursuing "
-        "invariably the same Object evinces a design to reduce them under "
-        "absolute Despotism, it is their right, it is their duty, to throw "
-        "off such Government, and to provide new Guards for their future "
-        "security.--Such has been the patient sufferance of these Colonies; "
-        "and such is now the necessity which constrains them to alter their "
-        "former Systems of Government. The history of the present King of "
-        "Great Britain is a history of repeated injuries and usurpations, "
-        "all having in direct object the establishment of an absolute "
-        "Tyranny over these States. To prove this, let Facts be submitted "
-        "to a candid world.\n";
-    test_cipher_rsa(param, clear_text, sizeof(clear_text)-1);
+    const TestCipherRsa* test = param;
+    char* priv_path = g_strconcat(DATA_DIR, test->priv, NULL);
+    char* pub_path = g_strconcat(DATA_DIR, test->pub, NULL);
+    FoilKey* priv = foil_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_path);
+    FoilKey* pub = foil_key_new_from_file(FOIL_KEY_RSA_PUBLIC, pub_path);
+    GBytes* in = g_bytes_new_static(test->input, test->input_size);
+    FoilCipher* enc1 = foil_cipher_new(FOIL_CIPHER_RSA_ENCRYPT, priv);
+    FoilCipher* enc2 = foil_cipher_clone(enc1);
+    GBytes* out1 = test_cipher_bytes(enc1, in);
+    GBytes* out2 = test_cipher_bytes(enc2, in);
+    FoilCipher* dec1 = foil_cipher_new(FOIL_CIPHER_RSA_DECRYPT, pub);
+    FoilCipher* dec2 = foil_cipher_clone(dec1);
+    GBytes* res1 = test_cipher_bytes(dec1, out1);
+    GBytes* res2 = test_cipher_bytes(dec2, out2);
+    GDEBUG("Plain text:");
+    TEST_DEBUG_HEXDUMP_BYTES(in);
+    GDEBUG("Encrypted (%u bytes):", (guint)g_bytes_get_size(out1));
+    TEST_DEBUG_HEXDUMP_BYTES(out1);
+    g_assert(g_bytes_equal(out1, out2));
+    GDEBUG("Decrypted:");
+    TEST_DEBUG_HEXDUMP_BYTES(res1);
+    g_assert(g_bytes_equal(res1, res2));
+    g_bytes_unref(in);
+    g_bytes_unref(out1);
+    g_bytes_unref(out2);
+    g_bytes_unref(res1);
+    g_bytes_unref(res2);
+    foil_cipher_unref(enc1);
+    foil_cipher_unref(enc2);
+    foil_cipher_unref(dec1);
+    foil_cipher_unref(dec2);
+    foil_key_unref(priv);
+    foil_key_unref(pub);
+    g_free(priv_path);
+    g_free(pub_path);
 }
 
 static
@@ -298,27 +306,13 @@ void
 test_cipher_rsa_blocks(
     gconstpointer param)
 {
-    static const char clear_text[] =
-        "Nor have We been wanting in attentions to our British brethren. "
-        "We have warned them from time to time of attempts by their "
-        "legislature to extend an unwarrantable jurisdiction over us. "
-        "We have reminded them of the circumstances of our emigration and "
-        "settlement here. We have appealed to their native justice and "
-        "magnanimity, and we have conjured them by the ties of our common "
-        "kindred to disavow these usurpations, which, would inevitably "
-        "interrupt our connections and correspondence. They too have been "
-        "deaf to the voice of justice and of consanguinity. We must, "
-        "therefore, acquiesce in the necessity, which denounces our "
-        "Separation, and hold them, as we hold the rest of mankind, "
-        "Enemies in War, in Peace Friends.\n               ";
-    const gsize clear_text_len = sizeof(clear_text)-1;
-
     const TestCipherRsa* test = param;
+    guint8* input = (void*)test->input;
     char* priv_path = g_strconcat(DATA_DIR, test->priv, NULL);
     char* pub_path = g_strconcat(DATA_DIR, test->pub, NULL);
     FoilKey* priv = foil_key_new_from_file(FOIL_KEY_RSA_PRIVATE, priv_path);
     FoilKey* pub = foil_key_new_from_file(FOIL_KEY_RSA_PUBLIC, pub_path);
-    GBytes* in = g_bytes_new_static(clear_text, clear_text_len);
+    GBytes* in = g_bytes_new_static(test->input, test->input_size);
     FoilCipher* rsa_encrypt = foil_cipher_new(FOIL_CIPHER_RSA_ENCRYPT, pub);
     FoilOutput* out = foil_output_mem_new(NULL);
     GBytes* enc;
@@ -326,16 +320,17 @@ test_cipher_rsa_blocks(
 
     FoilBytes data[5];
     gsize count;
-    data[0].val = (void*)clear_text;
+    data[0].val = input;
     count = data[0].len = 40;
-    data[1].val = (void*)(clear_text + count);
+    data[1].val = input + count;
     count += (data[1].len = 12);
-    data[2].val = (void*)(clear_text + count);
+    data[2].val = input + count;
     count += (data[2].len = 53);
-    data[3].val = (void*)(clear_text + count);
+    data[3].val = input + count;
     count += (data[3].len = 3);
-    data[4].val = (void*)(clear_text + count);
-    data[4].len = clear_text_len - count;
+    data[4].val = input + count;
+    data[4].len = test->input_size - count;
+    g_assert(test->input_size > count);
 
     foil_cipher_write_data_blocks(rsa_encrypt, data, G_N_ELEMENTS(data),
         out, NULL);
@@ -359,13 +354,73 @@ test_cipher_rsa_blocks(
     g_free(pub_path);
 }
 
+/* Exactly one block for 768-bit key (54 bytes)*/
+static const char input_short[] = "This is a secret.This is a secr"
+    "et.This is a secret.Th";
+static const char input_long[] =
+    "When in the Course of human events, it becomes necessary for one "
+    "people to dissolve the political bands which have connected them "
+    "with another, and to assume among the powers of the earth, the "
+    "separate and equal station to which the Laws of Nature and of "
+    "Nature's God entitle them, a decent respect to the opinions of "
+    "mankind requires that they should declare the causes which impel "
+    "them to the separation.\n\n"
+    "We hold these truths to be self-evident, that all men are created "
+    "equal, that they are endowed by their Creator with certain "
+    "unalienable Rights, that among these are Life, Liberty and the "
+    "pursuit of Happiness.--That to secure these rights, Governments "
+    "are instituted among Men, deriving their just powers from the "
+    "consent of the governed, --That whenever any Form of Government "
+    "becomes destructive of these ends, it is the Right of the People "
+    "to alter or to abolish it, and to institute new Government, laying "
+    "its foundation on such principles and organizing its powers in such "
+    "form, as to them shall seem most likely to effect their Safety and "
+    "Happiness. Prudence, indeed, will dictate that Governments long "
+    "established should not be changed for light and transient causes; "
+    "and accordingly all experience hath shewn, that mankind are more "
+    "disposed to suffer, while evils are sufferable, than to right "
+    "themselves by abolishing the forms to which they are accustomed. "
+    "But when a long train of abuses and usurpations, pursuing "
+    "invariably the same Object evinces a design to reduce them under "
+    "absolute Despotism, it is their right, it is their duty, to throw "
+    "off such Government, and to provide new Guards for their future "
+    "security.--Such has been the patient sufferance of these Colonies; "
+    "and such is now the necessity which constrains them to alter their "
+    "former Systems of Government. The history of the present King of "
+    "Great Britain is a history of repeated injuries and usurpations, "
+    "all having in direct object the establishment of an absolute "
+    "Tyranny over these States. To prove this, let Facts be submitted "
+    "to a candid world.\n";
+static const char rsa_blocks_input[] =
+    "Nor have We been wanting in attentions to our British brethren. "
+    "We have warned them from time to time of attempts by their "
+    "legislature to extend an unwarrantable jurisdiction over us. "
+    "We have reminded them of the circumstances of our emigration and "
+    "settlement here. We have appealed to their native justice and "
+    "magnanimity, and we have conjured them by the ties of our common "
+    "kindred to disavow these usurpations, which, would inevitably "
+    "interrupt our connections and correspondence. They too have been "
+    "deaf to the voice of justice and of consanguinity. We must, "
+    "therefore, acquiesce in the necessity, which denounces our "
+    "Separation, and hold them, as we hold the rest of mankind, "
+    "Enemies in War, in Peace Friends.\n               ";
+
 #define TEST_(name) "/cipher_rsa/" name
 #define TEST_CIPHER_SHORT(name) \
-    { TEST_("short-" name), test_cipher_rsa_short, name, name ".pub" }
+    { TEST_("short-" name), test_cipher_rsa, name, name ".pub", \
+      TEST_ARRAY_AND_SIZE(input_short) }
 #define TEST_CIPHER_LONG(name) \
-    { TEST_("long-" name), test_cipher_rsa_long, name, name ".pub" }
+    { TEST_("long-" name), test_cipher_rsa, name, name ".pub", \
+      TEST_ARRAY_AND_SIZE(input_long) }
+#define TEST_CLONE_SHORT(name) \
+    { TEST_("short-clone-" name), test_cipher_rsa_clone, name, name ".pub", \
+      TEST_ARRAY_AND_SIZE(input_short) }
+#define TEST_CLONE_LONG(name) \
+    { TEST_("long-clone-" name), test_cipher_rsa_clone, name, name ".pub", \
+      TEST_ARRAY_AND_SIZE(input_long) }
 #define TEST_CIPHER_BLOCKS(name) \
-    { TEST_("blocks-" name), test_cipher_rsa_blocks, name, name ".pub" }
+    { TEST_("blocks-" name), test_cipher_rsa_blocks, name, name ".pub", \
+      TEST_ARRAY_AND_SIZE(rsa_blocks_input) }
 #define TEST_CIPHER_KEY_CHECK(name) \
     { TEST_("key-check-" name), test_cipher_rsa_key_check, name, name ".pub" }
 
@@ -384,6 +439,14 @@ static const TestCipherRsa tests[] = {
     TEST_CIPHER_LONG("rsa-1024" ),
     TEST_CIPHER_LONG("rsa-1500" ),
     TEST_CIPHER_LONG("rsa-2048" ),
+    TEST_CLONE_SHORT("rsa-768"  ),
+    TEST_CLONE_SHORT("rsa-1024" ),
+    TEST_CLONE_SHORT("rsa-1500" ),
+    TEST_CLONE_SHORT("rsa-2048" ),
+    TEST_CLONE_LONG("rsa-768"  ),
+    TEST_CLONE_LONG("rsa-1024" ),
+    TEST_CLONE_LONG("rsa-1500" ),
+    TEST_CLONE_LONG("rsa-2048" ),
     TEST_CIPHER_BLOCKS("rsa-768"  ),
     TEST_CIPHER_BLOCKS("rsa-1024" ),
     TEST_CIPHER_BLOCKS("rsa-1500" ),

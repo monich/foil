@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,10 @@
 
 #include "foil_key_p.h"
 
-typedef struct foil_key_rsa_public_info {
+struct foil_key_rsa_public_data {
     FoilBytes n;
     FoilBytes e;
-} FoilKeyRsaPublicData;
+};
 
 typedef struct foil_key_rsa_public {
     FoilKey key;
@@ -44,8 +44,6 @@ typedef struct foil_key_rsa_public {
 
 typedef struct foil_key_rsa_public_class {
     FoilKeyClass key;
-    void (*fn_apply)(FoilKeyRsaPublic* key);
-    int (*fn_num_bits)(FoilKeyRsaPublic* key);
 } FoilKeyRsaPublicClass;
 
 #define FOIL_KEY_RSA_PUBLIC_(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
@@ -57,21 +55,14 @@ typedef struct foil_key_rsa_public_class {
 #define FOIL_IS_RSA_PUBLIC_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
         FOIL_TYPE_KEY_RSA_PUBLIC)
 
-int
-foil_key_rsa_public_num_bits(
-    FoilKeyRsaPublic* key);
-
 void
 foil_key_rsa_public_set_data(
-    FoilKeyRsaPublic* key,
-    const FoilKeyRsaPublicData* key_data);
+    FoilKeyRsaPublic* pub,
+    const FoilKeyRsaPublicData* data);
 
 GBytes*
 foil_key_rsa_public_data_fingerprint(
     const FoilKeyRsaPublicData* data);
-
-#define foil_key_rsa_public_num_bytes(key) \
-    ((foil_key_rsa_public_num_bits(key) + 7)/8)
 
 #endif /* FOIL_KEY_PUBLIC_H */
 

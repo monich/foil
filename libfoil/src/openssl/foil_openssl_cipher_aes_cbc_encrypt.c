@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,15 +66,34 @@ foil_openssl_cipher_aes_cbc_encrypt_step(
 
 static
 void
-foil_openssl_cipher_aes_cbc_encrypt_post_init(
-    FoilCipher* cipher)
+foil_openssl_cipher_aes_cbc_encrypt_reset(
+    FoilOpensslCipherAesCbcEncrypt* self)
 {
-    FoilOpensslCipherAesCbcEncrypt* self =
-        FOIL_OPENSSL_CIPHER_AES_CBC_ENCRYPT(cipher);
-    FoilKeyAes* aes_key = FOIL_KEY_AES_(cipher->key);
-    const int bits = FOIL_KEY_AES_GET_CLASS(cipher->key)->size*8;
-    AES_set_encrypt_key(aes_key->key, bits, &self->aes);
-    FOIL_CIPHER_CLASS(PARENT_CLASS)->fn_post_init(cipher);
+    FoilKey* key = FOIL_CIPHER(self)->key;
+    AES_set_encrypt_key(FOIL_KEY_AES_(key)->key,
+        FOIL_KEY_AES_GET_CLASS(key)->size * 8, &self->aes);
+}
+
+static
+void
+foil_openssl_cipher_aes_cbc_encrypt_init_with_key(
+    FoilCipher* cipher,
+    FoilKey* key)
+{
+    FOIL_CIPHER_CLASS(PARENT_CLASS)->fn_init_with_key(cipher, key);
+    foil_openssl_cipher_aes_cbc_encrypt_reset
+        (FOIL_OPENSSL_CIPHER_AES_CBC_ENCRYPT(cipher));
+}
+
+static
+void
+foil_openssl_cipher_aes_cbc_encrypt_copy(
+    FoilCipher* dest,
+    FoilCipher* src)
+{
+    FOIL_CIPHER_CLASS(PARENT_CLASS)->fn_copy(dest, src);
+    foil_openssl_cipher_aes_cbc_encrypt_reset
+        (FOIL_OPENSSL_CIPHER_AES_CBC_ENCRYPT(dest));
 }
 
 static
@@ -91,8 +110,10 @@ foil_openssl_cipher_aes_cbc_encrypt_class_init(
 {
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "AESCBC(Encrypt)";
+    cipher->fn_init_with_key =
+        foil_openssl_cipher_aes_cbc_encrypt_init_with_key;
+    cipher->fn_copy = foil_openssl_cipher_aes_cbc_encrypt_copy;
     cipher->fn_step = foil_openssl_cipher_aes_cbc_encrypt_step;
-    cipher->fn_post_init = foil_openssl_cipher_aes_cbc_encrypt_post_init;
 }
 
 /*

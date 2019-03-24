@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,36 +30,47 @@
 #ifndef FOIL_OPENSSL_RSA_H
 #define FOIL_OPENSSL_RSA_H
 
+#include "foil_cipher_sync.h"
 #include "foil_key_rsa_public.h"
 #include "foil_key_rsa_private.h"
 
 #include <openssl/rsa.h>
 #include <openssl/err.h>
 
-typedef struct foil_openssl_key_rsa_public {
-    FoilKeyRsaPublic super;
-    FoilKeyRsaPublicData* data;
+typedef FoilCipherClass FoilOpensslCipherRsaClass;
+typedef struct foil_openssl_cipher_rsa {
+    FoilCipherSync sync;
+    int padding_size;
+    int padding;
     RSA* rsa;
-} FoilOpensslKeyRsaPublic;
+    RSA* (*dup)(RSA *rsa);
+    int (*proc)(int flen, const unsigned char *from,
+        unsigned char *to, RSA *rsa, int padding);
+} FoilOpensslCipherRsa;
 
+GType foil_openssl_cipher_rsa_get_type(void);
+#define FOIL_OPENSSL_TYPE_CIPHER_RSA foil_openssl_cipher_rsa_get_type()
+
+typedef FoilKeyRsaPublic FoilOpensslKeyRsaPublic;
+typedef FoilKeyRsaPrivate FoilOpensslKeyRsaPrivate;
 GType foil_openssl_key_rsa_public_get_type(void);
-#define FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC \
-    (foil_openssl_key_rsa_public_get_type())
-#define FOIL_OPENSSL_KEY_RSA_PUBLIC(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
-    FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC, FoilOpensslKeyRsaPublic))
-
-typedef struct foil_openssl_key_rsa_private {
-    FoilKeyRsaPrivate super;
-    RSA* rsa;
-} FoilOpensslKeyRsaPrivate;
-
 GType foil_openssl_key_rsa_private_get_type(void);
+#define FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC foil_openssl_key_rsa_public_get_type()
 #define FOIL_OPENSSL_TYPE_KEY_RSA_PRIVATE \
-    (foil_openssl_key_rsa_private_get_type())
-#define FOIL_OPENSSL_KEY_RSA_PRIVATE(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
-    FOIL_OPENSSL_TYPE_KEY_RSA_PRIVATE, FoilOpensslKeyRsaPrivate))
+    foil_openssl_key_rsa_private_get_type()
 
-#define FOIL_RSA_BN_NUM_BYTES(x) ((x) ? BN_num_bytes(x) : 0)
+void
+foil_openssl_key_rsa_private_apply(
+    FoilKeyRsaPrivate* priv,
+    RSA* rsa);
+
+void
+foil_openssl_key_rsa_public_apply(
+    FoilKeyRsaPublic* pub,
+    RSA* rsa);
+
+#define FOIL_RSA_KEY_SET_BN(rsa,x,data) \
+    ((rsa)->x = BN_bin2bn((data)->x.val, (data)->x.len, (rsa)->x))
 
 #define FOIL_RSA_PKCS1_OAEP_PADDING_SIZE 42
 

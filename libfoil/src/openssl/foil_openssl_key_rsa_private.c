@@ -38,15 +38,25 @@ typedef FoilKeyRsaPrivateClass FoilOpensslKeyRsaPrivateClass;
 G_DEFINE_TYPE(FoilOpensslKeyRsaPrivate, foil_openssl_key_rsa_private, \
     FOIL_TYPE_KEY_RSA_PRIVATE);
 
-#define SUPER_CLASS foil_openssl_key_rsa_private_parent_class
-
-#define FOIL_RSA_KEY_SET_BN(rsa,x,data) \
-    ((rsa)->x = BN_bin2bn((data)->x.val, (data)->x.len, (rsa)->x))
-
 GType
 foil_impl_key_rsa_private_get_type()
 {
-    return foil_openssl_key_rsa_private_get_type();
+    return FOIL_OPENSSL_TYPE_KEY_RSA_PRIVATE;
+}
+
+void
+foil_openssl_key_rsa_private_apply(
+    FoilKeyRsaPrivate* key,
+    RSA* rsa)
+{
+    FOIL_RSA_KEY_SET_BN(rsa, n, key->data);
+    FOIL_RSA_KEY_SET_BN(rsa, e, key->data);
+    FOIL_RSA_KEY_SET_BN(rsa, d, key->data);
+    FOIL_RSA_KEY_SET_BN(rsa, p, key->data);
+    FOIL_RSA_KEY_SET_BN(rsa, q, key->data);
+    FOIL_RSA_KEY_SET_BN(rsa, dmp1, key->data);
+    FOIL_RSA_KEY_SET_BN(rsa, dmq1, key->data);
+    FOIL_RSA_KEY_SET_BN(rsa, iqmp, key->data);
 }
 
 static
@@ -103,13 +113,9 @@ foil_openssl_key_rsa_private_generate(
             RSA* rsa = RSA_new();
             if (rsa) {
                 if (RSA_generate_key_ex(rsa, bits, pub_exp, NULL)) {
-                    RSA* tmp;
-                    FoilOpensslKeyRsaPrivate* priv = g_object_new
-                        (foil_openssl_key_rsa_private_get_type(), NULL);
-                    tmp = priv->rsa;
-                    priv->rsa = rsa;
-                    priv->super.data = foil_key_rsa_private_data_from_rsa(rsa);
-                    rsa = tmp;
+                    FoilKeyRsaPrivate* priv = g_object_new
+                        (FOIL_OPENSSL_TYPE_KEY_RSA_PRIVATE, NULL);
+                    priv->data = foil_key_rsa_private_data_from_rsa(rsa);
                     key = FOIL_KEY(priv);
                 }
                 RSA_free(rsa);
@@ -122,39 +128,17 @@ foil_openssl_key_rsa_private_generate(
 }
 
 static
-void
-foil_openssl_key_rsa_private_apply(
-    FoilKeyRsaPrivate* key)
+FoilKey*
+foil_openssl_key_rsa_private_create_public(
+    FoilPrivateKey* key)
 {
-    FoilOpensslKeyRsaPrivate* self = FOIL_OPENSSL_KEY_RSA_PRIVATE(key);
-    FOIL_RSA_KEY_SET_BN(self->rsa, n, key->data);
-    FOIL_RSA_KEY_SET_BN(self->rsa, e, key->data);
-    FOIL_RSA_KEY_SET_BN(self->rsa, d, key->data);
-    FOIL_RSA_KEY_SET_BN(self->rsa, p, key->data);
-    FOIL_RSA_KEY_SET_BN(self->rsa, q, key->data);
-    FOIL_RSA_KEY_SET_BN(self->rsa, dmp1, key->data);
-    FOIL_RSA_KEY_SET_BN(self->rsa, dmq1, key->data);
-    FOIL_RSA_KEY_SET_BN(self->rsa, iqmp, key->data);
-    FOIL_KEY_RSA_PRIVATE_CLASS(SUPER_CLASS)->fn_apply(key);
-}
-
-static
-int
-foil_openssl_key_rsa_private_num_bits(
-    FoilKeyRsaPrivate* key)
-{
-    FoilOpensslKeyRsaPrivate* self = FOIL_OPENSSL_KEY_RSA_PRIVATE(key);
-    return self->rsa->n ? BN_num_bits(self->rsa->n) : 0;
-}
-
-static
-void
-foil_openssl_key_rsa_private_finalize(
-    GObject* object)
-{
-    FoilOpensslKeyRsaPrivate* self = FOIL_OPENSSL_KEY_RSA_PRIVATE(object);
-    RSA_free(self->rsa);
-    G_OBJECT_CLASS(SUPER_CLASS)->finalize(object);
+    GType pub_type = FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC;
+    FoilKeyRsaPrivate* self = FOIL_KEY_RSA_PRIVATE_(key);
+    FoilKeyRsaPublic* pub = g_object_new(pub_type, NULL);
+    FoilKeyRsaPublicData pub_data;
+    foil_key_rsa_private_get_public_data(self, &pub_data);
+    foil_key_rsa_public_set_data(pub, &pub_data);
+    return FOIL_KEY(pub);
 }
 
 static
@@ -162,7 +146,6 @@ void
 foil_openssl_key_rsa_private_init(
     FoilOpensslKeyRsaPrivate* self)
 {
-    self->rsa = RSA_new();
 }
 
 static
@@ -170,13 +153,9 @@ void
 foil_openssl_key_rsa_private_class_init(
     FoilOpensslKeyRsaPrivateClass* klass)
 {
-    FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
-    FoilPrivateKeyClass* privkey_class = FOIL_PRIVATE_KEY_CLASS(klass);
-    key_class->fn_generate = foil_openssl_key_rsa_private_generate;
-    privkey_class->fn_get_public_type = foil_openssl_key_rsa_public_get_type;
-    klass->fn_apply = foil_openssl_key_rsa_private_apply;
-    klass->fn_num_bits = foil_openssl_key_rsa_private_num_bits;
-    G_OBJECT_CLASS(klass)->finalize = foil_openssl_key_rsa_private_finalize;
+    FOIL_KEY_CLASS(klass)->fn_generate = foil_openssl_key_rsa_private_generate;
+    FOIL_PRIVATE_KEY_CLASS(klass)->fn_create_public =
+        foil_openssl_key_rsa_private_create_public;
 }
 
 /*

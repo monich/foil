@@ -27,7 +27,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libglibutil"=$(LIBGLIBUTIL_ROOT)\libglibutil.dsp - Package Owner=<4>
+Project: "libglibutil"=..\..\jolla\libglibutil\libglibutil.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -58,6 +58,24 @@ Package=<4>
 ###############################################################################
 
 Project: "test_cavp_aes"=.\libfoil\test_cavp_aes\test_cavp_aes.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_cipher"=.\libfoil\test_cipher\test_cipher.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

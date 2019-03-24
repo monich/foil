@@ -81,6 +81,10 @@ foil_cipher_new(
     FoilKey* key);
 
 FoilCipher*
+foil_cipher_clone(
+    FoilCipher* cipher); /* Since 1.0.14 */
+
+FoilCipher*
 foil_cipher_ref(
     FoilCipher* cipher);
 

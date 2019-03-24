@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
 #include <gutil_macros.h>
 
 #include <glib-object.h>
+
+typedef struct foil_key_rsa_public_data FoilKeyRsaPublicData;
 
 #define FOIL_ALIGN(x)  G_ALIGN4(x)
 

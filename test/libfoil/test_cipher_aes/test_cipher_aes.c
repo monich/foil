@@ -210,6 +210,78 @@ test_cipher_aes_cancel(
 }
 
 static
+GBytes*
+test_cipher_bytes(
+    FoilCipher* cipher,
+    GBytes* bytes)
+{
+    gsize size = 0;
+    const void* data = g_bytes_get_data(bytes, &size);
+    const gsize in_size = foil_cipher_input_block_size(cipher);
+    const gsize out_size = foil_cipher_output_block_size(cipher);
+    const guint8* ptr = data;
+    const gsize tail = size % in_size;
+    const guint n = size / in_size;
+    void* out_block = g_malloc(out_size);
+    GByteArray* out = g_byte_array_new();
+    int nout = 0;
+    guint i;
+
+    /* Full input blocks */
+    for (i = 0; i < n; i++) {
+        nout = foil_cipher_step(cipher, ptr, out_block);
+        g_assert(nout >= 0);
+        g_byte_array_append(out, out_block, nout);
+        ptr += in_size;
+    }
+
+    /* Finish the process */
+    nout = foil_cipher_finish(cipher, ptr, tail, out_block);
+    g_assert(nout >= 0);
+    g_byte_array_append(out, out_block, nout);
+    g_free(out_block);
+    return g_byte_array_free_to_bytes(out);
+}
+
+static
+void
+test_cipher_aes_clone(
+    gconstpointer param)
+{
+    const TestCipherAes* test = param;
+    char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
+    GBytes* in = g_bytes_new_static(test->input, test->input_size);
+    FoilKey* key = foil_key_new_from_file(test->key_type(), key_path);
+    FoilCipher* enc1 = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
+    FoilCipher* enc2 = foil_cipher_clone(enc1);
+    GBytes* out1 = test_cipher_bytes(enc1, in);
+    GBytes* out2 = test_cipher_bytes(enc2, in);
+    FoilCipher* dec1 = foil_cipher_new(FOIL_CIPHER_AES_CBC_DECRYPT, key);
+    FoilCipher* dec2 = foil_cipher_clone(dec1);
+    GBytes* res1 = test_cipher_bytes(dec1, in);
+    GBytes* res2 = test_cipher_bytes(dec2, in);
+    GDEBUG("Plain text:");
+    TEST_DEBUG_HEXDUMP_BYTES(in);
+    GDEBUG("Encrypted (%u bytes):", (guint)g_bytes_get_size(out1));
+    TEST_DEBUG_HEXDUMP_BYTES(out1);
+    g_assert(g_bytes_equal(out1, out2));
+    GDEBUG("Decrypted:");
+    TEST_DEBUG_HEXDUMP_BYTES(res1);
+    g_assert(g_bytes_equal(res1, res2));
+    g_bytes_unref(in);
+    g_bytes_unref(out1);
+    g_bytes_unref(out2);
+    g_bytes_unref(res1);
+    g_bytes_unref(res2);
+    foil_cipher_unref(enc1);
+    foil_cipher_unref(enc2);
+    foil_cipher_unref(dec1);
+    foil_cipher_unref(dec2);
+    foil_key_unref(key);
+    g_free(key_path);
+}
+
+static
 void
 test_cipher_aes_sync(
     gconstpointer param)
@@ -347,6 +419,9 @@ static const char input_long[] =
     "to a candid world.\n";
 
 #define TEST_NAME(name) "/cipher_aes/" name
+#define TEST_CLONE(bits,name) \
+    { TEST_NAME("clone" #bits #name), test_cipher_aes_clone, "aes" #bits, \
+      foil_key_aes##bits##_get_type, input_##name, sizeof(input_##name) }
 #define TEST_SYNC(bits,name) \
     { TEST_NAME("sync" #bits #name), test_cipher_aes_sync, "aes" #bits, \
       foil_key_aes##bits##_get_type, input_##name, sizeof(input_##name) }
@@ -357,6 +432,12 @@ static const char input_long[] =
 static const TestCipherAes tests[] = {
     { TEST_NAME("basic"), test_cipher_aes_basic, "aes128" },
     { TEST_NAME("cancel"), test_cipher_aes_cancel, "aes128" },
+    TEST_CLONE(128,short),
+    TEST_CLONE(192,short),
+    TEST_CLONE(256,short),
+    TEST_CLONE(128,long),
+    TEST_CLONE(192,long),
+    TEST_CLONE(256,long),
     TEST_SYNC(128,short),
     TEST_SYNC(192,short),
     TEST_SYNC(256,short),

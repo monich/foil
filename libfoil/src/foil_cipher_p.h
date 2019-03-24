@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,8 +45,9 @@ struct foil_cipher_class {
     const char* name;
     FOIL_CIPHER_FLAGS flags;
     gboolean (*fn_supports_key)(FoilCipherClass* klass, GType key_type);
+    void (*fn_init_with_key)(FoilCipher* cipher, FoilKey* key);
+    void (*fn_copy)(FoilCipher* dest, FoilCipher* src);
     void (*fn_set_padding_func)(FoilCipher* cipher, FoilCipherPaddingFunc fn);
-    void (*fn_post_init)(FoilCipher* cipher);
     int (*fn_step)(FoilCipher* cipher, const void* in, void* out);
     int (*fn_finish)(FoilCipher* cipher, const void* in, int n, void* out);
     guint (*fn_step_async)(FoilCipher* cipher, const void* in,

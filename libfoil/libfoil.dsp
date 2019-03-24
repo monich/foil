@@ -352,6 +352,10 @@ SOURCE=.\src\openssl\foil_openssl_cipher_aes_cbc_encrypt.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\openssl\foil_openssl_cipher_rsa.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\openssl\foil_openssl_cipher_rsa_decrypt.c
 # End Source File
 # Begin Source File

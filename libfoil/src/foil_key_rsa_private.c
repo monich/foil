@@ -96,8 +96,6 @@ static const FoilBytes rsa_private_key_pkcs8_suffix_bytes = {
     G_N_ELEMENTS(rsa_private_key_pkcs8_suffix)
 };
 
-static
-inline
 void
 foil_key_rsa_private_get_public_data(
     FoilKeyRsaPrivate* self,
@@ -805,7 +803,6 @@ foil_key_rsa_private_from_data(
         foil_key_rsa_private_parse_pkcs8(&key, &data)) {
         FoilKeyRsaPrivate* priv = g_object_new(G_TYPE_FROM_CLASS(klass), NULL);
         priv->data = foil_key_rsa_private_data_copy(&key);
-        FOIL_KEY_RSA_PRIVATE_CLASS(klass)->fn_apply(priv);
         g_clear_error(err);
         result = FOIL_KEY(priv);
     } else if (err && !*err) {
@@ -998,45 +995,6 @@ foil_key_rsa_private_equal(
     return FALSE;
 }
 
-int
-foil_key_rsa_private_num_bits(
-    FoilKeyRsaPrivate* self)
-{
-    if (G_LIKELY(self)) {
-        return FOIL_KEY_RSA_PRIVATE_GET_CLASS(self)->fn_num_bits(self);
-    }
-    return 0;
-}
-
-static
-FoilKey*
-foil_key_rsa_private_create_public_key(
-    FoilPrivateKey* key)
-{
-    FoilKey* public_key = NULL;
-    FoilKeyRsaPrivate* self = FOIL_KEY_RSA_PRIVATE_(key);
-    FoilPrivateKeyClass* private_class = FOIL_PRIVATE_KEY_GET_CLASS(self);
-    if (private_class->fn_get_public_type && self->data) {
-        GType public_type = private_class->fn_get_public_type();
-        FoilKeyRsaPublic* rsa_public = g_object_new(public_type, NULL);
-        GASSERT(FOIL_IS_RSA_PUBLIC_KEY(rsa_public));
-        if (rsa_public) {
-            FoilKeyRsaPublicData pub_data;
-            foil_key_rsa_private_get_public_data(self, &pub_data);
-            foil_key_rsa_public_set_data(rsa_public, &pub_data);
-            public_key = FOIL_KEY(rsa_public);
-        }
-    }
-    return public_key;
-}
-
-static
-void
-foil_key_rsa_private_apply(
-    FoilKeyRsaPrivate* self)
-{
-}
-
 static
 GBytes*
 foil_key_rsa_private_fingerprint(
@@ -1080,14 +1038,11 @@ foil_key_rsa_private_class_init(
     FoilKeyRsaPrivateClass* klass)
 {
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
-    FoilPrivateKeyClass* private_key_class = FOIL_PRIVATE_KEY_CLASS(klass);
     key_class->fn_equal = foil_key_rsa_private_equal;
     key_class->fn_from_data = foil_key_rsa_private_from_data;
     key_class->fn_to_bytes = foil_key_rsa_private_to_bytes;
     key_class->fn_export = foil_key_rsa_private_export;
     key_class->fn_fingerprint = foil_key_rsa_private_fingerprint;
-    private_key_class->create_public = foil_key_rsa_private_create_public_key;
-    klass->fn_apply = foil_key_rsa_private_apply;
     G_OBJECT_CLASS(klass)->finalize = foil_key_rsa_private_finalize;
 }
 

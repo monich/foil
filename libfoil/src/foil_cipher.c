@@ -117,15 +117,31 @@ foil_cipher_new(
             GType key_type = G_TYPE_FROM_INSTANCE(key);
             if (klass->fn_supports_key(klass, key_type)) {
                 cipher = g_object_new(type, NULL);
-                cipher->key = foil_key_ref(key);
-                klass->fn_post_init(cipher);
-                GASSERT(cipher->input_block_size);
-                GASSERT(cipher->output_block_size);
+                klass->fn_init_with_key(cipher, key);
+                GASSERT(cipher->key); /* Set by foil_cipher_init_with_key */
+                GASSERT(cipher->input_block_size);  /* and these two are set */
+                GASSERT(cipher->output_block_size); /* by the implementation */
             }
             g_type_class_unref(klass);
         }
     }
     return cipher;
+}
+
+FoilCipher*
+foil_cipher_clone(
+    FoilCipher* self) /* Since 1.0.14 */
+{
+    if (G_LIKELY(self)) {
+        FoilCipherClass* klass = FOIL_CIPHER_GET_CLASS(self);
+        if (klass->fn_copy) {
+            FoilCipher* clone = g_object_new(G_TYPE_FROM_INSTANCE(self), NULL);
+            klass->fn_init_with_key(clone, self->key);
+            klass->fn_copy(clone, self);
+            return clone;
+        }
+    }
+    return NULL;
 }
 
 FoilCipher*
@@ -742,14 +758,32 @@ foil_cipher_write_data_async(
 
 static
 void
-foil_cipher_post_init(
-    FoilCipher* self)
+foil_cipher_init_with_key(
+    FoilCipher* self,
+    FoilKey* key)
 {
+    GASSERT(!self->key);
+    self->key = foil_key_ref(key);
 }
 
 static
 void
-foil_cipher_cancel_all_impl(
+foil_cipher_default_copy(
+    FoilCipher* self,
+    FoilCipher* src)
+{
+    GASSERT(!self->priv->async_id);
+    self->input_block_size = src->input_block_size;
+    self->output_block_size = src->output_block_size;
+    self->fn_pad = src->fn_pad;
+    foil_key_ref(src->key);
+    foil_key_unref(self->key);
+    self->key = src->key;
+}
+
+static
+void
+foil_cipher_default_cancel_all(
     FoilCipher* self)
 {
     FoilCipherPriv* priv = self->priv;
@@ -766,7 +800,7 @@ foil_cipher_finalize(
     GObject* object)
 {
     FoilCipher* self = FOIL_CIPHER(object);
-    foil_cipher_cancel_all_impl(self);
+    foil_cipher_default_cancel_all(self);
     foil_key_unref(self->key);
     G_OBJECT_CLASS(foil_cipher_parent_class)->finalize(object);
 }
@@ -785,8 +819,9 @@ void
 foil_cipher_class_init(
     FoilCipherClass* klass)
 {
-    klass->fn_post_init = foil_cipher_post_init;
-    klass->fn_cancel_all = foil_cipher_cancel_all_impl;
+    klass->fn_init_with_key = foil_cipher_init_with_key;
+    klass->fn_copy = foil_cipher_default_copy;
+    klass->fn_cancel_all = foil_cipher_default_cancel_all;
     G_OBJECT_CLASS(klass)->finalize = foil_cipher_finalize;
     g_type_class_add_private(klass, sizeof(FoilCipherPriv));
 }

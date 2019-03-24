@@ -51,6 +51,7 @@ test_cipher_null(
     g_assert(foil_cipher_set_padding_func(enc, NULL));
     g_assert(!foil_cipher_new(0, NULL));
     g_assert(!foil_cipher_new(0, key));
+    g_assert(!foil_cipher_clone(NULL));
     g_assert(!foil_cipher_ref(NULL));
     g_assert(!foil_cipher_key(NULL));
     g_assert(!foil_cipher_name(NULL));

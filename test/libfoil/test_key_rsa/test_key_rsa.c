@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -172,8 +172,6 @@ test_key_rsa_null(
     g_assert(!foil_private_key_encrypt_to_string(NULL, 0, NULL, NULL));
     g_assert(!foil_private_key_fingerprint(NULL));
     g_assert(!foil_public_key_new_from_private(NULL));
-    g_assert(!foil_key_rsa_private_num_bits(NULL));
-    g_assert(!foil_key_rsa_public_num_bits(NULL));
 
     g_assert(!foil_private_key_encrypt(NULL, NULL, 0, NULL, NULL, NULL));
     g_assert(!foil_private_key_encrypt(NULL, NULL, 0, NULL, NULL, &error));
@@ -388,8 +386,6 @@ test_key_rsa_fingerprint(
     /* Keys are not equal but fingerprints are */
     g_assert(!foil_key_equal(FOIL_KEY(keys.priv), keys.pub));
     g_assert(!foil_key_equal(keys.pub, FOIL_KEY(keys.priv)));
-    g_assert(foil_key_rsa_private_num_bits(FOIL_KEY_RSA_PRIVATE_(keys.priv)) ==
-             foil_key_rsa_public_num_bits(FOIL_KEY_RSA_PUBLIC_(keys.pub)));
     g_assert(g_bytes_equal(fingerprint1, fingerprint2));
 
     g_assert(g_file_get_contents(keys.path1, &data, &len, NULL));
@@ -586,8 +582,6 @@ test_key_rsa_convert(
 
     test_key_rsa_keys_init(&keys, test);
     pub2 = foil_public_key_new_from_private(keys.priv);
-    g_assert(foil_key_rsa_private_num_bits(FOIL_KEY_RSA_PRIVATE_(keys.priv)) ==
-             foil_key_rsa_public_num_bits(FOIL_KEY_RSA_PUBLIC_(keys.pub)));
     g_assert(foil_key_equal(keys.pub, pub2));
     g_assert(foil_key_equal(pub2, keys.pub));
 

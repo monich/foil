@@ -93,15 +93,27 @@ foil_cipher_aes_finish(
 
 static
 void
-foil_cipher_aes_post_init(
-    FoilCipher* cipher)
+foil_cipher_aes_init_with_key(
+    FoilCipher* cipher,
+    FoilKey* key)
 {
     FoilCipherAes* self = FOIL_CIPHER_AES(cipher);
-    FoilKeyAes* key = FOIL_KEY_AES_(cipher->key);
+    FoilKeyAes* aes_key = FOIL_KEY_AES_(key);
+    FOIL_CIPHER_CLASS(SUPER_CLASS)->fn_init_with_key(cipher, key);
     cipher->input_block_size = FOIL_AES_BLOCK_SIZE;
     cipher->output_block_size = FOIL_AES_BLOCK_SIZE;
-    memcpy(self->block, key->iv, FOIL_AES_BLOCK_SIZE);
-    FOIL_CIPHER_CLASS(SUPER_CLASS)->fn_post_init(cipher);
+    memcpy(self->block, aes_key->iv, FOIL_AES_BLOCK_SIZE);
+}
+
+static
+void
+foil_cipher_aes_copy(
+    FoilCipher* dest,
+    FoilCipher* src)
+{
+    FOIL_CIPHER_CLASS(SUPER_CLASS)->fn_copy(dest, src);
+    memcpy(FOIL_CIPHER_AES(dest)->block, FOIL_CIPHER_AES(src)->block,
+        FOIL_AES_BLOCK_SIZE);
 }
 
 static
@@ -121,8 +133,9 @@ foil_cipher_aes_class_init(
     cipher->name = "AES";
     cipher->flags |= FOIL_CIPHER_SYMMETRIC;
     cipher->fn_supports_key = foil_cipher_aes_supports_key;
+    cipher->fn_init_with_key = foil_cipher_aes_init_with_key;
+    cipher->fn_copy = foil_cipher_aes_copy;
     cipher->fn_set_padding_func = foil_cipher_aes_set_padding_func;
-    cipher->fn_post_init = foil_cipher_aes_post_init;
     cipher->fn_finish = foil_cipher_aes_finish;
 }
 

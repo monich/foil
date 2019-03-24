@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,8 +65,6 @@ typedef struct foil_key_rsa_private {
 
 typedef struct foil_key_rsa_private_class {
     FoilPrivateKeyClass super;
-    void (*fn_apply)(FoilKeyRsaPrivate* key);
-    int (*fn_num_bits)(FoilKeyRsaPrivate* key);
 } FoilKeyRsaPrivateClass;
 
 #define FOIL_KEY_RSA_PRIVATE_(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
@@ -76,12 +74,10 @@ typedef struct foil_key_rsa_private_class {
 #define FOIL_KEY_RSA_PRIVATE_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj),\
         FOIL_TYPE_KEY_RSA_PRIVATE, FoilKeyRsaPrivateClass)
 
-int
-foil_key_rsa_private_num_bits(
-    FoilKeyRsaPrivate* key);
-
-#define foil_key_rsa_private_num_bytes(key) \
-    ((foil_key_rsa_private_num_bits(key) + 7)/8)
+void
+foil_key_rsa_private_get_public_data(
+    FoilKeyRsaPrivate* priv,
+    FoilKeyRsaPublicData* pub_data);
 
 #endif /* FOIL_KEY_PRIVATE_H */
 

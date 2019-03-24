@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,19 +34,11 @@
 #define GLOG_MODULE_NAME foil_log_cipher
 #include "foil_log_p.h"
 
-typedef FoilCipherClass FoilOpensslCipherRsaDecryptClass;
-typedef struct foil_openssl_cipher_rsa_decrypt {
-    FoilCipherSync sync;
-    RSA* rsa;
-    int rsa_size;
-    int padding_size;
-    int padding;
-    int (*decrypt)(int flen, const unsigned char *from,
-        unsigned char *to, RSA *rsa, int padding);
-} FoilOpensslCipherRsaDecrypt;
+typedef FoilOpensslCipherRsaClass FoilOpensslCipherRsaDecryptClass;
+typedef FoilOpensslCipherRsa FoilOpensslCipherRsaDecrypt;
 
 G_DEFINE_TYPE(FoilOpensslCipherRsaDecrypt, foil_openssl_cipher_rsa_decrypt,
-        FOIL_TYPE_CIPHER_SYNC)
+        FOIL_OPENSSL_TYPE_CIPHER_RSA)
 #define FOIL_OPENSSL_TYPE_CIPHER_RSA_DECRYPT \
         foil_openssl_cipher_rsa_decrypt_get_type()
 #define FOIL_OPENSSL_CIPHER_RSA_DECRYPT(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
@@ -61,43 +53,30 @@ foil_impl_cipher_rsa_decrypt_get_type()
 }
 
 static
-gboolean
-foil_openssl_cipher_rsa_decrypt_supports_key(
-    FoilCipherClass* klass,
-    GType key_type)
-{
-    return key_type == FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC ||
-           key_type == FOIL_OPENSSL_TYPE_KEY_RSA_PRIVATE;
-}
-
-static
-int
-foil_openssl_cipher_rsa_decrypt_block(
+void
+foil_openssl_cipher_rsa_decrypt_init_with_key(
     FoilCipher* cipher,
-    const void* from,
-    int flen,
-    void* to)
+    FoilKey* key)
 {
     FoilOpensslCipherRsaDecrypt* self = FOIL_OPENSSL_CIPHER_RSA_DECRYPT(cipher);
-    int ret = self->decrypt(flen, from, to, self->rsa, self->padding);
-    if (ret < 0) {
-        if (GLOG_ENABLED(GLOG_LEVEL_ERR)) {
-            ERR_load_crypto_strings();
-            GERR("%s", ERR_error_string(ERR_get_error(), NULL));
-        }
+    FOIL_CIPHER_CLASS(SUPER_CLASS)->fn_init_with_key(cipher, key);
+    if (FOIL_IS_KEY_RSA_PUBLIC(key)) {
+        self->padding = RSA_PKCS1_PADDING;
+        self->padding_size = RSA_PKCS1_PADDING_SIZE + 1;
+        self->dup = RSAPublicKey_dup;
+        self->proc = RSA_public_decrypt;
+        foil_openssl_key_rsa_public_apply(FOIL_KEY_RSA_PUBLIC_(key),
+            self->rsa);
+    } else {
+        self->padding = RSA_PKCS1_OAEP_PADDING;
+        self->padding_size = FOIL_RSA_PKCS1_OAEP_PADDING_SIZE;
+        self->dup = RSAPrivateKey_dup;
+        self->proc = RSA_private_decrypt;
+        foil_openssl_key_rsa_private_apply(FOIL_KEY_RSA_PRIVATE_(key),
+            self->rsa);
     }
-    return ret;
-}
-
-static
-int
-foil_openssl_cipher_rsa_decrypt_step(
-    FoilCipher* cipher,
-    const void* from,
-    void* to)
-{
-    return foil_openssl_cipher_rsa_decrypt_block(cipher, from,
-        cipher->input_block_size, to);
+    cipher->input_block_size =
+    cipher->output_block_size = RSA_size(self->rsa);
 }
 
 static
@@ -108,36 +87,10 @@ foil_openssl_cipher_rsa_decrypt_finish(
     int flen,
     void* to)
 {
-    if (flen) {
-        return foil_openssl_cipher_rsa_decrypt_block(cipher, from, flen, to);
-    }
-    return 0;
+    return (flen > 0) ? FOIL_CIPHER_CLASS(SUPER_CLASS)->
+        fn_finish(cipher, from, flen, to) : 0;
 }
 
-static
-void
-foil_openssl_cipher_rsa_decrypt_post_init(
-    FoilCipher* cipher)
-{
-    FoilOpensslCipherRsaDecrypt* self = FOIL_OPENSSL_CIPHER_RSA_DECRYPT(cipher);
-    if (FOIL_IS_KEY_RSA_PUBLIC(cipher->key)) {
-        self->rsa = FOIL_OPENSSL_KEY_RSA_PUBLIC(cipher->key)->rsa;
-        self->padding = RSA_PKCS1_PADDING;
-        self->padding_size = RSA_PKCS1_PADDING_SIZE + 1;
-        self->decrypt = RSA_public_decrypt;
-    } else {
-        self->rsa = FOIL_OPENSSL_KEY_RSA_PRIVATE(cipher->key)->rsa;
-        self->padding = RSA_PKCS1_OAEP_PADDING;
-        self->padding_size = FOIL_RSA_PKCS1_OAEP_PADDING_SIZE;
-        self->decrypt = RSA_private_decrypt;
-    }
-    self->rsa_size = RSA_size(self->rsa);
-    cipher->input_block_size = self->rsa_size;
-    cipher->output_block_size = self->rsa_size;
-    FOIL_CIPHER_CLASS(SUPER_CLASS)->fn_post_init(cipher);
-}
-
-static
 void
 foil_openssl_cipher_rsa_decrypt_init(
     FoilOpensslCipherRsaDecrypt* self)
@@ -151,9 +104,7 @@ foil_openssl_cipher_rsa_decrypt_class_init(
 {
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "RSA(decrypt)";
-    cipher->fn_supports_key = foil_openssl_cipher_rsa_decrypt_supports_key;
-    cipher->fn_post_init = foil_openssl_cipher_rsa_decrypt_post_init;
-    cipher->fn_step = foil_openssl_cipher_rsa_decrypt_step;
+    cipher->fn_init_with_key = foil_openssl_cipher_rsa_decrypt_init_with_key;
     cipher->fn_finish = foil_openssl_cipher_rsa_decrypt_finish;
 }
 

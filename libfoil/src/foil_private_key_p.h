@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,8 +39,7 @@ struct foil_private_key {
 
 typedef struct foil_private_key_class {
     FoilKeyClass super;
-    GType (*fn_get_public_type)(void);
-    FoilKey* (*create_public)(FoilPrivateKey* key);
+    FoilKey* (*fn_create_public)(FoilPrivateKey* key);
 } FoilPrivateKeyClass;
 
 #define FOIL_PRIVATE_KEY_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \

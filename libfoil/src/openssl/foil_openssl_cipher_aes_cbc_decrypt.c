@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,15 +66,34 @@ foil_openssl_cipher_aes_cbc_decrypt_step(
 
 static
 void
-foil_openssl_cipher_aes_cbc_decrypt_post_init(
-    FoilCipher* cipher)
+foil_openssl_cipher_aes_cbc_decrypt_reset(
+    FoilOpensslCipherAesCbcDecrypt* self)
 {
-    FoilOpensslCipherAesCbcDecrypt* self =
-        FOIL_OPENSSL_CIPHER_AES_CBC_DECRYPT(cipher);
-    FoilKeyAes* aes_key = FOIL_KEY_AES_(cipher->key);
-    const int bits = FOIL_KEY_AES_GET_CLASS(cipher->key)->size*8;
-    AES_set_decrypt_key(aes_key->key, bits, &self->aes);
-    FOIL_CIPHER_CLASS(PARENT_CLASS)->fn_post_init(cipher);
+    FoilKey* key = FOIL_CIPHER(self)->key;
+    AES_set_decrypt_key(FOIL_KEY_AES_(key)->key,
+        FOIL_KEY_AES_GET_CLASS(key)->size * 8, &self->aes);
+}
+
+static
+void
+foil_openssl_cipher_aes_cbc_decrypt_init_with_key(
+    FoilCipher* cipher,
+    FoilKey* key)
+{
+    FOIL_CIPHER_CLASS(PARENT_CLASS)->fn_init_with_key(cipher, key);
+    foil_openssl_cipher_aes_cbc_decrypt_reset
+        (FOIL_OPENSSL_CIPHER_AES_CBC_DECRYPT(cipher));
+}
+
+static
+void
+foil_openssl_cipher_aes_cbc_decrypt_copy(
+    FoilCipher* dest,
+    FoilCipher* src)
+{
+    FOIL_CIPHER_CLASS(PARENT_CLASS)->fn_copy(dest, src);
+    foil_openssl_cipher_aes_cbc_decrypt_reset
+        (FOIL_OPENSSL_CIPHER_AES_CBC_DECRYPT(dest));
 }
 
 static
@@ -93,8 +112,10 @@ foil_openssl_cipher_aes_cbc_decrypt_class_init(
     cipher->name = "AESCBC(Decrypt)";
     /* Padding makes no sense if we are decrypting */
     cipher->fn_set_padding_func = NULL;
+    cipher->fn_init_with_key =
+        foil_openssl_cipher_aes_cbc_decrypt_init_with_key;
+    cipher->fn_copy = foil_openssl_cipher_aes_cbc_decrypt_copy;
     cipher->fn_step = foil_openssl_cipher_aes_cbc_decrypt_step;
-    cipher->fn_post_init = foil_openssl_cipher_aes_cbc_decrypt_post_init;
 }
 
 /*
