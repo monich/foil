@@ -466,7 +466,6 @@ foil_cipher_write_data(
         FoilCipherClass* klass = FOIL_CIPHER_GET_CLASS(self);
         const guint8* ptr = data;
         const guint n = (size + in_size - 1) / in_size;
-        const gsize tail = size - (in_size * (n - 1));
         void* out_block = g_slice_alloc(out_size);
         guint i;
         int nout = 0;
@@ -489,7 +488,8 @@ foil_cipher_write_data(
         }
 
         /* Finish the process */
-        if (ok) {
+        if (ok && n > 0) {
+            const gsize tail = size - (in_size * (n - 1));
             foil_digest_update(digest, ptr, tail);
             nout = klass->fn_finish(self, ptr, tail, out_block);
             if (nout > 0) {
