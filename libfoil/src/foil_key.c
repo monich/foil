@@ -47,10 +47,8 @@ struct foil_key_priv {
 };
 
 G_DEFINE_ABSTRACT_TYPE(FoilKey, foil_key, G_TYPE_OBJECT);
-#define foil_abstract_key_class_ref(type) ((FoilKeyClass*) \
-        foil_abstract_class_ref(type, FOIL_TYPE_KEY))
 #define foil_key_class_ref(type) ((FoilKeyClass*) \
-        foil_class_ref(type, FOIL_TYPE_KEY))
+        foil_abstract_class_ref(type, FOIL_TYPE_KEY))
 
 FoilKey*
 foil_key_ref(
@@ -375,7 +373,7 @@ foil_key_new_from_data_full(
 {
     if (G_LIKELY(type) && G_LIKELY(data) && G_LIKELY(len)) {
         FoilKeyClass* klass = foil_key_class_ref(type);
-        if (G_LIKELY(klass)) {
+        if (G_LIKELY(klass) && klass->fn_from_data) {
             FoilKey* key = foil_key_from_bytes(klass, data, len, param, error);
             g_type_class_unref(klass);
             return key;
@@ -460,7 +458,7 @@ foil_key_generate_new(
     guint bits)
 {
     FoilKey* key = NULL;
-    FoilKeyClass* klass = foil_abstract_key_class_ref(type);
+    FoilKeyClass* klass = foil_key_class_ref(type);
     if (G_LIKELY(klass)) {
         if (G_LIKELY(klass->fn_generate)) {
             key = klass->fn_generate(klass, bits);

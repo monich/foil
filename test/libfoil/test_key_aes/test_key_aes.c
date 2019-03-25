@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -265,6 +265,7 @@ test_key_aes_read_ok(
     GBytes* bytes;
     FoilKey* key1;
     FoilKey* key2;
+    FoilKey* key3;
 
     g_assert(g_file_get_contents(path1, &contents, &length, NULL));
     bytes = g_bytes_new_take(contents, length);
@@ -276,15 +277,24 @@ test_key_aes_read_ok(
     } else {
         key2 = foil_key_new_from_file(type, path1);
     }
-    g_assert(key1 && key2);
+    key3 = foil_key_new_from_file(FOIL_TYPE_KEY_AES, path1);
+    g_assert(key1);
+    g_assert(key2);
+    g_assert(key3);
     g_assert(foil_key_equal(key1, key2));
     g_assert(foil_key_equal(key2, key1));
-    g_assert(!foil_key_equal(NULL, key2));
+    g_assert(foil_key_equal(key2, key3));
+    g_assert(foil_key_equal(key3, key2));
+    g_assert(foil_key_equal(key1, key3));
+    g_assert(foil_key_equal(key3, key1));
     g_assert(!foil_key_equal(key1, NULL));
+    g_assert(!foil_key_equal(NULL, key2));
+    g_assert(!foil_key_equal(key3, NULL));
 
     foil_key_unref(foil_key_ref(key1));
     foil_key_unref(key1);
     foil_key_unref(key2);
+    foil_key_unref(key3);
     g_bytes_unref(bytes);
     g_free(path1);
 }
@@ -297,11 +307,23 @@ test_key_aes_read_err(
     const TestKeyAes* test = param;
     GType type = test->fn_type();
     char* path = g_strconcat(DATA_DIR, test->file1, NULL);
+    GError* err = NULL;
+
     g_assert(!foil_key_new_from_file(type, path));
     g_free(path);
 
     path = g_strconcat(DATA_DIR, test->file2, NULL);
     g_assert(!foil_key_new_from_file(type, path));
+    g_assert(!foil_key_new_from_file(FOIL_TYPE_KEY_AES, path));
+    g_assert(!foil_key_new_from_file_full(FOIL_TYPE_KEY_AES, path, NULL, &err));
+    g_assert(err);
+    if (err->domain == FOIL_ERROR) {
+        g_assert(g_file_test(path, G_FILE_TEST_EXISTS));
+        g_assert(err->code == FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT);
+    } else {
+        g_assert(!g_file_test(path, G_FILE_TEST_EXISTS));
+    }
+    g_error_free(err);
     g_free(path);
 }
 
@@ -326,6 +348,7 @@ static const TestKeyAes tests[] = {
     TEST_READ_OK(128,"128-1"),
     TEST_READ_OK(128,"128-2"),
     TEST_READ_OK(128,"128-3"),
+    TEST_READ_OK(192,"192-1"),
     TEST_READ_OK(256,"256-1"),
     TEST_FINGERPRINT(128,"128-1"),
     TEST_FINGERPRINT(128,"128-2"),

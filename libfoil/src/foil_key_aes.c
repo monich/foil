@@ -102,24 +102,53 @@ foil_key_aes_generate_specific(
 }
 
 static
-gboolean
-foil_key_aes_init_from_data(
-    FoilKeyAes* self,
-    FoilKeyAesClass* klass,
+FoilKey*
+foil_key_aes_from_data(
+    GType type,
     const guint8* data,
-    gsize size)
+    gsize len)
 {
-    if (size == klass->size + FOIL_AES_BLOCK_SIZE) {
-        memcpy(self->key, data, klass->size);
-        memcpy(self->iv, data + klass->size, FOIL_AES_BLOCK_SIZE);
-        return TRUE;
-    }
-    return FALSE;
+    /* Caller has checked that size matches the type */
+    FoilKeyAes* aes = g_object_new(type, NULL);
+    const gsize key_size = len - FOIL_AES_BLOCK_SIZE;
+    memcpy(aes->key, data, key_size);
+    memcpy(aes->iv, data + key_size, FOIL_AES_BLOCK_SIZE);
+    return FOIL_KEY(aes);
 }
 
 static
 FoilKey*
-foil_key_aes_from_data(
+foil_key_aes_from_data_any(
+    FoilKeyClass* key_class,
+    const void* data,
+    gsize len,
+    GHashTable* param,
+    GError** error)
+{
+    switch (len) {
+    case FOIL_AES_BLOCK_SIZE + 128/8:
+        g_clear_error(error);
+        return foil_key_aes_from_data(FOIL_KEY_AES128, data, len);
+    case FOIL_AES_BLOCK_SIZE + 192/8:
+        g_clear_error(error);
+        return foil_key_aes_from_data(FOIL_KEY_AES192, data, len);
+    case FOIL_AES_BLOCK_SIZE + 256/8:
+        g_clear_error(error);
+        return foil_key_aes_from_data(FOIL_KEY_AES256, data, len);
+    default:
+        if (error) {
+            g_propagate_error(error, g_error_new(FOIL_ERROR,
+                FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT,
+                "Unsupported AES key size"));
+        }
+        GERR("Unsupported AES key size (%u)", (guint)len);
+        return NULL;
+    }
+}
+
+static
+FoilKey*
+foil_key_aes_from_data_specific(
     FoilKeyClass* key_class,
     const void* data,
     gsize len,
@@ -127,10 +156,9 @@ foil_key_aes_from_data(
     GError** error)
 {
     FoilKeyAesClass* klass = FOIL_KEY_AES_CLASS(key_class);
-    FoilKey* key = g_object_new(G_TYPE_FROM_CLASS(klass), NULL);
-    if (foil_key_aes_init_from_data(FOIL_KEY_AES_(key), klass, data, len)) {
+    if (len == klass->size + FOIL_AES_BLOCK_SIZE) {
         g_clear_error(error);
-        return key;
+        return foil_key_aes_from_data(G_TYPE_FROM_CLASS(klass), data, len);
     } else {
         if (error) {
             g_propagate_error(error, g_error_new(FOIL_ERROR,
@@ -138,7 +166,6 @@ foil_key_aes_from_data(
                 "Unsupported AES%d key format", klass->size*8));
         }
         GWARN("Unsupported AES%d key format", klass->size*8);
-        foil_key_unref(key);
         return NULL;
     }
 }
@@ -190,7 +217,7 @@ foil_key_aes_class_init(
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
     key_class->fn_generate = foil_key_aes_generate_any;
     key_class->fn_equal = foil_key_aes_equal;
-    key_class->fn_from_data = foil_key_aes_from_data;
+    key_class->fn_from_data = foil_key_aes_from_data_any;
     key_class->fn_to_bytes = foil_key_aes_to_bytes;
 }
 
@@ -211,6 +238,7 @@ foil_key_aes128_class_init(
 {
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
     key_class->fn_generate = foil_key_aes_generate_specific;
+    key_class->fn_from_data = foil_key_aes_from_data_specific;
     klass->size = 16;
     g_type_class_add_private(klass, klass->size);
 }
@@ -232,6 +260,7 @@ foil_key_aes192_class_init(
 {
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
     key_class->fn_generate = foil_key_aes_generate_specific;
+    key_class->fn_from_data = foil_key_aes_from_data_specific;
     klass->size = 24;
     g_type_class_add_private(klass, klass->size);
 }
@@ -253,6 +282,7 @@ foil_key_aes256_class_init(
 {
     FoilKeyClass* key_class = FOIL_KEY_CLASS(klass);
     key_class->fn_generate = foil_key_aes_generate_specific;
+    key_class->fn_from_data = foil_key_aes_from_data_specific;
     klass->size = 32;
     g_type_class_add_private(klass, klass->size);
 }
