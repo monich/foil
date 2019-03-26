@@ -1,3 +1,12 @@
+libfoil (1.0.14) unstable; urgency=low
+
+  * Added CMAC API (FoilCmac)
+  * Allow FOIL_TYPE_KEY_AES to allocate keys
+  * Fixed invalid read in foil_cipher_write_data()
+  * Added foil_cipher_clone() and foil_cipher_symmetric()
+
+ -- Slava Monich <slava@monich.com>  Tue, 26 Mar 2019 02:49:22 +0200
+
 libfoil (1.0.13) unstable; urgency=low
 
   * Added -P (-pass=PASS) option to foilpng
