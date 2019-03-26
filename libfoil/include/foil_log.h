@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +31,10 @@
 #define FOIL_LOG_H
 
 #include "foil_types.h"
-#include <gutil_log.h>
 
 #define FOIL_LOG_MODULE foil_log
+
+#include <gutil_log.h>
 
 #define FOIL_LOG_MODULES(log) \
     log(FOIL_LOG_MODULE) \

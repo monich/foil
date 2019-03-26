@@ -4,9 +4,11 @@ all:
 %:
 	@$(MAKE) -C test_basic $*
 	@$(MAKE) -C test_cavp_aes $*
+	@$(MAKE) -C test_cavp_cmac $*
 	@$(MAKE) -C test_cipher $*
 	@$(MAKE) -C test_cipher_aes $*
 	@$(MAKE) -C test_cipher_rsa $*
+	@$(MAKE) -C test_cmac $*
 	@$(MAKE) -C test_digest $*
 	@$(MAKE) -C test_hmac $*
 	@$(MAKE) -C test_input $*

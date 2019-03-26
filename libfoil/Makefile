@@ -52,6 +52,7 @@ SRC = \
   foil_cipher.c \
   foil_cipher_aes.c \
   foil_cipher_sync.c \
+  foil_cmac.c \
   foil_digest.c \
   foil_digest_md5.c \
   foil_digest_sha1.c \

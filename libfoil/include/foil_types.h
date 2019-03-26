@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@ G_BEGIN_DECLS
 
 typedef struct foil_digest FoilDigest;
 typedef struct foil_cipher FoilCipher;
+typedef struct foil_cmac FoilCmac;
 typedef struct foil_hmac FoilHmac;
 typedef struct foil_input FoilInput;
 typedef struct foil_key FoilKey;

@@ -104,6 +104,10 @@ SOURCE=.\src\foil_cipher_sync.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\foil_cmac.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_digest.c
 # End Source File
 # Begin Source File
@@ -217,6 +221,10 @@ SOURCE=.\include\foil_asn1.h
 # Begin Source File
 
 SOURCE=.\include\foil_cipher.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\include\foil_cmac.h
 # End Source File
 # Begin Source File
 
