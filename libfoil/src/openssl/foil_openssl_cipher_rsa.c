@@ -47,20 +47,14 @@ foil_openssl_cipher_rsa_supports_key(
     FoilCipherClass* klass,
     GType key_type)
 {
-    /* We don't actually require OpenSSL specific types */
     if (key_type) {
-        if (key_type == FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC ||
-            key_type == FOIL_OPENSSL_TYPE_KEY_RSA_PRIVATE) {
-            return TRUE;
-        } else {
-            GTypeClass* klass = g_type_class_ref(key_type);
-            if (klass) {
-                const gboolean is_rsa_key =
-                    G_TYPE_CHECK_CLASS_TYPE(klass, FOIL_TYPE_KEY_RSA_PUBLIC) ||
-                    G_TYPE_CHECK_CLASS_TYPE(klass, FOIL_TYPE_KEY_RSA_PRIVATE);
-                g_type_class_unref(klass);
-                return is_rsa_key;
-            }
+        GTypeClass* klass = g_type_class_ref(key_type);
+        if (klass) {
+            const gboolean is_rsa_key =
+                G_TYPE_CHECK_CLASS_TYPE(klass, FOIL_TYPE_KEY_RSA_PUBLIC) ||
+                G_TYPE_CHECK_CLASS_TYPE(klass, FOIL_TYPE_KEY_RSA_PRIVATE);
+            g_type_class_unref(klass);
+            return is_rsa_key;
         }
     }
     return FALSE;

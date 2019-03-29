@@ -132,9 +132,8 @@ FoilKey*
 foil_openssl_key_rsa_private_create_public(
     FoilPrivateKey* key)
 {
-    GType pub_type = FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC;
     FoilKeyRsaPrivate* self = FOIL_KEY_RSA_PRIVATE_(key);
-    FoilKeyRsaPublic* pub = g_object_new(pub_type, NULL);
+    FoilKeyRsaPublic* pub = g_object_new(FOIL_KEY_RSA_PUBLIC, NULL);
     FoilKeyRsaPublicData pub_data;
     foil_key_rsa_private_get_public_data(self, &pub_data);
     foil_key_rsa_public_set_data(pub, &pub_data);

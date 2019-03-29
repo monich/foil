@@ -42,7 +42,7 @@
 #define GLOG_MODULE_NAME foil_log_key
 #include "foil_log_p.h"
 
-G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPublic, foil_key_rsa_public, FOIL_TYPE_KEY);
+G_DEFINE_TYPE(FoilKeyRsaPublic, foil_key_rsa_public, FOIL_TYPE_KEY);
 
 static const guint8 RSA_PUBLIC_KEY_AID[] = {
     ASN1_CLASS_STRUCTURED | ASN1_TAG_SEQUENCE,

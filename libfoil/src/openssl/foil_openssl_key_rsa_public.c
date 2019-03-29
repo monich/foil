@@ -29,14 +29,10 @@
 
 #include "foil_openssl_rsa.h"
 
-typedef FoilKeyRsaPublicClass FoilOpensslKeyRsaPublicClass;
-G_DEFINE_TYPE(FoilOpensslKeyRsaPublic, foil_openssl_key_rsa_public, \
-    FOIL_TYPE_KEY_RSA_PUBLIC);
-
 GType
 foil_impl_key_rsa_public_get_type()
 {
-    return FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC;
+    return FOIL_TYPE_KEY_RSA_PUBLIC;
 }
 
 void
@@ -46,20 +42,6 @@ foil_openssl_key_rsa_public_apply(
 {
     FOIL_RSA_KEY_SET_BN(rsa, n, key->data);
     FOIL_RSA_KEY_SET_BN(rsa, e, key->data);
-}
-
-static
-void
-foil_openssl_key_rsa_public_init(
-    FoilOpensslKeyRsaPublic* self)
-{
-}
-
-static
-void
-foil_openssl_key_rsa_public_class_init(
-    FoilOpensslKeyRsaPublicClass* klass)
-{
 }
 
 /*

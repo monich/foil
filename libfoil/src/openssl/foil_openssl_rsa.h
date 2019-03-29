@@ -51,11 +51,8 @@ typedef struct foil_openssl_cipher_rsa {
 GType foil_openssl_cipher_rsa_get_type(void);
 #define FOIL_OPENSSL_TYPE_CIPHER_RSA foil_openssl_cipher_rsa_get_type()
 
-typedef FoilKeyRsaPublic FoilOpensslKeyRsaPublic;
 typedef FoilKeyRsaPrivate FoilOpensslKeyRsaPrivate;
-GType foil_openssl_key_rsa_public_get_type(void);
 GType foil_openssl_key_rsa_private_get_type(void);
-#define FOIL_OPENSSL_TYPE_KEY_RSA_PUBLIC foil_openssl_key_rsa_public_get_type()
 #define FOIL_OPENSSL_TYPE_KEY_RSA_PRIVATE \
     foil_openssl_key_rsa_private_get_type()
 
