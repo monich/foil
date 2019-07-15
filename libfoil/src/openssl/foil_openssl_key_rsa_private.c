@@ -64,35 +64,35 @@ FoilKeyRsaPrivateData*
 foil_key_rsa_private_data_from_rsa(
     RSA* rsa)
 {
-    const int nlen = BN_num_bytes(rsa->n);
-    const int elen = BN_num_bytes(rsa->e);
-    const int dlen = BN_num_bytes(rsa->d);
-    const int plen = BN_num_bytes(rsa->p);
-    const int qlen = BN_num_bytes(rsa->q);
-    const int dmp1len = BN_num_bytes(rsa->dmp1);
-    const int dmq1len = BN_num_bytes(rsa->dmq1);
-    const int iqmplen = BN_num_bytes(rsa->iqmp);
+    const int nlen = BN_num_bytes(FOIL_RSA_FIELD(rsa,n));
+    const int elen = BN_num_bytes(FOIL_RSA_FIELD(rsa,e));
+    const int dlen = BN_num_bytes(FOIL_RSA_FIELD(rsa,d));
+    const int plen = BN_num_bytes(FOIL_RSA_FIELD(rsa,p));
+    const int qlen = BN_num_bytes(FOIL_RSA_FIELD(rsa,q));
+    const int dmp1len = BN_num_bytes(FOIL_RSA_FIELD(rsa,dmp1));
+    const int dmq1len = BN_num_bytes(FOIL_RSA_FIELD(rsa,dmq1));
+    const int iqmplen = BN_num_bytes(FOIL_RSA_FIELD(rsa,iqmp));
     const gsize total = FOIL_ALIGN(sizeof(FoilKeyRsaPrivateData)) +
         FOIL_ALIGN(nlen) + FOIL_ALIGN(elen) + FOIL_ALIGN(dlen) +
         FOIL_ALIGN(plen) + FOIL_ALIGN(qlen) + FOIL_ALIGN(dmp1len) +
         FOIL_ALIGN(dmq1len) + FOIL_ALIGN(iqmplen);
     FoilKeyRsaPrivateData* data = g_malloc(total);
     guint8* ptr = ((guint8*)data) + FOIL_ALIGN(sizeof(*data));
-    BN_bn2bin(rsa->n, ptr); data->n.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,n), ptr); data->n.val = ptr;
     ptr += FOIL_ALIGN(data->n.len = nlen);
-    BN_bn2bin(rsa->e, ptr); data->e.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,e), ptr); data->e.val = ptr;
     ptr += FOIL_ALIGN(data->e.len = elen);
-    BN_bn2bin(rsa->d, ptr); data->d.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,d), ptr); data->d.val = ptr;
     ptr += FOIL_ALIGN(data->d.len = dlen);
-    BN_bn2bin(rsa->p, ptr); data->p.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,p), ptr); data->p.val = ptr;
     ptr += FOIL_ALIGN(data->p.len = plen);
-    BN_bn2bin(rsa->q, ptr); data->q.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,q), ptr); data->q.val = ptr;
     ptr += FOIL_ALIGN(data->q.len = qlen);
-    BN_bn2bin(rsa->dmp1, ptr); data->dmp1.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,dmp1), ptr); data->dmp1.val = ptr;
     ptr += FOIL_ALIGN(data->dmp1.len = dmp1len);
-    BN_bn2bin(rsa->dmq1, ptr); data->dmq1.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,dmq1), ptr); data->dmq1.val = ptr;
     ptr += FOIL_ALIGN(data->dmq1.len = dmq1len);
-    BN_bn2bin(rsa->iqmp, ptr); data->iqmp.val = ptr;
+    BN_bn2bin(FOIL_RSA_FIELD(rsa,iqmp), ptr); data->iqmp.val = ptr;
     ptr += FOIL_ALIGN(data->iqmp.len = iqmplen);
     GASSERT((gsize)(ptr - ((guint8*)data)) == total);
     return data;

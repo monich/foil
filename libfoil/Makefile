@@ -91,7 +91,8 @@ IMPL_SRC = \
   foil_openssl_digest_sha256.c \
   foil_openssl_key_rsa_private.c \
   foil_openssl_key_rsa_public.c \
-  foil_openssl_random.c
+  foil_openssl_random.c \
+  foil_openssl_rsa.c
 
 #
 # Directories

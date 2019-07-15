@@ -66,8 +66,84 @@ foil_openssl_key_rsa_public_apply(
     FoilKeyRsaPublic* pub,
     RSA* rsa);
 
-#define FOIL_RSA_KEY_SET_BN(rsa,x,data) \
-    ((rsa)->x = BN_bin2bn((data)->x.val, (data)->x.len, (rsa)->x))
+/* Getters for RSA fields */
+
+const BIGNUM*
+foil_openssl_rsa_get_n(
+    const RSA* rsa);
+
+const BIGNUM*
+foil_openssl_rsa_get_e(
+    const RSA* rsa);
+
+const BIGNUM*
+foil_openssl_rsa_get_d(
+    const RSA* rsa);
+
+const BIGNUM*
+foil_openssl_rsa_get_p(
+    const RSA* rsa);
+
+const BIGNUM*
+foil_openssl_rsa_get_q(
+    const RSA* rsa);
+
+const BIGNUM*
+foil_openssl_rsa_get_dmp1(
+    const RSA* rsa);
+
+const BIGNUM*
+foil_openssl_rsa_get_dmq1(
+    const RSA* rsa);
+
+const BIGNUM*
+foil_openssl_rsa_get_iqmp(
+    const RSA* rsa);
+
+/* Setters for RSA fields */
+
+const BIGNUM*
+foil_openssl_rsa_set_n(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+const BIGNUM*
+foil_openssl_rsa_set_e(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+const BIGNUM*
+foil_openssl_rsa_set_d(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+const BIGNUM*
+foil_openssl_rsa_set_p(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+const BIGNUM*
+foil_openssl_rsa_set_q(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+const BIGNUM*
+foil_openssl_rsa_set_dmp1(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+const BIGNUM*
+foil_openssl_rsa_set_dmq1(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+const BIGNUM*
+foil_openssl_rsa_set_iqmp(
+    RSA* rsa,
+    const FoilBytes* bytes);
+
+#define FOIL_RSA_FIELD(rsa,x) foil_openssl_rsa_get_##x(rsa)
+#define FOIL_RSA_KEY_SET_BN(rsa,x,data) foil_openssl_rsa_set_##x(rsa, &(data)->x)
 
 #define FOIL_RSA_PKCS1_OAEP_PADDING_SIZE 42
 
