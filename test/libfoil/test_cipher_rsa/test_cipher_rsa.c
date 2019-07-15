@@ -217,7 +217,7 @@ test_cipher_rsa(
     mem_in = foil_input_mem_new(out);
     cipher_in = foil_input_cipher_new(decrypt, mem_in);
     g_assert(foil_input_has_available(cipher_in, 1));
-    g_assert(!foil_input_read(cipher_in, NULL, input_size+1) != input_size);
+    g_assert(foil_input_read(cipher_in, NULL, input_size+1) == input_size);
 
     foil_cipher_unref(decrypt);
     foil_input_unref(mem_in);
