@@ -1,5 +1,5 @@
 Name: libfoil
-Version: 1.0.14
+Version: 1.0.15
 Release: 0
 Summary: Yet another glib-style crypto API
 Group: Development/Libraries
@@ -7,18 +7,22 @@ License: BSD
 Vendor: slava
 URL: https://github.com/monich/foil
 Source: %{name}-%{version}.tar.bz2
+
+%define glib_version 2.36
+%define libglibutil_version 1.0.24
+
 BuildRequires: file-devel
 BuildRequires: pkgconfig(openssl)
 BuildRequires: pkgconfig(libpng)
-BuildRequires: pkgconfig(glib-2.0) >= 2.36
-BuildRequires: pkgconfig(libglibutil) >= 1.0.24
-Requires: glib2 >= 2.36
-Requires: libglibutil >= 1.0.24
+BuildRequires: pkgconfig(glib-2.0) >= %{glib_version}
+BuildRequires: pkgconfig(libglibutil) >= %{libglibutil_version}
+Requires: glib2 >= %{glib_version}
+Requires: libglibutil >= %{libglibutil_version}
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
 %description
-Provides glib based cryptography functions.
+Provides glib based cryptography API.
 
 %package devel
 Summary: Development library for %{name}

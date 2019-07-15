@@ -1,3 +1,9 @@
+libfoil (1.0.15) unstable; urgency=low
+
+  * Compatibility with openssl 1.1.0 and (hopefully) above
+
+ -- Slava Monich <slava@monich.com>  Tue, 16 Jul 2019 00:18:08 +0300
+
 libfoil (1.0.14) unstable; urgency=low
 
   * Added CMAC API (FoilCmac)
