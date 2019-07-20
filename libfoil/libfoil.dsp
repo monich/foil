@@ -172,6 +172,10 @@ SOURCE=.\src\foil_key_rsa_public.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\openssl\foil_openssl_rsa.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_output.c
 # End Source File
 # Begin Source File
