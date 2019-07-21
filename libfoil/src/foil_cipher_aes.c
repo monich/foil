@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -54,45 +57,6 @@ foil_cipher_aes_supports_key(
 
 static
 void
-foil_cipher_aes_set_padding_func(
-    FoilCipher* cipher,
-    FoilCipherPaddingFunc fn)
-{
-    FoilCipherAes* self = FOIL_CIPHER_AES(cipher);
-    self->fn_pad = fn ? fn : foil_cipher_default_padding_func;
-}
-
-static
-int
-foil_cipher_aes_finish(
-    FoilCipher* cipher,
-    const void* from,
-    int flen,
-    void* to)
-{
-    FoilCipherAesClass* klass = FOIL_CIPHER_AES_GET_CLASS(cipher);
-    if (flen == FOIL_AES_BLOCK_SIZE) {
-        return klass->fn_step(cipher, from, to);
-    } else if (flen > 0) {
-        GASSERT(flen < FOIL_AES_BLOCK_SIZE);
-        if (flen > FOIL_AES_BLOCK_SIZE) {
-            return -1;
-        } else {
-            int ret;
-            FoilCipherAes* self = FOIL_CIPHER_AES(cipher);
-            guint8 last[FOIL_AES_BLOCK_SIZE];
-            memcpy(last, from, flen);
-            self->fn_pad(last, flen, FOIL_AES_BLOCK_SIZE);
-            ret = klass->fn_step(cipher, last, to);
-            return ret;
-        }
-    } else {
-        return 0;
-    }
-}
-
-static
-void
 foil_cipher_aes_init_with_key(
     FoilCipher* cipher,
     FoilKey* key)
@@ -121,7 +85,6 @@ void
 foil_cipher_aes_init(
     FoilCipherAes* self)
 {
-    self->fn_pad = foil_cipher_default_padding_func;
 }
 
 static
@@ -135,8 +98,7 @@ foil_cipher_aes_class_init(
     cipher->fn_supports_key = foil_cipher_aes_supports_key;
     cipher->fn_init_with_key = foil_cipher_aes_init_with_key;
     cipher->fn_copy = foil_cipher_aes_copy;
-    cipher->fn_set_padding_func = foil_cipher_aes_set_padding_func;
-    cipher->fn_finish = foil_cipher_aes_finish;
+    cipher->fn_finish = foil_cipher_symmetric_finish;
 }
 
 /*

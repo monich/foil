@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -34,8 +37,10 @@
 #include "foil_cipher.h"
 
 typedef enum foil_cipher_flags {
-    FOIL_CIPHER_DEFAULT = 0x0,
-    FOIL_CIPHER_SYMMETRIC = 0x1
+    FOIL_CIPHER_DEFAULT   = 0x00,
+    FOIL_CIPHER_SYMMETRIC = 0x01,
+    FOIL_CIPHER_ENCRYPT   = 0x02,
+    FOIL_CIPHER_DECRYPT   = 0x04
 } FOIL_CIPHER_FLAGS;
 
 typedef struct foil_cipher_class FoilCipherClass;
@@ -47,7 +52,6 @@ struct foil_cipher_class {
     gboolean (*fn_supports_key)(FoilCipherClass* klass, GType key_type);
     void (*fn_init_with_key)(FoilCipher* cipher, FoilKey* key);
     void (*fn_copy)(FoilCipher* dest, FoilCipher* src);
-    void (*fn_set_padding_func)(FoilCipher* cipher, FoilCipherPaddingFunc fn);
     int (*fn_step)(FoilCipher* cipher, const void* in, void* out);
     int (*fn_finish)(FoilCipher* cipher, const void* in, int n, void* out);
     guint (*fn_step_async)(FoilCipher* cipher, const void* in,
@@ -82,6 +86,13 @@ foil_cipher_default_padding_func(
     guint8* block,
     gsize data_size,
     gsize block_size);
+
+int
+foil_cipher_symmetric_finish(
+    FoilCipher* cipher,
+    const void* from,
+    int flen,
+    void* to);
 
 #endif /* FOIL_CIPHER_P_H */
 

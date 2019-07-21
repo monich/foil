@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -206,12 +209,11 @@ foil_cipher_set_padding_func(
     FoilCipher* self,
     FoilCipherPaddingFunc fn)
 {
-    if (G_LIKELY(self)) {
-        FoilCipherClass* klass = FOIL_CIPHER_GET_CLASS(self);
-        if (klass->fn_set_padding_func) {
-            klass->fn_set_padding_func(self, fn);
-            return TRUE;
-        }
+    /* Padding makes no sense if we can't encrypt */
+    if (G_LIKELY(self) &&
+       (FOIL_CIPHER_GET_CLASS(self)->flags & FOIL_CIPHER_ENCRYPT)) {
+        self->fn_pad = fn ? fn : foil_cipher_default_padding_func;
+        return TRUE;
     }
     return FALSE;
 }
@@ -756,6 +758,37 @@ foil_cipher_write_data_async(
  * Class callbacks
  */
 
+int
+foil_cipher_symmetric_finish(
+    FoilCipher* self,
+    const void* from,
+    int flen,
+    void* to)
+{
+    FoilCipherClass* klass = FOIL_CIPHER_GET_CLASS(self);
+    const int block_size = self->input_block_size;
+    /* These must be the same for symmetric ciphers */
+    GASSERT(self->input_block_size == self->output_block_size);
+    GASSERT(klass->flags & FOIL_CIPHER_SYMMETRIC);
+    if (flen == block_size) {
+        return klass->fn_step(self, from, to);
+    } else if (flen > 0) {
+        GASSERT(flen < block_size);
+        if (flen > block_size) {
+            return -1;
+        } else {
+            int ret;
+            guint8* last = g_slice_alloc(block_size);
+            memcpy(last, from, flen);
+            self->fn_pad(last, flen, block_size);
+            ret = klass->fn_step(self, last, to);
+            g_slice_free1(block_size, last);
+            return ret;
+        }
+    } else {
+        return 0;
+    }
+}
 static
 void
 foil_cipher_init_with_key(
@@ -812,6 +845,7 @@ foil_cipher_init(
 {
     self->priv = G_TYPE_INSTANCE_GET_PRIVATE(self, FOIL_TYPE_CIPHER,
         FoilCipherPriv);
+    self->fn_pad = foil_cipher_default_padding_func;
 }
 
 static
