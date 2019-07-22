@@ -1,3 +1,9 @@
+libfoil (1.0.16) unstable; urgency=low
+
+  * Added DES support
+
+ -- Slava Monich <slava@monich.com>  Mon, 22 Jul 2019 21:34:50 +0300
+
 libfoil (1.0.15) unstable; urgency=low
 
   * Compatibility with openssl 1.1.0 and (hopefully) above
