@@ -519,7 +519,15 @@ foil_cipher_data(
     if (G_LIKELY(data || !size)) {
         FoilCipher* cipher = foil_cipher_new(type, key);
         if (cipher) {
-            FoilOutput* out = foil_output_mem_new(NULL);
+            /*
+             * Preallocate some space in the destination buffer.
+             * With symmetric ciphers we know exactly how much
+             * we need, for all others just take a wild guess.
+             */
+            GByteArray* buf = g_byte_array_sized_new((FOIL_CIPHER_GET_CLASS
+                (cipher)->flags & FOIL_CIPHER_SYMMETRIC) ? size : (size/2));
+            FoilOutput* out = foil_output_mem_new(buf);
+            g_byte_array_unref(buf); /* FoilOutputMem keeps the reference */
             if (foil_cipher_write_data(cipher, data, size, out, NULL)) {
                 result = foil_output_free_to_bytes(out);
             } else {
