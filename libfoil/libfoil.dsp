@@ -164,6 +164,10 @@ SOURCE=.\src\foil_key_aes.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\foil_key_des.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_key_rsa_private.c
 # End Source File
 # Begin Source File
@@ -308,6 +312,10 @@ SOURCE=.\src\foil_key_aes.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\foil_key_des_p.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_key_p.h
 # End Source File
 # Begin Source File
@@ -364,6 +372,10 @@ SOURCE=.\src\openssl\foil_openssl_cipher_aes_cbc_encrypt.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\openssl\foil_openssl_cipher_des_cbc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\openssl\foil_openssl_cipher_rsa.c
 # End Source File
 # Begin Source File
@@ -388,6 +400,10 @@ SOURCE=.\src\openssl\foil_openssl_digest_sha256.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\openssl\foil_openssl_key_des.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\openssl\foil_openssl_key_rsa_private.c
 # End Source File
 # Begin Source File
@@ -404,7 +420,11 @@ SOURCE=.\src\openssl\foil_openssl_random.c
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\openssl\foil_openssl_random.h
+SOURCE=.\src\openssl\foil_openssl_des.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\openssl\foil_openssl_random.hcp 
 # End Source File
 # Begin Source File
 

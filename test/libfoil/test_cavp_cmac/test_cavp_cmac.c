@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -29,7 +32,7 @@
 
 #include "test_common.h"
 
-#include "foil_key.h"
+#include "foil_key_des.h"
 #include "foil_cmac.h"
 #include "foil_cipher.h"
 #include "foil_output.h"
@@ -41,23 +44,21 @@
 
 #define DATA_DIR "data/"
 
-#define FIELD_COUNT     (0x01)
-#define FIELD_KLEN      (0x02)
-#define FIELD_MLEN      (0x04)
-#define FIELD_TLEN      (0x08)
-#define FIELD_KEY       (0x10)
-#define FIELD_MSG       (0x20)
-#define FIELD_MAC       (0x40)
-#define FIELD_RESULT    (0x80)
-#define FIELDS_GEN      (0x7f)
-#define FIELDS_VER      (FIELDS_GEN | FIELD_RESULT)
-
-typedef struct cmac_test {
-    const char* file;
-    int bs;
-    GType (*key_type)(void);
-    GType (*cipher_type)(void);
-} Test;
+#define FIELD_COUNT     (0x0001)
+#define FIELD_KLEN      (0x0002)
+#define FIELD_MLEN      (0x0004)
+#define FIELD_TLEN      (0x0008)
+#define FIELD_KEY       (0x0010)
+#define FIELD_KEY1      (0x0020)
+#define FIELD_KEY2      (0x0040)
+#define FIELD_KEY3      (0x0080)
+#define FIELD_MSG       (0x0100)
+#define FIELD_MAC       (0x0200)
+#define FIELD_RESULT    (0x0400)
+#define FIELDS_GEN_AES  (0x031f)
+#define FIELDS_GEN_DES  (0x03ef)
+#define FIELDS_VER_AES  (FIELDS_GEN_AES | FIELD_RESULT)
+#define FIELDS_VER_DES  (FIELDS_GEN_DES | FIELD_RESULT)
 
 typedef struct cmac_test_case {
     int Count;
@@ -65,11 +66,22 @@ typedef struct cmac_test_case {
     int Mlen;
     int Tlen;
     GBytes* Key;
+    GBytes* Key1;
+    GBytes* Key2;
+    GBytes* Key3;
     GBytes* Msg;
     GBytes* Mac;
     gboolean Result; /* Ignored for Gen tests */
 } TestCase;
 
+typedef struct cmac_test Test;
+struct cmac_test {
+    const char* file;
+    int bs;
+    int mask;
+    FoilKey* (*make_key)(const Test* test, const TestCase* tc);
+    GType (*cipher_type)(void);
+};
 
 static
 void
@@ -77,7 +89,14 @@ test_delete(
     gpointer data)
 {
     TestCase* test = data;
-    g_bytes_unref(test->Key);
+    if (test->Key) {
+        g_bytes_unref(test->Key);
+    }
+    if (test->Key1) {
+        g_bytes_unref(test->Key1);
+        g_bytes_unref(test->Key2);
+        g_bytes_unref(test->Key3);
+    }
     g_bytes_unref(test->Msg);
     g_bytes_unref(test->Mac);
     g_free(test);
@@ -128,10 +147,14 @@ test_bytes_truncate(
     GBytes* bytes,
     gsize maxsize)
 {
-    GBytes* truncated = g_bytes_new_from_bytes(bytes, 0, maxsize);
+    if (bytes) {
+        GBytes* truncated = g_bytes_new_from_bytes(bytes, 0, maxsize);
 
-    g_bytes_unref(bytes);
-    return truncated;
+        g_bytes_unref(bytes);
+        return truncated;
+    } else {
+        return NULL;
+    }
 }
 
 static
@@ -146,6 +169,9 @@ test_parse_line(
     static const char MLEN[] = "Mlen=";
     static const char TLEN[] = "Tlen=";
     static const char KEY[] = "Key=";
+    static const char KEY1[] = "Key1=";
+    static const char KEY2[] = "Key2=";
+    static const char KEY3[] = "Key3=";
     static const char MSG[] = "Msg=";
     static const char MAC[] = "Mac=";
     static const char RESULT[] = "Result=";
@@ -181,6 +207,30 @@ test_parse_line(
         g_assert(!test->Key);
         test->Key = bytes;
         return FIELD_KEY;
+    } else if (strstr(line, KEY1) == line) {
+        const char* val = line + (G_N_ELEMENTS(KEY1) - 1);
+        GBytes* bytes = test_line_to_bytes(val);
+
+        g_assert(bytes);
+        g_assert(!test->Key1);
+        test->Key1 = bytes;
+        return FIELD_KEY1;
+    } else if (strstr(line, KEY2) == line) {
+        const char* val = line + (G_N_ELEMENTS(KEY2) - 1);
+        GBytes* bytes = test_line_to_bytes(val);
+
+        g_assert(bytes);
+        g_assert(!test->Key2);
+        test->Key2 = bytes;
+        return FIELD_KEY2;
+    } else if (strstr(line, KEY3) == line) {
+        const char* val = line + (G_N_ELEMENTS(KEY3) - 1);
+        GBytes* bytes = test_line_to_bytes(val);
+
+        g_assert(bytes);
+        g_assert(!test->Key3);
+        test->Key3 = bytes;
+        return FIELD_KEY3;
     } else if (strstr(line, MSG) == line) {
         const char* val = line + (G_N_ELEMENTS(MSG) - 1);
         GBytes* bytes = test_line_to_bytes(val);
@@ -229,6 +279,9 @@ test_parse_file(
         flags |= test_parse_line(line, &test);
         if ((flags & fields) == fields) {
             test.Key = test_bytes_truncate(test.Key, test.Klen);
+            test.Key1 = test_bytes_truncate(test.Key1, FOIL_DES_KEY_SIZE);
+            test.Key2 = test_bytes_truncate(test.Key2, FOIL_DES_KEY_SIZE);
+            test.Key3 = test_bytes_truncate(test.Key3, FOIL_DES_KEY_SIZE);
             test.Msg = test_bytes_truncate(test.Msg, test.Mlen);
             test.Mac = test_bytes_truncate(test.Mac, test.Tlen);
             tests = g_slist_append(tests, g_memdup(&test, sizeof(test)));
@@ -243,33 +296,40 @@ test_parse_file(
 
 static
 FoilKey*
-test_key(
-    GType key_type,
-    int bs,
-    GBytes* bytes)
+test_aes_key(
+    const Test* test,
+    const TestCase* tc)
 {
     gsize key_size;
-    const guint8* key_bytes = g_bytes_get_data(bytes, &key_size);
-    guint8* full_key = g_malloc0(bs + key_size);
+    const guint8* key_bytes = g_bytes_get_data(tc->Key, &key_size);
+    gsize total = test->bs + key_size;
+    guint8* full_key = g_malloc0(total);
     FoilKey* key;
 
     memcpy(full_key, key_bytes, key_size);
-    key = foil_key_new_from_data(key_type, full_key, bs + key_size);
+    key = foil_key_new_from_data(FOIL_TYPE_KEY_AES, full_key, total);
     g_free(full_key);
     g_assert(key);
     return key;
 }
 
 static
-GBytes*
-test_cmac(
-    GType key_type,
-    GType cipher_type,
-    int bs,
+FoilKey*
+test_des_key(
+    const Test* test,
     const TestCase* tc)
 {
-    FoilKey* key = test_key(key_type, bs, tc->Key);
-    FoilCipher* cipher = foil_cipher_new(cipher_type, key);
+    return foil_key_des_new_from_bytes(NULL, tc->Key1, tc->Key2, tc->Key3);
+}
+
+static
+GBytes*
+test_cmac(
+    const Test* test,
+    const TestCase* tc)
+{
+    FoilKey* key = test->make_key(test, tc);
+    FoilCipher* cipher = foil_cipher_new(test->cipher_type(), key);
     FoilCmac* cmac = foil_cmac_new(cipher);
     const guint8* msg = g_bytes_get_data(tc->Msg, NULL);
     GBytes* mac;
@@ -291,8 +351,12 @@ test_cmac(
         foil_cmac_update(cmac, msg + i, n);
     }
     mac2 = test_bytes_truncate(foil_cmac_free_to_bytes(cmac), tc->Tlen);
-    g_assert(g_bytes_equal(mac, mac2));
-    g_bytes_unref(mac2);
+    if (mac2) {
+        g_assert(g_bytes_equal(mac, mac2));
+        g_bytes_unref(mac2);
+    } else {
+        g_assert(!mac);
+    }
 
     foil_key_unref(key);
     foil_cipher_unref(cipher);
@@ -306,14 +370,13 @@ test_cavp_cmac_gen(
 {
     const Test* test = param;
     char* path = g_strconcat(DATA_DIR, test->file, NULL);
-    GSList* tests = test_parse_file(path, FIELDS_GEN);
+    GSList* tests = test_parse_file(path, test->mask);
     GSList* l;
 
     g_assert(tests);
     for (l = tests; l; l = l->next) {
         const TestCase* tc = l->data;
-        GBytes* mac = test_cmac(test->key_type(), test->cipher_type(),
-            test->bs, tc);
+        GBytes* mac = test_cmac(test, tc);
 
         g_assert(g_bytes_equal(mac, tc->Mac));
         g_bytes_unref(mac);
@@ -330,38 +393,53 @@ test_cavp_cmac_ver(
 {
     const Test* test = param;
     char* path = g_strconcat(DATA_DIR, test->file, NULL);
-    GSList* tests = test_parse_file(path, FIELDS_VER);
+    GSList* tests = test_parse_file(path, test->mask);
     GSList* l;
 
     g_assert(tests);
     for (l = tests; l; l = l->next) {
         const TestCase* tc = l->data;
-        GBytes* mac = test_cmac(test->key_type(), test->cipher_type(),
-            test->bs, tc);
+        GBytes* mac = test_cmac(test, tc);
 
-        g_assert(g_bytes_equal(mac, tc->Mac) == tc->Result);
-        g_bytes_unref(mac);
+        if (mac) {
+            g_assert(g_bytes_equal(mac, tc->Mac) == tc->Result);
+            g_bytes_unref(mac);
+        } else {
+            g_assert(!tc->Result);
+        }
     }
 
     g_slist_free_full(tests, test_delete);
     g_free(path);
 }
 
-#define TEST_PREFIX "/cavp_aes/"
-#define TEST_AES(file) file, 16, foil_key_aes_get_type, \
+#define TEST_PREFIX "/cavp_cmac/"
+
+#define TEST_GEN_AES(file) TEST_AES(file, FIELDS_GEN_AES)
+#define TEST_VER_AES(file) TEST_AES(file, FIELDS_VER_AES)
+#define TEST_AES(file,mask) file, 16, mask, test_aes_key, \
         foil_impl_cipher_aes_cbc_encrypt_get_type
+
+#define TEST_GEN_DES(file) TEST_DES(file, FIELDS_GEN_DES)
+#define TEST_VER_DES(file) TEST_DES(file, FIELDS_VER_DES)
+#define TEST_DES(file,mask) file, 8, mask, test_des_key, \
+        foil_impl_cipher_des_cbc_encrypt_get_type
 
 /* https://csrc.nist.rip/groups/STM/cavp/documents/mac/cmactestvectors.zip */
 static Test tests_gen [] = {
-    { TEST_AES("CMACGenAES128.rsp") },
-    { TEST_AES("CMACGenAES192.rsp") },
-    { TEST_AES("CMACGenAES256.rsp") }
+    { TEST_GEN_AES("CMACGenAES128.rsp") },
+    { TEST_GEN_AES("CMACGenAES192.rsp") },
+    { TEST_GEN_AES("CMACGenAES256.rsp") },
+    { TEST_GEN_DES("CMACGenTDES2.rsp") },
+    { TEST_GEN_DES("CMACGenTDES3.rsp") }
 };
 
 static Test tests_ver [] = {
-    { TEST_AES("CMACVerAES128.rsp") },
-    { TEST_AES("CMACVerAES192.rsp") },
-    { TEST_AES("CMACVerAES256.rsp") },
+    { TEST_VER_AES("CMACVerAES128.rsp") },
+    { TEST_VER_AES("CMACVerAES192.rsp") },
+    { TEST_VER_AES("CMACVerAES256.rsp") },
+    { TEST_VER_DES("CMACVerTDES2.rsp") },
+    { TEST_VER_DES("CMACVerTDES3.rsp") }
 };
 
 int main(int argc, char* argv[])

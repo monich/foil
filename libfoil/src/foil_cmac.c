@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -29,7 +32,7 @@
 
 #include "foil_cmac.h"
 #include "foil_cipher.h"
-#include "foil_key.h"
+#include "foil_key_p.h"
 #include "foil_log_p.h"
 
 /*
@@ -122,10 +125,7 @@ foil_cmac_new(
     if (foil_cipher_symmetric(cipher) &&
         foil_cipher_output_block_size(cipher) == (int)bs) {
         guint8 r;
-        gsize ks;
         FoilKey* key = foil_cipher_key(cipher);
-        GBytes* kb = foil_key_to_bytes(key);
-        const guint8* kd = g_bytes_get_data(kb, &ks);
 
         /* Approved block ciphers use 128 and 64 bit keys */
         switch (bs) {
@@ -140,18 +140,16 @@ foil_cmac_new(
             r = 0;
             break;
         }
-        if (r && ks > bs) {
-            guint8* kdata = g_memdup(kd, ks);
-            guint8* iv = kdata + (ks - bs);
+        if (r) {
+            guint8* iv = g_slice_alloc0(bs);
             FoilCipher* c;
             FoilKey* k;
 
             /* Zero the IV part of the key */
-            memset(iv, 0, bs);
-            k = foil_key_new_from_data(G_TYPE_FROM_INSTANCE(key), kdata, ks);
+            k = foil_key_set_iv(key, iv, bs);
             c = foil_cipher_new(G_TYPE_FROM_INSTANCE(cipher), k);
             foil_key_unref(k);
-            g_free(kdata);
+            g_slice_free1(bs, iv);
 
             if (c) {
                 self = g_slice_new0(FoilCmac);
@@ -172,7 +170,6 @@ foil_cmac_new(
             }
             foil_cipher_unref(c);
         }
-        g_bytes_unref(kb);
     }
     return self;
 }

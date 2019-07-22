@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -199,15 +202,19 @@ foil_key_to_string(
 
 /* Abstract types */
 GType foil_key_get_type(void);
+GType foil_key_des_get_type(void); /* Since 1.0.16 */
 GType foil_key_aes_get_type(void);
 GType foil_key_rsa_public_get_type(void);
 GType foil_key_rsa_private_get_type(void);
 
 #define FOIL_TYPE_KEY (foil_key_get_type())
+#define FOIL_TYPE_KEY_DES (foil_key_des_get_type()) /* Since 1.0.16 */
 #define FOIL_TYPE_KEY_AES (foil_key_aes_get_type())
 #define FOIL_TYPE_KEY_RSA_PUBLIC (foil_key_rsa_public_get_type())
 #define FOIL_TYPE_KEY_RSA_PRIVATE (foil_key_rsa_private_get_type())
 
+#define FOIL_IS_KEY_DES(obj) \
+    G_TYPE_CHECK_INSTANCE_TYPE(obj, FOIL_TYPE_KEY_DES)
 #define FOIL_IS_KEY_AES(obj) \
     G_TYPE_CHECK_INSTANCE_TYPE(obj, FOIL_TYPE_KEY_AES)
 #define FOIL_IS_KEY_RSA_PUBLIC(obj) \
@@ -219,9 +226,11 @@ GType foil_key_rsa_private_get_type(void);
 GType foil_key_aes128_get_type(void);
 GType foil_key_aes192_get_type(void);
 GType foil_key_aes256_get_type(void);
+GType foil_impl_key_des_get_type(void); /* Since 1.0.16 */
 GType foil_impl_key_rsa_public_get_type(void);
 GType foil_impl_key_rsa_private_get_type(void);
 
+#define FOIL_KEY_DES (foil_impl_key_des_get_type()) /* Since 1.0.16 */
 #define FOIL_KEY_AES128 (foil_key_aes128_get_type())
 #define FOIL_KEY_AES192 (foil_key_aes192_get_type())
 #define FOIL_KEY_AES256 (foil_key_aes256_get_type())

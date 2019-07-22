@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -99,6 +102,21 @@ foil_key_aes_generate_specific(
         GERR("Invalid number of bits for AES%u (%u)", klass_bits, bits);
         return NULL;
     }
+}
+
+static
+FoilKey*
+foil_key_aes_new(
+    FoilKeyAesClass* klass,
+    const void* iv,
+    const void* key)
+{
+    FoilKeyAes* aes = g_object_new(G_TYPE_FROM_CLASS(klass), NULL);
+    memcpy(aes->key, key, klass->size);
+    if (iv) {
+        memcpy(aes->iv, iv, FOIL_AES_BLOCK_SIZE);
+    }
+    return FOIL_KEY(aes);
 }
 
 static
@@ -203,6 +221,34 @@ foil_key_aes_to_bytes(
 }
 
 static
+FoilKey*
+foil_key_aes_set_iv(
+    FoilKey* key,
+    const void* iv,
+    gsize len)
+{
+    if (len == FOIL_AES_BLOCK_SIZE) {
+        FoilKeyAes* self = FOIL_KEY_AES_(key);
+        if (iv) {
+            return foil_key_aes_new(FOIL_KEY_AES_GET_CLASS(self),
+                iv, self->key);
+        } else {
+            /* Zero the IV */
+            guint i;
+            for (i = 0; i < FOIL_AES_BLOCK_SIZE; i++) {
+                if (self->iv[i]) {
+                    return foil_key_aes_new(FOIL_KEY_AES_GET_CLASS(self),
+                        NULL, self->key);
+                }
+            }
+            /* IV is already zero, there's nothing to do */
+            return foil_key_ref(key);
+        }
+    }
+    return NULL;
+}
+
+static
 void
 foil_key_aes_init(
     FoilKeyAes* key)
@@ -219,6 +265,7 @@ foil_key_aes_class_init(
     key_class->fn_equal = foil_key_aes_equal;
     key_class->fn_from_data = foil_key_aes_from_data_any;
     key_class->fn_to_bytes = foil_key_aes_to_bytes;
+    key_class->fn_set_iv = foil_key_aes_set_iv;
 }
 
 /* AES128 */

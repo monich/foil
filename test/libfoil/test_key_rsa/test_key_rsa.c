@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -347,6 +350,10 @@ test_key_rsa_generate(
     pub1 = foil_public_key_new_from_private(FOIL_PRIVATE_KEY(key1));
     pub2 = foil_public_key_new_from_private(FOIL_PRIVATE_KEY(key2));
     g_assert(!foil_key_equal(pub1, pub2));
+
+    /* No IV in RSA */
+    g_assert(!foil_key_set_iv(key1, NULL, 0));
+    g_assert(!foil_key_set_iv(key2, NULL, 0));
 
     foil_key_unref(pub1);
     foil_key_unref(pub2);

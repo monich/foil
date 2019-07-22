@@ -7,14 +7,17 @@ LIBFOIL_TESTS="\
 test_basic \
 test_cavp_aes \
 test_cavp_cmac \
+test_cavp_des \
 test_cipher \
 test_cipher_aes \
+test_cipher_des \
 test_cipher_rsa \
 test_cmac \
 test_digest \
 test_hmac \
 test_input \
 test_key_aes \
+test_key_des \
 test_key_rsa \
 test_output \
 test_sign"

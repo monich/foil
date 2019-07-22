@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,50 +30,39 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_KEY_P_H
-#define FOIL_KEY_P_H
+#ifndef FOIL_KEY_DES_P_H
+#define FOIL_KEY_DES_P_H
 
-#include "foil_types_p.h"
-#include "foil_key.h"
+#include "foil_key_des.h"
+#include "foil_key_p.h"
 
-typedef struct foil_key_class FoilKeyClass;
-typedef struct foil_key_priv FoilKeyPriv;
+typedef struct foil_key_des_class FoilKeyDesClass;
 
-struct foil_key {
-    GObject super;
-    FoilKeyPriv* priv;
-};
+typedef struct foil_key_des {
+    FoilKey super;
+    guint8 iv[FOIL_DES_IV_SIZE];
+    const guint8* key1;
+    const guint8* key2;
+    const guint8* key3;
+} FoilKeyDes;
 
-struct foil_key_class {
-    GObjectClass super;
-    FoilKey* (*fn_generate)(FoilKeyClass* klass, guint bits);
-    FoilKey* (*fn_from_data)(FoilKeyClass* klass, const void* data, gsize len,
-        GHashTable* param, GError** error);
-    FoilKey* (*fn_set_iv)(FoilKey* key1, const void* iv, gsize len);
-    gboolean (*fn_equal)(FoilKey* key1, FoilKey* key2);
-    GBytes* (*fn_to_bytes)(FoilKey* key);
-    gboolean (*fn_export)(FoilKey* key, FoilOutput* out,
-        FoilKeyExportFormat format, GHashTable* param, GError** error);
-    GBytes* (*fn_fingerprint)(FoilKey* key);
-};
+typedef struct foil_key_des_class {
+    FoilKeyClass key;
+    gboolean (*fn_valid)(FoilKeyDesClass* klass, const guint8* key);
+    FoilKeyDes* (*fn_create)(FoilKeyDesClass* klass, const guint8* iv,
+        const guint8* key1, const guint8* key2, const guint8* key3);
+} FoilKeyDesClass;
 
-#define FOIL_IS_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
-        FOIL_TYPE_KEY)
-#define FOIL_KEY_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
-        FOIL_TYPE_KEY, FoilKeyClass))
-#define FOIL_KEY_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS((obj),\
-        FOIL_TYPE_KEY, FoilKeyClass)
+#define FOIL_KEY_DES_(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
+        FOIL_TYPE_KEY_DES, FoilKeyDes))
+#define FOIL_KEY_DES_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
+        FOIL_TYPE_KEY_DES, FoilKeyDesClass))
+#define FOIL_KEY_DES_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS(obj,\
+        FOIL_TYPE_KEY_DES, FoilKeyDesClass)
+#define FOIL_IS_KEY_DES(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
+        FOIL_TYPE_KEY_DES)
 
-#define PKCS1_RSA_VERSION (0)
-#define PKCS8_RSA_VERSION (0)
-
-FoilKey*
-foil_key_set_iv(
-    FoilKey* key,
-    const void* iv,
-    gsize len);
-
-#endif /* FOIL_KEY_P_H */
+#endif /* FOIL_KEY_DES_P_H */
 
 /*
  * Local Variables:

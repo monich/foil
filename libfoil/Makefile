@@ -67,6 +67,7 @@ SRC = \
   foil_input_range.c \
   foil_key.c \
   foil_key_aes.c \
+  foil_key_des.c \
   foil_key_rsa_private.c \
   foil_key_rsa_public.c \
   foil_output.c \
@@ -81,6 +82,7 @@ SRC = \
   foil_util.c
 
 IMPL_SRC = \
+  foil_openssl_cipher_des_cbc.c \
   foil_openssl_cipher_aes_cbc_decrypt.c \
   foil_openssl_cipher_aes_cbc_encrypt.c \
   foil_openssl_cipher_rsa.c \
@@ -89,6 +91,7 @@ IMPL_SRC = \
   foil_openssl_digest_md5.c \
   foil_openssl_digest_sha1.c \
   foil_openssl_digest_sha256.c \
+  foil_openssl_key_des.c \
   foil_openssl_key_rsa_private.c \
   foil_openssl_key_rsa_public.c \
   foil_openssl_random.c \
@@ -136,7 +139,6 @@ endif
 
 DEBUG_LDFLAGS = $(FULL_LDFLAGS) $(DEBUG_FLAGS)
 RELEASE_LDFLAGS = $(FULL_LDFLAGS) $(RELEASE_FLAGS)
-COVERAGE_LDFLAGS = $(FULL_LDFLAGS) $(COVERAGE_FLAGS) --coverage
 
 DEBUG_CFLAGS = $(FULL_CFLAGS) $(DEBUG_FLAGS) -DDEBUG
 RELEASE_CFLAGS = $(FULL_CFLAGS) $(RELEASE_FLAGS) -O2
@@ -170,9 +172,9 @@ endif
 endif
 
 $(PKGCONFIG): | $(BUILD_DIR)
-$(DEBUG_OBJS) $(DEBUG_LIB): | $(DEBUG_BUILD_DIR)
-$(RELEASE_OBJS) $(RELEASE_LIB): | $(RELEASE_BUILD_DIR)
-$(COVERAGE_OBJS) $(COVERAGE_LIB): | $(COVERAGE_BUILD_DIR)
+$(DEBUG_OBJS): | $(DEBUG_BUILD_DIR)
+$(RELEASE_OBJS): | $(RELEASE_BUILD_DIR)
+$(COVERAGE_OBJS): | $(COVERAGE_BUILD_DIR)
 $(IMPL_DEBUG_OBJS): | $(IMPL_DEBUG_BUILD_DIR)
 $(IMPL_RELEASE_OBJS): | $(IMPL_RELEASE_BUILD_DIR)
 $(IMPL_COVERAGE_OBJS): | $(IMPL_COVERAGE_BUILD_DIR)

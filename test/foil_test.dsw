@@ -93,6 +93,24 @@ Package=<4>
 
 ###############################################################################
 
+Project: "test_cavp_des"=.\libfoil\test_cavp_des\test_cavp_des.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "test_cipher"=.\libfoil\test_cipher\test_cipher.dsp - Package Owner=<4>
 
 Package=<5>
@@ -112,6 +130,24 @@ Package=<4>
 ###############################################################################
 
 Project: "test_cipher_aes"=.\libfoil\test_cipher_aes\test_cipher_aes.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_cipher_des"=.\libfoil\test_cipher_des\test_cipher_des.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -241,6 +277,24 @@ Package=<4>
 ###############################################################################
 
 Project: "test_key_aes"=.\libfoil\test_key_aes\test_key_aes.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfoil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libglibutil
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "test_key_des"=.\libfoil\test_key_des\test_key_des.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

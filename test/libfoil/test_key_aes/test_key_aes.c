@@ -5,12 +5,15 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -58,6 +61,7 @@ test_key_aes_basic(
         FOIL_KEY_BITS_DEFAULT);
     FoilKey* aes3 = foil_key_generate_new(FOIL_KEY_AES192,
         FOIL_KEY_BITS_DEFAULT);
+    FoilKey* aes4 = foil_key_set_iv(aes3, NULL, FOIL_AES_BLOCK_SIZE);
     GError* error = NULL;
     int dummy;
 
@@ -65,6 +69,13 @@ test_key_aes_basic(
     g_assert(!foil_key_equal(aes1, aes2)); /* Different contents */
     g_assert(!foil_key_equal(aes1, aes3)); /* Different key sizes */
     g_assert(!foil_key_equal(aes1, rsa));  /* Different ky types */
+
+    /* If IV is already zero, foil_key_set_iv works like foil_key_ref */
+    g_assert(foil_key_set_iv(aes4, NULL, FOIL_AES_BLOCK_SIZE) == aes4);
+    foil_key_unref(aes4);
+
+    /* Wrong IV size */
+    g_assert(!foil_key_set_iv(aes4, NULL, FOIL_AES_BLOCK_SIZE - 1));
 
     /* Test resistance to NULL and all kinds of invalid parameters */
     foil_key_unref(NULL);
@@ -91,6 +102,7 @@ test_key_aes_basic(
     g_assert(!foil_key_new_from_bytes(0, NULL));
     g_assert(!foil_key_new_from_bytes(FOIL_KEY_AES128, NULL));
     g_assert(!foil_key_new_from_file(0, NULL));
+    g_assert(!foil_key_set_iv(NULL, NULL, 0));
     g_assert(!foil_key_new_from_file(FOIL_KEY_AES128, NULL));
     g_assert(!foil_private_key_ref(NULL));
     g_assert(!foil_private_key_new_from_data(FOIL_KEY_AES128, NULL, 0));
@@ -141,6 +153,7 @@ test_key_aes_basic(
     foil_key_unref(aes1);
     foil_key_unref(aes2);
     foil_key_unref(aes3);
+    foil_key_unref(aes4);
     foil_key_unref(rsa);
     g_free(rsa_path);
 }
