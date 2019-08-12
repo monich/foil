@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -251,9 +254,10 @@ test_cavp_aes_key(
 static
 void
 test_cavp_aes(
-    gconstpointer param)
+    const char* file,
+    GType enc_type,
+    GType dec_type)
 {
-    const char* file = param;
     char* path = g_strconcat(DATA_DIR, file, NULL);
     Tests tests;
     GSList* l;
@@ -267,8 +271,8 @@ test_cavp_aes(
     for (l=tests.tests[TEST_SECTION_ENCRYPT]; l; l=l->next) {
         const Test* test = l->data;
         FoilKey* key = test_cavp_aes_key(test);
-        test_cavp_aes_run(FOIL_CIPHER_AES_CBC_ENCRYPT, key,
-            test->count, test->plaintext, test->ciphertext);
+        test_cavp_aes_run(enc_type, key, test->count, test->plaintext,
+            test->ciphertext);
         foil_key_unref(key);
     }
 
@@ -276,8 +280,8 @@ test_cavp_aes(
     for (l=tests.tests[TEST_SECTION_DECRYPT]; l; l=l->next) {
         const Test* test = l->data;
         FoilKey* key = test_cavp_aes_key(test);
-        test_cavp_aes_run(FOIL_CIPHER_AES_CBC_DECRYPT, key,
-            test->count, test->ciphertext, test->plaintext);
+        test_cavp_aes_run(dec_type, key, test->count, test->ciphertext,
+            test->plaintext);
         foil_key_unref(key);
     }
 
@@ -287,10 +291,44 @@ test_cavp_aes(
     g_free(path);
 }
 
+static
+void
+test_cavp_aes_cbc(
+    gconstpointer param)
+{
+    test_cavp_aes((const char*)param,
+        FOIL_CIPHER_AES_CBC_ENCRYPT,
+        FOIL_CIPHER_AES_CBC_DECRYPT);
+}
+
+static
+void
+test_cavp_aes_ecb(
+    gconstpointer param)
+{
+    test_cavp_aes((const char*)param,
+        FOIL_CIPHER_AES_ECB_ENCRYPT,
+        FOIL_CIPHER_AES_ECB_DECRYPT);
+}
+
 #define TEST_PREFIX "/cavp_aes/"
 
 /* http://csrc.nist.gov/groups/STM/cavp/ */
-static const char* tests [] = {
+static const char* ecb_tests [] = {
+    "ECBGFSbox128.rsp",
+    "ECBGFSbox192.rsp",
+    "ECBGFSbox256.rsp",
+    "ECBKeySbox128.rsp",
+    "ECBKeySbox192.rsp",
+    "ECBKeySbox256.rsp",
+    "ECBVarKey128.rsp",
+    "ECBVarKey192.rsp",
+    "ECBVarKey256.rsp",
+    "ECBVarTxt128.rsp",
+    "ECBVarTxt192.rsp",
+    "ECBVarTxt256.rsp"
+};
+static const char* cbc_tests [] = {
     /* http://csrc.nist.gov/groups/STM/cavp/documents/aes/KAT_AES.zip */
     "CBCGFSbox128.rsp",
     "CBCGFSbox192.rsp",
@@ -316,9 +354,16 @@ int main(int argc, char* argv[])
 {
     guint i;
     g_test_init(&argc, &argv, NULL);
-    for (i = 0; i < G_N_ELEMENTS(tests); i++) {
-        char* name = g_strconcat(TEST_PREFIX, tests[i], NULL);
-        g_test_add_data_func(name, tests[i], test_cavp_aes);
+    for (i = 0; i < G_N_ELEMENTS(ecb_tests); i++) {
+        const char* fname = ecb_tests[i];
+        char* name = g_strconcat(TEST_PREFIX, fname, NULL);
+        g_test_add_data_func(name, fname, test_cavp_aes_ecb);
+        g_free(name);
+    }
+    for (i = 0; i < G_N_ELEMENTS(cbc_tests); i++) {
+        const char* fname = cbc_tests[i];
+        char* name = g_strconcat(TEST_PREFIX, fname, NULL);
+        g_test_add_data_func(name, fname, test_cavp_aes_cbc);
         g_free(name);
     }
     return test_run();

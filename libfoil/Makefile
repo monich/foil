@@ -83,8 +83,8 @@ SRC = \
 
 IMPL_SRC = \
   foil_openssl_cipher_des_cbc.c \
-  foil_openssl_cipher_aes_cbc_decrypt.c \
-  foil_openssl_cipher_aes_cbc_encrypt.c \
+  foil_openssl_cipher_aes_decrypt.c \
+  foil_openssl_cipher_aes_encrypt.c \
   foil_openssl_cipher_rsa.c \
   foil_openssl_cipher_rsa_decrypt.c \
   foil_openssl_cipher_rsa_encrypt.c \

@@ -44,6 +44,8 @@ typedef struct test_cipher_aes {
     GTestDataFunc fn;
     const char* key_file;
     GType (*key_type)(void);
+    GType (*enc_type)(void);
+    GType (*dec_type)(void);
     const void* input;
     gsize input_size;
 } TestCipherAes;
@@ -66,11 +68,11 @@ test_cipher_aes_basic(
     const TestCipherAes* test = param;
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
     FoilKey* key = foil_key_new_from_file(FOIL_KEY_AES128, key_path);
-    FoilCipher* enc = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
-    FoilCipher* dec = foil_cipher_new(FOIL_CIPHER_AES_CBC_DECRYPT, key);
+    FoilCipher* enc = foil_cipher_new(test->enc_type(), key);
+    FoilCipher* dec = foil_cipher_new(test->dec_type(), key);
 
-    g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_AES_CBC_ENCRYPT,0));
-    g_assert(!foil_cipher_type_supports_key(FOIL_CIPHER_AES_CBC_DECRYPT,0));
+    g_assert(!foil_cipher_type_supports_key(test->enc_type(), 0));
+    g_assert(!foil_cipher_type_supports_key(test->dec_type(), 0));
     g_assert(!foil_cipher_type_supports_key(FOIL_KEY_AES128, 0));
     g_assert(foil_cipher_symmetric(enc));
     g_assert(foil_cipher_symmetric(dec));
@@ -255,11 +257,11 @@ test_cipher_aes_clone(
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
     GBytes* in = g_bytes_new_static(test->input, test->input_size);
     FoilKey* key = foil_key_new_from_file(test->key_type(), key_path);
-    FoilCipher* enc1 = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
+    FoilCipher* enc1 = foil_cipher_new(test->enc_type(), key);
     FoilCipher* enc2 = foil_cipher_clone(enc1);
     GBytes* out1 = test_cipher_bytes(enc1, in);
     GBytes* out2 = test_cipher_bytes(enc2, in);
-    FoilCipher* dec1 = foil_cipher_new(FOIL_CIPHER_AES_CBC_DECRYPT, key);
+    FoilCipher* dec1 = foil_cipher_new(test->dec_type(), key);
     FoilCipher* dec2 = foil_cipher_clone(dec1);
     GBytes* res1 = test_cipher_bytes(dec1, in);
     GBytes* res2 = test_cipher_bytes(dec2, in);
@@ -293,8 +295,8 @@ test_cipher_aes_sync(
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
     FoilKey* key = foil_key_new_from_file(test->key_type(), key_path);
     GBytes* in = g_bytes_new_static(test->input, test->input_size);
-    GBytes* out = foil_cipher_bytes(FOIL_CIPHER_AES_CBC_ENCRYPT, key, in);
-    GBytes* dec = foil_cipher_bytes(FOIL_CIPHER_AES_CBC_DECRYPT, key, out);
+    GBytes* out = foil_cipher_bytes(test->enc_type(), key, in);
+    GBytes* dec = foil_cipher_bytes(test->dec_type(), key, out);
     GBytes* dec2;
     g_assert(dec);
     dec2 = g_bytes_new_from_bytes(dec, 0, test->input_size);
@@ -333,7 +335,7 @@ test_cipher_aes_async(
     GMainLoop* loop = g_main_loop_new(NULL, TRUE);
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
     FoilKey* key = foil_key_new_from_file(test->key_type(), key_path);
-    FoilCipher* cipher = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
+    FoilCipher* cipher = foil_cipher_new(test->enc_type(), key);
     FoilOutput* out = foil_output_mem_new(NULL);
     GBytes* enc;
     GBytes* dec;
@@ -358,7 +360,7 @@ test_cipher_aes_async(
     g_assert(enc);
 
     /* Decrypt asynchronously */
-    cipher = foil_cipher_new(FOIL_CIPHER_AES_CBC_DECRYPT, key);
+    cipher = foil_cipher_new(test->dec_type(), key);
     out = foil_output_mem_new(NULL);
     id = foil_cipher_write_data_async(cipher, g_bytes_get_data(enc, NULL),
         g_bytes_get_size(enc), out, NULL, test_cipher_aes_async_proc, loop);
@@ -421,20 +423,43 @@ static const char input_long[] =
     "Tyranny over these States. To prove this, let Facts be submitted "
     "to a candid world.\n";
 
-#define TEST_NAME(name) "/cipher_aes/" name
+#define TEST_(name) "/cipher_aes/" name
+#define TEST_CLONE_(bits,mode,name) \
+    { TEST_("clone" #bits "-" #mode "-" #name), \
+      test_cipher_aes_clone, "aes" #bits, foil_key_aes##bits##_get_type, \
+      foil_impl_cipher_aes_##mode##_encrypt_get_type, \
+      foil_impl_cipher_aes_##mode##_decrypt_get_type, \
+      input_##name, sizeof(input_##name) }
 #define TEST_CLONE(bits,name) \
-    { TEST_NAME("clone" #bits #name), test_cipher_aes_clone, "aes" #bits, \
-      foil_key_aes##bits##_get_type, input_##name, sizeof(input_##name) }
+    TEST_CLONE_(bits,cbc,name), \
+    TEST_CLONE_(bits,ecb,name)
+#define TEST_SYNC_(bits,mode,name) \
+    { TEST_("sync" #bits "-" #mode "-" #name), \
+      test_cipher_aes_sync, "aes" #bits, foil_key_aes##bits##_get_type, \
+      foil_impl_cipher_aes_##mode##_encrypt_get_type, \
+      foil_impl_cipher_aes_##mode##_decrypt_get_type, \
+      input_##name, sizeof(input_##name) }
 #define TEST_SYNC(bits,name) \
-    { TEST_NAME("sync" #bits #name), test_cipher_aes_sync, "aes" #bits, \
-      foil_key_aes##bits##_get_type, input_##name, sizeof(input_##name) }
+    TEST_SYNC_(bits,cbc,name), \
+    TEST_SYNC_(bits,ecb,name)
+#define TEST_ASYNC_(bits,mode,name) \
+    { TEST_("async" #bits "-" #mode "-" #name), \
+      test_cipher_aes_async, "aes" #bits, foil_key_aes##bits##_get_type, \
+      foil_impl_cipher_aes_##mode##_encrypt_get_type, \
+      foil_impl_cipher_aes_##mode##_decrypt_get_type, \
+      input_##name, sizeof(input_##name) }
 #define TEST_ASYNC(bits,name) \
-    { TEST_NAME("async" #bits #name), test_cipher_aes_async, "aes" #bits, \
-      foil_key_aes##bits##_get_type, input_##name, sizeof(input_##name) }
+    TEST_ASYNC_(bits,cbc,name), \
+    TEST_ASYNC_(bits,ecb,name)
 
 static const TestCipherAes tests[] = {
-    { TEST_NAME("basic"), test_cipher_aes_basic, "aes128" },
-    { TEST_NAME("cancel"), test_cipher_aes_cancel, "aes128" },
+    { TEST_("basic-cbc"), test_cipher_aes_basic, "aes128", NULL,
+      foil_impl_cipher_aes_cbc_encrypt_get_type,
+      foil_impl_cipher_aes_cbc_decrypt_get_type},
+    { TEST_("basic-ecb"), test_cipher_aes_basic, "aes128", NULL,
+      foil_impl_cipher_aes_cbc_encrypt_get_type,
+      foil_impl_cipher_aes_cbc_decrypt_get_type},
+    { TEST_("cancel"), test_cipher_aes_cancel, "aes128" },
     TEST_CLONE(128,short),
     TEST_CLONE(192,short),
     TEST_CLONE(256,short),
