@@ -124,25 +124,6 @@ test_read_line(
 
 static
 GBytes*
-test_line_to_bytes(
-    const char* line)
-{
-    const gsize len = strlen(line);
-    const int n = len / 2;
-
-    if (n > 0) {
-        guint8* data = g_malloc(n);
-
-        if (gutil_hex2bin(line, len, data)) {
-            return g_bytes_new_take(data, n);
-        }
-        g_free(data);
-    }
-    return NULL;
-}
-
-static
-GBytes*
 test_bytes_truncate(
     GBytes* bytes,
     gsize maxsize)
@@ -201,7 +182,7 @@ test_parse_line(
         return FIELD_TLEN;
     } else if (strstr(line, KEY) == line) {
         const char* val = line + (G_N_ELEMENTS(KEY) - 1);
-        GBytes* bytes = test_line_to_bytes(val);
+        GBytes* bytes = gutil_hex2bytes(val, -1);
 
         g_assert(bytes);
         g_assert(!test->Key);
@@ -209,7 +190,7 @@ test_parse_line(
         return FIELD_KEY;
     } else if (strstr(line, KEY1) == line) {
         const char* val = line + (G_N_ELEMENTS(KEY1) - 1);
-        GBytes* bytes = test_line_to_bytes(val);
+        GBytes* bytes = gutil_hex2bytes(val, -1);
 
         g_assert(bytes);
         g_assert(!test->Key1);
@@ -217,7 +198,7 @@ test_parse_line(
         return FIELD_KEY1;
     } else if (strstr(line, KEY2) == line) {
         const char* val = line + (G_N_ELEMENTS(KEY2) - 1);
-        GBytes* bytes = test_line_to_bytes(val);
+        GBytes* bytes = gutil_hex2bytes(val, -1);
 
         g_assert(bytes);
         g_assert(!test->Key2);
@@ -225,7 +206,7 @@ test_parse_line(
         return FIELD_KEY2;
     } else if (strstr(line, KEY3) == line) {
         const char* val = line + (G_N_ELEMENTS(KEY3) - 1);
-        GBytes* bytes = test_line_to_bytes(val);
+        GBytes* bytes = gutil_hex2bytes(val, -1);
 
         g_assert(bytes);
         g_assert(!test->Key3);
@@ -233,7 +214,7 @@ test_parse_line(
         return FIELD_KEY3;
     } else if (strstr(line, MSG) == line) {
         const char* val = line + (G_N_ELEMENTS(MSG) - 1);
-        GBytes* bytes = test_line_to_bytes(val);
+        GBytes* bytes = gutil_hex2bytes(val, -1);
 
         g_assert(bytes);
         g_assert(!test->Msg);
@@ -241,7 +222,7 @@ test_parse_line(
         return FIELD_MSG;
     } else if (strstr(line, MAC) == line) {
         const char* val = line + (G_N_ELEMENTS(MAC) - 1);
-        GBytes* bytes = test_line_to_bytes(val);
+        GBytes* bytes = gutil_hex2bytes(val, -1);
 
         g_assert(bytes);
         g_assert(!test->Mac);

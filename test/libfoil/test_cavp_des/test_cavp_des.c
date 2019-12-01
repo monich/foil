@@ -35,6 +35,8 @@
 #include "foil_key_des.h"
 #include "foil_cipher.h"
 
+#include <gutil_misc.h>
+
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -105,32 +107,6 @@ test_read_line(
 }
 
 static
-GBytes*
-test_line_to_bytes(
-    const char* line)
-{
-    const int n = strlen(line)/2;
-    if (n > 0) {
-        int i;
-        guint8* data = g_malloc(n);
-        char hex[3];
-        hex[2] = 0;
-        for (i=0; i<n; i++) {
-            char* endptr = NULL;
-            hex[0] = *line++;
-            hex[1] = *line++;
-            data[i] = (guint8)strtol(hex, &endptr, 16);
-            if (*endptr) {
-                g_free(data);
-                return NULL;
-            }
-        }
-        return g_bytes_new_take(data, n);
-    }
-    return NULL;
-}
-
-static
 int
 test_parse_line(
     const char* line,
@@ -141,25 +117,32 @@ test_parse_line(
     static const char PLAINTEXT[] = "PLAINTEXT=";
     static const char CIPHERTEXT[] = "CIPHERTEXT=";
     static const char* KEY[] =  { "KEY1=", "KEY2=", "KEY3=" };
+
     if (strstr(line, COUNT) == line) {
         test->count = atoi(line + (G_N_ELEMENTS(COUNT)-1));
         return TEST_COUNT;
     } else if (strstr(line, IV) == line) {
-        GBytes* data = test_line_to_bytes(line + (G_N_ELEMENTS(IV)-1));
+        const char* val = line + (G_N_ELEMENTS(IV) - 1);
+        GBytes* data = gutil_hex2bytes(val, -1);
+
         if (data) {
             if (test->iv) g_bytes_unref(test->iv);
             test->iv = data;
             return TEST_IV;
         }
     } else if (strstr(line, PLAINTEXT) == line) {
-        GBytes* data = test_line_to_bytes(line+(G_N_ELEMENTS(PLAINTEXT)-1));
+        const char* val = line + (G_N_ELEMENTS(PLAINTEXT) - 1);
+        GBytes* data = gutil_hex2bytes(val, -1);
+
         if (data) {
             if (test->plaintext) g_bytes_unref(test->plaintext);
             test->plaintext = data;
             return TEST_PLAINTEXT;
         }
     } else if (strstr(line, CIPHERTEXT) == line) {
-        GBytes* data = test_line_to_bytes(line + (G_N_ELEMENTS(CIPHERTEXT)-1));
+        const char* val = line + (G_N_ELEMENTS(CIPHERTEXT)-1);
+        GBytes* data = gutil_hex2bytes(val, -1);
+
         if (data) {
             if (test->ciphertext) g_bytes_unref(test->ciphertext);
             test->ciphertext = data;
@@ -167,9 +150,11 @@ test_parse_line(
         }
     } else {
         int i;
+
         for (i = 0; i < 3; i++) {
             if (strstr(line, KEY[i]) == line) {
-                GBytes* data = test_line_to_bytes(line + strlen(KEY[i]));
+                GBytes* data = gutil_hex2bytes(line + strlen(KEY[i]), -1);
+
                 if (data) {
                     if (test->key[i]) g_bytes_unref(test->key[i]);
                     test->key[i] = data;
