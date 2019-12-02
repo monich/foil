@@ -1,5 +1,5 @@
 Name: libfoil
-Version: 1.0.17
+Version: 1.0.18
 Release: 0
 Summary: Yet another glib-style crypto API
 Group: Development/Libraries
