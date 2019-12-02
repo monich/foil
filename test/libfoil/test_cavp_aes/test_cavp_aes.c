@@ -287,6 +287,16 @@ test_cavp_aes_cbc(
 
 static
 void
+test_cavp_aes_cfb(
+    gconstpointer param)
+{
+    test_cavp_aes((const char*)param,
+        FOIL_CIPHER_AES_CFB_ENCRYPT,
+        FOIL_CIPHER_AES_CFB_DECRYPT);
+}
+
+static
+void
 test_cavp_aes_ecb(
     gconstpointer param)
 {
@@ -311,6 +321,20 @@ static const char* ecb_tests [] = {
     "ECBVarTxt128.rsp",
     "ECBVarTxt192.rsp",
     "ECBVarTxt256.rsp"
+};
+static const char* cfb_tests [] = {
+    "CFB128GFSbox128.rsp",
+    "CFB128GFSbox192.rsp",
+    "CFB128GFSbox256.rsp",
+    "CFB128KeySbox128.rsp",
+    "CFB128KeySbox192.rsp",
+    "CFB128KeySbox256.rsp",
+    "CFB128VarKey128.rsp",
+    "CFB128VarKey192.rsp",
+    "CFB128VarKey256.rsp",
+    "CFB128VarTxt128.rsp",
+    "CFB128VarTxt192.rsp",
+    "CFB128VarTxt256.rsp"
 };
 static const char* cbc_tests [] = {
     /* http://csrc.nist.gov/groups/STM/cavp/documents/aes/KAT_AES.zip */
@@ -342,6 +366,12 @@ int main(int argc, char* argv[])
         const char* fname = ecb_tests[i];
         char* name = g_strconcat(TEST_PREFIX, fname, NULL);
         g_test_add_data_func(name, fname, test_cavp_aes_ecb);
+        g_free(name);
+    }
+    for (i = 0; i < G_N_ELEMENTS(cfb_tests); i++) {
+        const char* fname = cfb_tests[i];
+        char* name = g_strconcat(TEST_PREFIX, fname, NULL);
+        g_test_add_data_func(name, fname, test_cavp_aes_cfb);
         g_free(name);
     }
     for (i = 0; i < G_N_ELEMENTS(cbc_tests); i++) {

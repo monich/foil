@@ -225,6 +225,8 @@ GType foil_impl_cipher_rsa_encrypt_get_type(void);
 GType foil_impl_cipher_rsa_decrypt_get_type(void);
 GType foil_impl_cipher_aes_cbc_encrypt_get_type(void);
 GType foil_impl_cipher_aes_cbc_decrypt_get_type(void);
+GType foil_impl_cipher_aes_cfb_encrypt_get_type(void); /* Since 1.0.18 */
+GType foil_impl_cipher_aes_cfb_decrypt_get_type(void); /* Since 1.0.18 */
 GType foil_impl_cipher_aes_ecb_encrypt_get_type(void); /* Since 1.0.17 */
 GType foil_impl_cipher_aes_ecb_decrypt_get_type(void); /* Since 1.0.17 */
 GType foil_impl_cipher_des_cbc_encrypt_get_type(void); /* Since 1.0.16 */
@@ -234,6 +236,8 @@ GType foil_impl_cipher_des_cbc_decrypt_get_type(void); /* Since 1.0.16 */
 #define FOIL_CIPHER_RSA_DECRYPT foil_impl_cipher_rsa_decrypt_get_type()
 #define FOIL_CIPHER_AES_CBC_ENCRYPT foil_impl_cipher_aes_cbc_encrypt_get_type()
 #define FOIL_CIPHER_AES_CBC_DECRYPT foil_impl_cipher_aes_cbc_decrypt_get_type()
+#define FOIL_CIPHER_AES_CFB_ENCRYPT foil_impl_cipher_aes_cfb_encrypt_get_type()
+#define FOIL_CIPHER_AES_CFB_DECRYPT foil_impl_cipher_aes_cfb_decrypt_get_type()
 #define FOIL_CIPHER_AES_ECB_ENCRYPT foil_impl_cipher_aes_ecb_encrypt_get_type()
 #define FOIL_CIPHER_AES_ECB_DECRYPT foil_impl_cipher_aes_ecb_decrypt_get_type()
 #define FOIL_CIPHER_DES_CBC_ENCRYPT foil_impl_cipher_des_cbc_encrypt_get_type()

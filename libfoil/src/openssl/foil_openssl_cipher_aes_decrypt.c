@@ -34,15 +34,21 @@
 
 #include <openssl/aes.h>
 
+typedef struct foil_openssl_cipher_decrypt_class {
+    FoilCipherAesClass aes;
+    int (*fn_set_key)(const unsigned char* data, const int bits, AES_KEY *key);
+} FoilOpensslCipherAesDecryptClass;
+
 typedef struct foil_openssl_cipher_decrypt {
     FoilCipherAes cipher_aes;
     AES_KEY aes;
 } FoilOpensslCipherAesDecrypt;
 
-typedef FoilCipherAesClass FoilOpensslCipherAesDecryptClass;
 typedef FoilOpensslCipherAesDecryptClass FoilOpensslCipherAesCbcDecryptClass;
+typedef FoilOpensslCipherAesDecryptClass FoilOpensslCipherAesCfbDecryptClass;
 typedef FoilOpensslCipherAesDecryptClass FoilOpensslCipherAesEcbDecryptClass;
 typedef FoilOpensslCipherAesDecrypt FoilOpensslCipherAesCbcDecrypt;
+typedef FoilOpensslCipherAesDecrypt FoilOpensslCipherAesCfbDecrypt;
 typedef FoilOpensslCipherAesDecrypt FoilOpensslCipherAesEcbDecrypt;
 
 G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherAesDecrypt,
@@ -52,15 +58,25 @@ G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherAesDecrypt,
     foil_openssl_cipher_aes_decrypt_get_type()
 #define FOIL_OPENSSL_CIPHER_AES_DECRYPT(obj) G_TYPE_CHECK_INSTANCE_CAST(obj, \
     FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT, FoilOpensslCipherAesDecrypt)
+#define FOIL_OPENSSL_CIPHER_AES_DECRYPT_GET_CLASS(obj) \
+    G_TYPE_INSTANCE_GET_CLASS(obj, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT, \
+    FoilOpensslCipherAesDecryptClass)
 
 G_DEFINE_TYPE(FoilOpensslCipherAesCbcDecrypt,
     foil_openssl_cipher_aes_cbc_decrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT)
+G_DEFINE_TYPE(FoilOpensslCipherAesCfbDecrypt,
+    foil_openssl_cipher_aes_cfb_decrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT)
 G_DEFINE_TYPE(FoilOpensslCipherAesEcbDecrypt,
     foil_openssl_cipher_aes_ecb_decrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT)
 
 GType foil_impl_cipher_aes_cbc_decrypt_get_type()
 {
     return foil_openssl_cipher_aes_cbc_decrypt_get_type();
+}
+
+GType foil_impl_cipher_aes_cfb_decrypt_get_type()
+{
+    return foil_openssl_cipher_aes_cfb_decrypt_get_type();
 }
 
 GType foil_impl_cipher_aes_ecb_decrypt_get_type()
@@ -83,6 +99,20 @@ foil_openssl_cipher_aes_cbc_decrypt_step(
 
 static
 int
+foil_openssl_cipher_aes_cfb_decrypt_step(
+    FoilCipher* cipher,
+    const void* from,
+    void* to)
+{
+    int num = 0;
+    FoilOpensslCipherAesDecrypt* self = FOIL_OPENSSL_CIPHER_AES_DECRYPT(cipher);
+    AES_cfb128_encrypt(from, to, FOIL_AES_BLOCK_SIZE, &self->aes,
+        self->cipher_aes.block, &num, AES_DECRYPT);
+    return FOIL_AES_BLOCK_SIZE;
+}
+
+static
+int
 foil_openssl_cipher_aes_ecb_decrypt_step(
     FoilCipher* cipher,
     const void* from,
@@ -99,7 +129,8 @@ foil_openssl_cipher_aes_decrypt_reset(
     FoilOpensslCipherAesDecrypt* self)
 {
     FoilKey* key = FOIL_CIPHER(self)->key;
-    AES_set_decrypt_key(FOIL_KEY_AES_(key)->key,
+    FoilKeyAes* aes_key = FOIL_KEY_AES_(key);
+    FOIL_OPENSSL_CIPHER_AES_DECRYPT_GET_CLASS(self)->fn_set_key(aes_key->key,
         FOIL_KEY_AES_GET_CLASS(key)->size * 8, &self->aes);
 }
 
@@ -130,7 +161,7 @@ foil_openssl_cipher_aes_decrypt_copy(
 static
 void
 foil_openssl_cipher_aes_decrypt_init(
-    FoilOpensslCipherAesCbcDecrypt* self)
+    FoilOpensslCipherAesDecrypt* self)
 {
 }
 
@@ -144,6 +175,7 @@ foil_openssl_cipher_aes_decrypt_class_init(
     cipher->flags |= FOIL_CIPHER_DECRYPT;
     cipher->fn_init_with_key = foil_openssl_cipher_aes_decrypt_init_with_key;
     cipher->fn_copy = foil_openssl_cipher_aes_decrypt_copy;
+    klass->fn_set_key = AES_set_decrypt_key;
 }
 
 static
@@ -161,6 +193,24 @@ foil_openssl_cipher_aes_cbc_decrypt_class_init(
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "AESCBC(Decrypt)";
     cipher->fn_step = foil_openssl_cipher_aes_cbc_decrypt_step;
+}
+
+static
+void
+foil_openssl_cipher_aes_cfb_decrypt_init(
+    FoilOpensslCipherAesCfbDecrypt* self)
+{
+}
+
+static
+void
+foil_openssl_cipher_aes_cfb_decrypt_class_init(
+    FoilOpensslCipherAesCfbDecryptClass* klass)
+{
+    FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
+    cipher->name = "AESCFB(Decrypt)";
+    cipher->fn_step = foil_openssl_cipher_aes_cfb_decrypt_step;
+    klass->fn_set_key = AES_set_encrypt_key;
 }
 
 static

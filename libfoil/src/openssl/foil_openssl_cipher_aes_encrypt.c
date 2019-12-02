@@ -41,8 +41,10 @@ typedef struct foil_openssl_cipher_encrypt {
 
 typedef FoilCipherAesClass FoilOpensslCipherAesEncryptClass;
 typedef FoilOpensslCipherAesEncryptClass FoilOpensslCipherAesCbcEncryptClass;
+typedef FoilOpensslCipherAesEncryptClass FoilOpensslCipherAesCfbEncryptClass;
 typedef FoilOpensslCipherAesEncryptClass FoilOpensslCipherAesEcbEncryptClass;
 typedef FoilOpensslCipherAesEncrypt FoilOpensslCipherAesCbcEncrypt;
+typedef FoilOpensslCipherAesEncrypt FoilOpensslCipherAesCfbEncrypt;
 typedef FoilOpensslCipherAesEncrypt FoilOpensslCipherAesEcbEncrypt;
 
 G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherAesEncrypt,
@@ -55,12 +57,19 @@ G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherAesEncrypt,
 
 G_DEFINE_TYPE(FoilOpensslCipherAesCbcEncrypt,
     foil_openssl_cipher_aes_cbc_encrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_ENCRYPT)
+G_DEFINE_TYPE(FoilOpensslCipherAesCfbEncrypt,
+    foil_openssl_cipher_aes_cfb_encrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_ENCRYPT)
 G_DEFINE_TYPE(FoilOpensslCipherAesEcbEncrypt,
     foil_openssl_cipher_aes_ecb_encrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_ENCRYPT)
 
 GType foil_impl_cipher_aes_cbc_encrypt_get_type()
 {
     return foil_openssl_cipher_aes_cbc_encrypt_get_type();
+}
+
+GType foil_impl_cipher_aes_cfb_encrypt_get_type()
+{
+    return foil_openssl_cipher_aes_cfb_encrypt_get_type();
 }
 
 GType foil_impl_cipher_aes_ecb_encrypt_get_type()
@@ -78,6 +87,20 @@ foil_openssl_cipher_aes_cbc_encrypt_step(
     FoilOpensslCipherAesEncrypt* self = FOIL_OPENSSL_CIPHER_AES_ENCRYPT(cipher);
     AES_cbc_encrypt(from, to, FOIL_AES_BLOCK_SIZE, &self->aes,
         self->cipher_aes.block, AES_ENCRYPT);
+    return FOIL_AES_BLOCK_SIZE;
+}
+
+static
+int
+foil_openssl_cipher_aes_cfb_encrypt_step(
+    FoilCipher* cipher,
+    const void* from,
+    void* to)
+{
+    int num = 0;
+    FoilOpensslCipherAesEncrypt* self = FOIL_OPENSSL_CIPHER_AES_ENCRYPT(cipher);
+    AES_cfb128_encrypt(from, to, FOIL_AES_BLOCK_SIZE, &self->aes,
+        self->cipher_aes.block, &num, AES_ENCRYPT);
     return FOIL_AES_BLOCK_SIZE;
 }
 
@@ -130,7 +153,7 @@ foil_openssl_cipher_aes_encrypt_copy(
 static
 void
 foil_openssl_cipher_aes_encrypt_init(
-    FoilOpensslCipherAesCbcEncrypt* self)
+    FoilOpensslCipherAesEncrypt* self)
 {
 }
 
@@ -161,6 +184,23 @@ foil_openssl_cipher_aes_cbc_encrypt_class_init(
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "AESCBC(Encrypt)";
     cipher->fn_step = foil_openssl_cipher_aes_cbc_encrypt_step;
+}
+
+static
+void
+foil_openssl_cipher_aes_cfb_encrypt_init(
+    FoilOpensslCipherAesCfbEncrypt* self)
+{
+}
+
+static
+void
+foil_openssl_cipher_aes_cfb_encrypt_class_init(
+    FoilOpensslCipherAesCfbEncryptClass* klass)
+{
+    FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
+    cipher->name = "AESCFB(Encrypt)";
+    cipher->fn_step = foil_openssl_cipher_aes_cfb_encrypt_step;
 }
 
 static
