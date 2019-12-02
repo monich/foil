@@ -109,6 +109,8 @@ foilmsg_info_cipher_name(
     switch (tag) {
     case FOILMSG_ENCRYPT_FORMAT_AES_CBC:
         return " (AES-CBC)";
+    case FOILMSG_ENCRYPT_FORMAT_AES_CFB:
+        return " (AES-CFB)";
     default:
         return "";
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -50,6 +53,7 @@ typedef struct foilmsg_encrypt_key {
 #define FOILMSG_ENCRYPT_KEY_FORMAT_AES192 (2) /* 24 bytes key + 16 bytes IV */
 #define FOILMSG_ENCRYPT_KEY_FORMAT_AES256 (3) /* 32 bytes key + 16 bytes IV */
 #define FOILMSG_ENCRYPT_FORMAT_AES_CBC    (1)
+#define FOILMSG_ENCRYPT_FORMAT_AES_CFB    (2)
 #define FOILMSG_SIGNATURE_FORMAT_MD5_RSA  (1)
 
 /* N.B. Must be freed with foilmsg_info_free */
@@ -91,7 +95,13 @@ typedef enum foilmsg_key_type {
     FOILMSG_KEY_AES_256
 } FOILMSG_KEY_TYPE;
 
+typedef enum foilmsg_cipher {
+    FOILMSG_CIPHER_AES_CBC,
+    FOILMSG_CIPHER_AES_CFB
+} FOILMSG_CIPHER;
+
 #define FOILMSG_KEY_TYPE_DEFAULT (FOILMSG_KEY_AES_128)
+#define FOILMSG_CIPHER_DEFAULT (FOILMSG_CIPHER_AES_CBC)
 
 typedef struct foilmsg_encrypt_options {
     FOILMSG_KEY_TYPE key_type;
@@ -105,6 +115,7 @@ typedef struct foilmsg_encrypt_options {
  */
 #define FOILMSG_FLAG_ENCRYPT_FOR_SELF (0x01)
 
+    FOILMSG_CIPHER cipher;
 } FoilMsgEncryptOptions;
 
 /*

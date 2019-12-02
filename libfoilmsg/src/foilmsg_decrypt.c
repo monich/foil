@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -314,6 +317,9 @@ foilmsg_decrypt_init_cipher(
     switch (enc_data_tag) {
     case FOILMSG_ENCRYPT_FORMAT_AES_CBC:
         block_cipher_type = FOIL_CIPHER_AES_CBC_DECRYPT;
+        break;
+    case FOILMSG_ENCRYPT_FORMAT_AES_CFB:
+        block_cipher_type = FOIL_CIPHER_AES_CFB_DECRYPT;
         break;
     default:
         GDEBUG("Unsupported cipher tag %d", enc_data_tag);

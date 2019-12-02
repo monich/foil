@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -232,71 +235,67 @@ static
 gboolean
 foilmsg_encode_part4(
     FoilOutput* out,
-    FoilKey* key,
+    FoilCipher* cipher,
+    int tag,
     const FoilBytes* data,
     const char* content_type,
     const FoilMsgHeaders* headers,
     FoilDigest* digest)
 {
-    gboolean ok = FALSE;
-    const int tag = FOILMSG_ENCRYPT_FORMAT_AES_CBC;
-    FoilCipher* cipher = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
-    if (cipher) {
-        const int block_size = foil_cipher_output_block_size(cipher);
-        FoilOutput* prefix_out = foil_output_mem_new(NULL);
-        FoilOutput* out0 = foil_output_mem_new(NULL);
-        FoilOutput* out1 = foil_output_mem_new(NULL);
-        GBytes* prefix_bytes;
-        GBytes* bytes0;
-        GBytes* bytes1;
-        FoilBytes prefix_data;
-        FoilBytes blocks[3];
-        gsize total_len = 0;
+    gboolean ok;
+    const int block_size = foil_cipher_output_block_size(cipher);
+    FoilOutput* prefix_out = foil_output_mem_new(NULL);
+    FoilOutput* out0 = foil_output_mem_new(NULL);
+    FoilOutput* out1 = foil_output_mem_new(NULL);
+    GBytes* prefix_bytes;
+    GBytes* bytes0;
+    GBytes* bytes1;
+    FoilBytes prefix_data;
+    FoilBytes blocks[3];
+    gsize total_len = 0;
 
-        /* First elements of plain text sequence (except the actual data) */
-        foil_asn1_encode_integer(out1, FOILMSG_PLAIN_DATA_FORMAT);
-        foil_asn1_encode_ia5_string(out1, content_type);
-        foilmsg_encode_headers(out1, headers);
-        foil_asn1_encode_octet_string_header(out1, data->len);
+    /* First elements of plain text sequence (except the actual data) */
+    foil_asn1_encode_integer(out1, FOILMSG_PLAIN_DATA_FORMAT);
+    foil_asn1_encode_ia5_string(out1, content_type);
+    foilmsg_encode_headers(out1, headers);
+    foil_asn1_encode_octet_string_header(out1, data->len);
 
-        /* No we can calculate the length of the whole plain data sequence */
-        bytes1 = foil_output_free_to_bytes(out1);
-        blocks[1].val = g_bytes_get_data(bytes1, &blocks[1].len);
-        total_len += blocks[1].len;
+    /* No we can calculate the length of the whole plain data sequence */
+    bytes1 = foil_output_free_to_bytes(out1);
+    blocks[1].val = g_bytes_get_data(bytes1, &blocks[1].len);
+    total_len += blocks[1].len;
 
-        /* Encode the sequence header */
-        foil_asn1_encode_sequence_header(out0, blocks[1].len + data->len);
-        bytes0 = foil_output_free_to_bytes(out0);
-        blocks[0].val = g_bytes_get_data(bytes0, &blocks[0].len);
-        total_len += blocks[0].len;
+    /* Encode the sequence header */
+    foil_asn1_encode_sequence_header(out0, blocks[1].len + data->len);
+    bytes0 = foil_output_free_to_bytes(out0);
+    blocks[0].val = g_bytes_get_data(bytes0, &blocks[0].len);
+    total_len += blocks[0].len;
 
-        /*
-         * We assume that the data size is preserved, just rounded up to
-         * the nearest block boundary.
-         */
-        blocks[2] = *data;
-        total_len += blocks[2].len;
-        total_len = (total_len + block_size - 1) / block_size * block_size;
-        GASSERT(block_size == foil_cipher_input_block_size(cipher));
+    /*
+     * We assume that the data size is preserved, just rounded up to
+     * the nearest block boundary.
+     */
+    blocks[2] = *data;
+    total_len += blocks[2].len;
+    total_len = (total_len + block_size - 1) / block_size * block_size;
+    GASSERT(block_size == foil_cipher_input_block_size(cipher));
 
-        /* Add the cipher tag + octet string header */
-        foil_asn1_encode_integer(prefix_out, tag);
-        foil_asn1_encode_octet_string_header(prefix_out, total_len);
-        prefix_bytes = foil_output_free_to_bytes(prefix_out);
-        prefix_data.val = g_bytes_get_data(prefix_bytes, &prefix_data.len);
-        total_len += prefix_data.len;
+    /* Add the cipher tag + octet string header */
+    foil_asn1_encode_integer(prefix_out, tag);
+    foil_asn1_encode_octet_string_header(prefix_out, total_len);
+    prefix_bytes = foil_output_free_to_bytes(prefix_out);
+    prefix_data.val = g_bytes_get_data(prefix_bytes, &prefix_data.len);
+    total_len += prefix_data.len;
 
-        /* Put the whole thing together and encrypt it. */
-        ok = foil_asn1_encode_sequence_header(out, total_len) &&
-            foil_output_write_all(out, prefix_data.val, prefix_data.len) &&
-            foil_cipher_write_data_blocks(cipher, blocks, G_N_ELEMENTS(blocks),
-                out, digest);
+    /* Put the whole thing together and encrypt it. */
+    ok = foil_asn1_encode_sequence_header(out, total_len) &&
+        foil_output_write_all(out, prefix_data.val, prefix_data.len) &&
+        foil_cipher_write_data_blocks(cipher, blocks, G_N_ELEMENTS(blocks),
+            out, digest);
 
-        g_bytes_unref(bytes0);
-        g_bytes_unref(bytes1);
-        g_bytes_unref(prefix_bytes);
-        foil_cipher_unref(cipher);
-    }
+    g_bytes_unref(bytes0);
+    g_bytes_unref(bytes1);
+    g_bytes_unref(prefix_bytes);
     return ok;
 }
 
@@ -324,26 +323,49 @@ static
 FoilKey*
 foilmsg_encrypt_generate_key(
     const FoilMsgEncryptOptions* opt,
-    int* key_tag)
+    int* tag)
 {
     GType type;
     switch (opt ? opt->key_type : FOILMSG_KEY_TYPE_DEFAULT) {
     case FOILMSG_KEY_AES_128:
         type = FOIL_KEY_AES128;
-        *key_tag = FOILMSG_ENCRYPT_KEY_FORMAT_AES128;
+        *tag = FOILMSG_ENCRYPT_KEY_FORMAT_AES128;
         break;
     case FOILMSG_KEY_AES_192:
         type = FOIL_KEY_AES192;
-        *key_tag = FOILMSG_ENCRYPT_KEY_FORMAT_AES192;
+        *tag = FOILMSG_ENCRYPT_KEY_FORMAT_AES192;
         break;
     case FOILMSG_KEY_AES_256:
         type = FOIL_KEY_AES256;
-        *key_tag = FOILMSG_ENCRYPT_KEY_FORMAT_AES256;
+        *tag = FOILMSG_ENCRYPT_KEY_FORMAT_AES256;
         break;
     default:
         return NULL;
     }
     return foil_key_generate_new(type, FOIL_KEY_BITS_DEFAULT);
+}
+
+static
+FoilCipher*
+foilmsg_encrypt_cipher(
+    const FoilMsgEncryptOptions* opt,
+    FoilKey* key,
+    int* tag)
+{
+    GType type;
+    switch (opt ? opt->cipher : FOILMSG_CIPHER_DEFAULT) {
+    case FOILMSG_CIPHER_AES_CBC:
+        type = FOIL_CIPHER_AES_CBC_ENCRYPT;
+        *tag = FOILMSG_ENCRYPT_FORMAT_AES_CBC;
+        break;
+    case FOILMSG_CIPHER_AES_CFB:
+        type = FOIL_CIPHER_AES_CFB_ENCRYPT;
+        *tag = FOILMSG_ENCRYPT_FORMAT_AES_CFB;
+        break;
+    default:
+        return NULL;
+    }
+    return foil_cipher_new(type, key);
 }
 
 /* Encrypt to the binary format */
@@ -361,11 +383,12 @@ foilmsg_encrypt(
     gboolean ok = FALSE;
     gsize prev_written = foil_output_bytes_written(out);
     gboolean for_self = opt && (opt->flags & FOILMSG_FLAG_ENCRYPT_FOR_SELF);
-    int key_tag = 0;
-    FoilKey* key = foilmsg_encrypt_generate_key(opt, &key_tag);
-    if (G_LIKELY(key) && G_LIKELY(out) && G_LIKELY(data) &&
+    int ktag = 0, ctag = 0;
+    FoilKey* key = foilmsg_encrypt_generate_key(opt, &ktag);
+    FoilCipher* cipher = foilmsg_encrypt_cipher(opt, key, &ctag);
+    if (G_LIKELY(cipher) && G_LIKELY(out) && G_LIKELY(data) &&
         G_LIKELY(sender) && G_LIKELY(recipient || for_self)) {
-        FoilDigest* digest = foil_digest_new(FOIL_DIGEST_MD5);
+        FoilDigest* md = foil_digest_new(FOIL_DIGEST_MD5);
         GBytes* key_bytes = foil_key_to_bytes(key);
 
         /* part4 could be large and may point to a temporary file */
@@ -377,11 +400,11 @@ foilmsg_encrypt(
         }
 
         /* Part 4 - AES encrypted text */
-        if (foilmsg_encode_part4(part4, key, data, ctype, hdrs, digest)) {
+        if (foilmsg_encode_part4(part4, cipher, ctag, data, ctype, hdrs, md)) {
             GBytes* bytes4 = foil_output_free_to_bytes(part4);
             if (bytes4) {
                 gsize total = 0;
-                GBytes* digest_bytes = foil_digest_finish(digest);
+                GBytes* digest_bytes = foil_digest_finish(md);
                 FoilOutput* part1 = foil_output_mem_new(NULL);
                 FoilOutput* part2 = foil_output_mem_new(NULL);
                 FoilOutput* part3 = foil_output_mem_new(NULL);
@@ -413,7 +436,7 @@ foilmsg_encrypt(
                 /* Part 2 - fingerprint */
                 foilmsg_encode_part2(part2, sender);
                 /* Part 3 - encrypted keys */
-                foilmsg_encode_part3(part3, pubkeys, key_bytes, key_tag);
+                foilmsg_encode_part3(part3, pubkeys, key_bytes, ktag);
                 /* Part 5 - Signature of part 4 */
                 foilmsg_encode_part5(part5, sender, digest_bytes);
 
@@ -447,8 +470,9 @@ foilmsg_encrypt(
         }
 
         g_bytes_unref(key_bytes);
-        foil_digest_unref(digest);
+        foil_digest_unref(md);
     }
+    foil_cipher_unref(cipher);
     foil_key_unref(key);
     return ok ? (foil_output_bytes_written(out) - prev_written) : 0;
 }

@@ -32,7 +32,7 @@ the block cipher key from the encryptedKey block. Note that the
 original PlainData block can be padded to the block size according
 to the requirements of the block cipher, i.e. after decryption it
 can be followed by (relatively) small amount of garbage.
-The format tag is 1 for AES in CBC mode.
+The format tag is 1 for AES in CBC mode, 2 for AES in CFB mode.
 
 signature is the hash of encryptedData part, encrypted with the
 sender's private key.

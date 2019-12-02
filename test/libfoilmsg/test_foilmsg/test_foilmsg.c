@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2019 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -508,23 +511,45 @@ static const TestFoilMsgConvertToBinary foilmsg_convert_tests[] = {
 };
 
 static const FoilMsgEncryptOptions options_invalid_key_type = {
-    (FOILMSG_KEY_TYPE)-1, 0
+    (FOILMSG_KEY_TYPE)-1, 0, FOILMSG_CIPHER_DEFAULT
+};
+
+static const FoilMsgEncryptOptions options_invalid_enc_cipher = {
+    FOILMSG_KEY_TYPE_DEFAULT, 0, (FOILMSG_CIPHER)-1
 };
 
 static const FoilMsgEncryptOptions options_aes_128 = {
-    FOILMSG_KEY_AES_128, 0
+    FOILMSG_KEY_AES_128, 0, FOILMSG_CIPHER_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_128_self = {
-    FOILMSG_KEY_AES_128, FOILMSG_FLAG_ENCRYPT_FOR_SELF
+    FOILMSG_KEY_AES_128, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC
+};
+
+static const FoilMsgEncryptOptions options_aes_128_cfb_self = {
+    FOILMSG_KEY_AES_128, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CFB
 };
 
 static const FoilMsgEncryptOptions options_aes_192_self = {
-    FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF
+    FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC
+};
+
+static const FoilMsgEncryptOptions options_aes_192_cfb_self = {
+    FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC
 };
 
 static const FoilMsgEncryptOptions options_aes_256_self = {
-    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF
+    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC
+};
+
+static const FoilMsgEncryptOptions options_aes_256_cfb_self = {
+    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC
 };
 
 static const TestFoilMsg foilmsg_tests[] = {
@@ -540,24 +565,44 @@ static const TestFoilMsg foilmsg_tests[] = {
         NULL, TEST_LINE_BREAKS
     },{
         TEST_("InvalidKeyType"), test_foilmsg_text,
-         "Test of invalid key type",
+         "Test of invalid key type option",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_invalid_key_type, TEST_ENCRYPT_ERROR
     },{
-        TEST_("128-bit"), test_foilmsg_text,
+        TEST_("InvalidCipher"), test_foilmsg_text,
+         "Test of invalid encryption cipher",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_invalid_enc_cipher, TEST_ENCRYPT_ERROR
+    },{
+        TEST_("AESCBC/128bit"), test_foilmsg_text,
          "Test of 128-bit encryption",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_aes_128_self
     },{
-        TEST_("192-bit"), test_foilmsg_text,
+        TEST_("AESCFB/128bit"), test_foilmsg_text,
+         "Test of 128-bit encryption (CFB mode)",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_128_cfb_self
+    },{
+        TEST_("AESCBC/192bit"), test_foilmsg_text,
          "Test of 192-bit encryption",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_aes_192_self
     },{
-        TEST_("256-bit"), test_foilmsg_text,
+        TEST_("AESCFB/192bit"), test_foilmsg_text,
+         "Test of 192-bit encryption (CFB mode)",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_192_cfb_self
+    },{
+        TEST_("AESCBC/256bit"), test_foilmsg_text,
          "Test of 256-bit encryption",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_aes_256_self
+    },{
+        TEST_("AESCFB/256bit"), test_foilmsg_text,
+         "Test of 256-bit encryption (CFB mode)",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_256_cfb_self
     },{
         TEST_("SelfDecrypt"), test_foilmsg_text,
         "Sender should be able to decrypt this",
