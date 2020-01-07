@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,6 +96,10 @@ foilmsg_info_signature_format_name(
     switch (tag) {
     case FOILMSG_SIGNATURE_FORMAT_MD5_RSA:
         return " (MD5-RSA)";
+    case FOILMSG_SIGNATURE_FORMAT_SHA1_RSA:
+        return " (SHA1-RSA)";
+    case FOILMSG_SIGNATURE_FORMAT_SHA256_RSA:
+        return " (SHA256-RSA)";
     default:
         return "";
     }
@@ -390,6 +394,7 @@ main(
     char* out_file = NULL;
     char* type = NULL;
     char* pass = NULL;
+    char* digest = NULL;
     int key_size = 128;
     int columns = 64;
     EncryptOpts encrypt_opts;
@@ -430,6 +435,8 @@ main(
           "Output binary data in ASN.1 format", NULL },
         { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
           "Encrypt to self and the recipient", NULL },
+        { "digest", 'D', 0, G_OPTION_ARG_STRING, &digest,
+          "Signature digest (MD5, SHA1 or SHA256) [MD5]", "DIGEST" },
         { NULL }
     };
     GOptionEntry decrypt_entries[] = {
@@ -452,7 +459,7 @@ main(
     G_GNUC_END_IGNORE_DEPRECATIONS;
 
     memset(&encrypt_opts, 0, sizeof(encrypt_opts));
-    options = g_option_context_new("- encrypt or decrypt text messages");
+    options = g_option_context_new("- encrypt or decrypt messages");
     encrypt_group = g_option_group_new("encrypt", "Encryption Options:",
         "Show encryption options", &encrypt_opts, NULL);
     decrypt_group = g_option_group_new("decrypt", "Decryption Options:",
@@ -603,8 +610,8 @@ main(
                     char* tmpfilename = NULL;
                     FoilMsgEncryptOptions opt;
 
-                    memset(&opt, 0, sizeof(opt));
                     /* Without a public key, encrypt to self */
+                    foilmsg_encrypt_defaults(&opt);
                     if (for_self || !pub) {
                         opt.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
                     }
@@ -612,6 +619,21 @@ main(
                     default:  opt.key_type = FOILMSG_KEY_AES_128; break;
                     case 192: opt.key_type = FOILMSG_KEY_AES_192; break;
                     case 256: opt.key_type = FOILMSG_KEY_AES_256; break;
+                    }
+                    if (digest) {
+                        if (!g_ascii_strcasecmp(digest, "MD5") ||
+                            !g_ascii_strcasecmp(digest, "MD-5")) {
+                            opt.signature = FOILMSG_SIGNATURE_MD5_RSA;
+                       } else if (!g_ascii_strcasecmp(digest, "SHA1") ||
+                            !g_ascii_strcasecmp(digest, "SHA-1")) {
+                            opt.signature = FOILMSG_SIGNATURE_SHA1_RSA;
+                        } else if (!g_ascii_strcasecmp(digest, "SHA256") ||
+                            !g_ascii_strcasecmp(digest, "SHA-256")) {
+                            opt.signature = FOILMSG_SIGNATURE_SHA256_RSA;
+                        } else {
+                            GWARN("Invalid signature digest \"%s\", using "
+                                "the default one (MD5)", digest);
+                        }
                     }
 
                     memset(&filename_header, 0, sizeof(filename_header));
@@ -631,7 +653,7 @@ main(
                         }
                     }
 
-                    /* Buld the list of headers */
+                    /* Build the list of headers */
                     if (encrypt_opts.headers) {
                         GSList* l;
                         guint n = g_slist_length(encrypt_opts.headers);
@@ -717,6 +739,7 @@ main(
     g_free(out_file);
     g_free(pass);
     g_free(type);
+    g_free(digest);
     return ret;
 }
 
