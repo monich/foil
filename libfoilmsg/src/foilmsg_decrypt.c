@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -277,6 +277,14 @@ foilmsg_decrypt_init_signature(
     switch (sig->tag) {
     case FOILMSG_SIGNATURE_FORMAT_MD5_RSA:
         dec->sig_digest_type = FOIL_DIGEST_MD5;
+        dec->sig_cipher_type = FOIL_CIPHER_RSA_DECRYPT;
+        break;
+    case FOILMSG_SIGNATURE_FORMAT_SHA1_RSA:
+        dec->sig_digest_type = FOIL_DIGEST_SHA1;
+        dec->sig_cipher_type = FOIL_CIPHER_RSA_DECRYPT;
+        break;
+    case FOILMSG_SIGNATURE_FORMAT_SHA256_RSA:
+        dec->sig_digest_type = FOIL_DIGEST_SHA256;
         dec->sig_cipher_type = FOIL_CIPHER_RSA_DECRYPT;
         break;
     default:

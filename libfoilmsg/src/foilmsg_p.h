@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -41,8 +44,6 @@
 
 #define FOILMSG_FORMAT_VERSION            (1)
 #define FOILMSG_FINGERPRINT_FORMAT        FOILMSG_FINGERPRINT_SSH_RSA
-#define FOILMSG_ENCRYPT_FORMAT            FOILMSG_ENCRYPT_FORMAT_AES_CBC
-#define FOILMSG_SIGNATURE_FORMAT          FOILMSG_SIGNATURE_FORMAT_MD5_RSA
 #define FOILMSG_PLAIN_DATA_FORMAT         (1)
 
 #define FOILMSG_PREFIX                   "FOILMSG"

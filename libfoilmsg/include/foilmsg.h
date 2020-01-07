@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,12 +49,17 @@ typedef struct foilmsg_encrypt_key {
 
 /* Valid tags for various blocks */
 #define FOILMSG_FINGERPRINT_SSH_RSA       (1)
+
 #define FOILMSG_ENCRYPT_KEY_FORMAT_AES128 (1) /* 16 bytes key + 16 bytes IV */
 #define FOILMSG_ENCRYPT_KEY_FORMAT_AES192 (2) /* 24 bytes key + 16 bytes IV */
 #define FOILMSG_ENCRYPT_KEY_FORMAT_AES256 (3) /* 32 bytes key + 16 bytes IV */
+
 #define FOILMSG_ENCRYPT_FORMAT_AES_CBC    (1)
 #define FOILMSG_ENCRYPT_FORMAT_AES_CFB    (2)
-#define FOILMSG_SIGNATURE_FORMAT_MD5_RSA  (1)
+
+#define FOILMSG_SIGNATURE_FORMAT_MD5_RSA    (1)
+#define FOILMSG_SIGNATURE_FORMAT_SHA1_RSA   (2)
+#define FOILMSG_SIGNATURE_FORMAT_SHA256_RSA (3)
 
 /* N.B. Must be freed with foilmsg_info_free */
 typedef struct foilmsg_info {
@@ -100,8 +105,15 @@ typedef enum foilmsg_cipher {
     FOILMSG_CIPHER_AES_CFB
 } FOILMSG_CIPHER;
 
+typedef enum foilmsg_signature {
+    FOILMSG_SIGNATURE_MD5_RSA,
+    FOILMSG_SIGNATURE_SHA1_RSA,
+    FOILMSG_SIGNATURE_SHA256_RSA
+} FOILMSG_SIGNATURE;
+
 #define FOILMSG_KEY_TYPE_DEFAULT (FOILMSG_KEY_AES_128)
 #define FOILMSG_CIPHER_DEFAULT (FOILMSG_CIPHER_AES_CBC)
+#define FOILMSG_SIGNATURE_DEFAULT (FOILMSG_SIGNATURE_MD5_RSA)
 
 typedef struct foilmsg_encrypt_options {
     FOILMSG_KEY_TYPE key_type;
@@ -116,6 +128,7 @@ typedef struct foilmsg_encrypt_options {
 #define FOILMSG_FLAG_ENCRYPT_FOR_SELF (0x01)
 
     FOILMSG_CIPHER cipher;
+    FOILMSG_SIGNATURE signature;
 } FoilMsgEncryptOptions;
 
 /*
@@ -124,6 +137,10 @@ typedef struct foilmsg_encrypt_options {
  * required.
  */
 extern const FoilBytes foilmsg_prefix;
+
+FoilMsgEncryptOptions*
+foilmsg_encrypt_defaults(
+    FoilMsgEncryptOptions* opt);
 
 gsize
 foilmsg_encrypt(

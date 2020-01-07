@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -164,6 +164,21 @@ test_foilmsg_invalid(
     g_assert(!foilmsg_verify(NULL, NULL));
     foil_private_key_unref(priv);
     g_free(tmp);
+}
+
+static
+void
+test_foilmsg_options(
+    void)
+{
+    FoilMsgEncryptOptions opt;
+    memset(&opt, 0xff, sizeof(opt));
+    g_assert(!foilmsg_encrypt_defaults(NULL));
+    g_assert(foilmsg_encrypt_defaults(&opt) == &opt);
+    g_assert(opt.key_type == FOILMSG_KEY_TYPE_DEFAULT);
+    g_assert(opt.flags == 0);
+    g_assert(opt.cipher == FOILMSG_CIPHER_DEFAULT);
+    g_assert(opt.signature == FOILMSG_SIGNATURE_DEFAULT);
 }
 
 static
@@ -511,45 +526,63 @@ static const TestFoilMsgConvertToBinary foilmsg_convert_tests[] = {
 };
 
 static const FoilMsgEncryptOptions options_invalid_key_type = {
-    (FOILMSG_KEY_TYPE)-1, 0, FOILMSG_CIPHER_DEFAULT
+    (FOILMSG_KEY_TYPE)-1, 0, FOILMSG_CIPHER_DEFAULT,
+    FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_invalid_enc_cipher = {
-    FOILMSG_KEY_TYPE_DEFAULT, 0, (FOILMSG_CIPHER)-1
+    FOILMSG_KEY_TYPE_DEFAULT, 0, (FOILMSG_CIPHER)-1,
+    FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_128 = {
-    FOILMSG_KEY_AES_128, 0, FOILMSG_CIPHER_DEFAULT
+    FOILMSG_KEY_AES_128, 0, FOILMSG_CIPHER_DEFAULT,
+    FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_128_self = {
     FOILMSG_KEY_AES_128, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CBC
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_128_cfb_self = {
     FOILMSG_KEY_AES_128, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CFB
+    FOILMSG_CIPHER_AES_CFB, FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_192_self = {
     FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CBC
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_192_cfb_self = {
     FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CBC
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_256_self = {
     FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CBC
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_256_cfb_self = {
     FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CBC
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
+};
+
+static const FoilMsgEncryptOptions options_aes_256_sha1_rsa = {
+    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_SHA1_RSA
+};
+
+static const FoilMsgEncryptOptions options_aes_256_sha256_rsa = {
+    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_SHA256_RSA
+};
+
+static const FoilMsgEncryptOptions options_aes_256_invalid_sig_alg = {
+    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC, (FOILMSG_SIGNATURE)-1
 };
 
 static const TestFoilMsg foilmsg_tests[] = {
@@ -613,6 +646,21 @@ static const TestFoilMsg foilmsg_tests[] = {
         "Sender won't be able to decrypt this",
         { "rsa-768", "rsa-768.pub", "rsa-768", "rsa-1024.pub" },
         &options_aes_128, TEST_DECRYPT_ERROR
+    },{
+        TEST_("Signature/SHA1"), test_foilmsg_text,
+         "Test of SHA1/RSA signature",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_256_sha1_rsa
+    },{
+        TEST_("Signature/SHA256"), test_foilmsg_text,
+         "Test of SHA256/RSA signature",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_256_sha256_rsa
+    },{
+        TEST_("Signature/Invalid"), test_foilmsg_text,
+         "Test of invalid signature algorithm",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_256_invalid_sig_alg, TEST_ENCRYPT_ERROR
     },{
         TEST_("FingerprintCheckFailure"), test_foilmsg_text,
         "Fingerprint check is going to fail",
@@ -1680,6 +1728,7 @@ int main(int argc, char* argv[])
     guint i;
     g_test_init(&argc, &argv, NULL);
     g_test_add_func(TEST_("Invalid"), test_foilmsg_invalid);
+    g_test_add_func(TEST_("Options"), test_foilmsg_options);
     g_test_add_func(TEST_("DecryptFile"), test_foilmsg_decrypt_file);
     g_test_add_func(TEST_("EncryptSelf"), test_foilmsg_encrypt_self);
     for (i = 0; i < G_N_ELEMENTS(foilmsg_convert_tests); i++) {

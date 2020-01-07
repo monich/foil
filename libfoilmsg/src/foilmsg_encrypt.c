@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -305,7 +305,8 @@ void
 foilmsg_encode_part5(
     FoilOutput* out,
     FoilPrivateKey* sender,
-    GBytes* digest)
+    GBytes* digest,
+    int tag)
 {
     gsize len;
     const void* data = g_bytes_get_data(digest, &len);
@@ -313,9 +314,8 @@ foilmsg_encode_part5(
     g_byte_array_set_size(buf, 2*len);
     memcpy(buf->data, data, len);
     foil_random(buf->data + len, len);
-    foilmsg_encode_unref_tagged_data(out, FOILMSG_SIGNATURE_FORMAT,
-        foil_cipher_data(FOIL_CIPHER_RSA_ENCRYPT, FOIL_KEY(sender),
-            buf->data, buf->len));
+    foilmsg_encode_unref_tagged_data(out, tag, foil_cipher_data
+        (FOIL_CIPHER_RSA_ENCRYPT, FOIL_KEY(sender), buf->data, buf->len));
     g_byte_array_free(buf, TRUE);
 }
 
@@ -325,7 +325,7 @@ foilmsg_encrypt_generate_key(
     const FoilMsgEncryptOptions* opt,
     int* tag)
 {
-    GType type;
+    GType type = 0; /* Will remain zero if we miss all the cases */
     switch (opt ? opt->key_type : FOILMSG_KEY_TYPE_DEFAULT) {
     case FOILMSG_KEY_AES_128:
         type = FOIL_KEY_AES128;
@@ -339,8 +339,6 @@ foilmsg_encrypt_generate_key(
         type = FOIL_KEY_AES256;
         *tag = FOILMSG_ENCRYPT_KEY_FORMAT_AES256;
         break;
-    default:
-        return NULL;
     }
     return foil_key_generate_new(type, FOIL_KEY_BITS_DEFAULT);
 }
@@ -352,7 +350,7 @@ foilmsg_encrypt_cipher(
     FoilKey* key,
     int* tag)
 {
-    GType type;
+    GType type = 0; /* Will remain zero if we miss all the cases */
     switch (opt ? opt->cipher : FOILMSG_CIPHER_DEFAULT) {
     case FOILMSG_CIPHER_AES_CBC:
         type = FOIL_CIPHER_AES_CBC_ENCRYPT;
@@ -362,10 +360,46 @@ foilmsg_encrypt_cipher(
         type = FOIL_CIPHER_AES_CFB_ENCRYPT;
         *tag = FOILMSG_ENCRYPT_FORMAT_AES_CFB;
         break;
-    default:
-        return NULL;
     }
     return foil_cipher_new(type, key);
+}
+
+static
+FoilDigest*
+foilmsg_encrypt_signature_digest(
+    const FoilMsgEncryptOptions* opt,
+    int* tag)
+{
+    GType type = 0; /* Will remain zero if we miss all the cases */
+    switch (opt ? opt->signature : FOILMSG_SIGNATURE_DEFAULT) {
+    case FOILMSG_SIGNATURE_MD5_RSA:
+        type = FOIL_DIGEST_MD5;
+        *tag = FOILMSG_SIGNATURE_FORMAT_MD5_RSA;
+        break;
+    case FOILMSG_SIGNATURE_SHA1_RSA:
+        type = FOIL_DIGEST_SHA1;
+        *tag = FOILMSG_SIGNATURE_FORMAT_SHA1_RSA;
+        break;
+    case FOILMSG_SIGNATURE_SHA256_RSA:
+        type = FOIL_DIGEST_SHA256;
+        *tag = FOILMSG_SIGNATURE_FORMAT_SHA256_RSA;
+        break;
+    }
+    return foil_digest_new(type);
+}
+
+/* Initialize default options */
+FoilMsgEncryptOptions*
+foilmsg_encrypt_defaults(
+    FoilMsgEncryptOptions* opt)
+{
+    if (opt) {
+        opt->key_type = FOILMSG_KEY_TYPE_DEFAULT;
+        opt->flags = 0;
+        opt->cipher = FOILMSG_CIPHER_DEFAULT;
+        opt->signature = FOILMSG_SIGNATURE_DEFAULT;
+    }
+    return opt;
 }
 
 /* Encrypt to the binary format */
@@ -383,12 +417,12 @@ foilmsg_encrypt(
     gboolean ok = FALSE;
     gsize prev_written = foil_output_bytes_written(out);
     gboolean for_self = opt && (opt->flags & FOILMSG_FLAG_ENCRYPT_FOR_SELF);
-    int ktag = 0, ctag = 0;
+    int ktag = 0, ctag = 0, stag = 0;
     FoilKey* key = foilmsg_encrypt_generate_key(opt, &ktag);
     FoilCipher* cipher = foilmsg_encrypt_cipher(opt, key, &ctag);
-    if (G_LIKELY(cipher) && G_LIKELY(out) && G_LIKELY(data) &&
+    FoilDigest* md = foilmsg_encrypt_signature_digest(opt, &stag);
+    if (G_LIKELY(cipher) && G_LIKELY(out) && G_LIKELY(data) && G_LIKELY(md) &&
         G_LIKELY(sender) && G_LIKELY(recipient || for_self)) {
-        FoilDigest* md = foil_digest_new(FOIL_DIGEST_MD5);
         GBytes* key_bytes = foil_key_to_bytes(key);
 
         /* part4 could be large and may point to a temporary file */
@@ -438,7 +472,7 @@ foilmsg_encrypt(
                 /* Part 3 - encrypted keys */
                 foilmsg_encode_part3(part3, pubkeys, key_bytes, ktag);
                 /* Part 5 - Signature of part 4 */
-                foilmsg_encode_part5(part5, sender, digest_bytes);
+                foilmsg_encode_part5(part5, sender, digest_bytes, stag);
 
                 bytes1 = foil_output_free_to_bytes(part1);
                 bytes2 = foil_output_free_to_bytes(part2);
@@ -470,9 +504,9 @@ foilmsg_encrypt(
         }
 
         g_bytes_unref(key_bytes);
-        foil_digest_unref(md);
     }
     foil_cipher_unref(cipher);
+    foil_digest_unref(md);
     foil_key_unref(key);
     return ok ? (foil_output_bytes_written(out) - prev_written) : 0;
 }
