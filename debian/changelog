@@ -1,3 +1,9 @@
+libfoil (1.0.19) unstable; urgency=low
+
+  * Added -D (signature digest) option to foilmsg and foilpng
+
+ -- Slava Monich <slava@monich.com>  Mon, 02 Dec 2019 17:34:44 +0200
+
 libfoil (1.0.18) unstable; urgency=low
 
   * Added support for AES CFB mode
