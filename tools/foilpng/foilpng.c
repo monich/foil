@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 by Slava Monich
+ * Copyright (C) 2017-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -407,6 +407,7 @@ main(
     char* pass = NULL;
     char* priv_key = NULL;
     char* pub_key = NULL;
+    char* digest = NULL;
     int key_size = 128;
     GOptionContext* options;
     GOptionGroup* encrypt_group;
@@ -421,8 +422,6 @@ main(
           "Public key of the other party", "FILE" },
         { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
           "Enable verbose output", NULL },
-        { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
-          "Encrypt to self and the recipient", NULL },
 #ifdef VERSION
         { "version", 0, 0, G_OPTION_ARG_NONE, &print_version,
           "Print version and exit", NULL },
@@ -434,6 +433,10 @@ main(
           "Content type", "TYPE" },
         { "bits", 'b', 0, G_OPTION_ARG_INT, &key_size,
           "Encryption key size (128, 192 or 256) [128]", "BITS" },
+        { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
+          "Encrypt to self and the recipient", NULL },
+        { "digest", 'D', 0, G_OPTION_ARG_STRING, &digest,
+          "Signature digest (MD5, SHA1 or SHA256) [MD5]", "DIGEST" },
         { NULL }
     };
     const char* summary =
@@ -633,8 +636,9 @@ main(
                         ret = foilpng_decode(pub, priv, in, out);
                     } else {
                         FoilMsgEncryptOptions opt;
-                        memset(&opt, 0, sizeof(opt));
+
                         /* Without a public key, encrypt to self */
+                        foilmsg_encrypt_defaults(&opt);
                         if (for_self || !pub) {
                             opt.flags |= FOILMSG_FLAG_ENCRYPT_FOR_SELF;
                         }
@@ -642,6 +646,21 @@ main(
                         default:  opt.key_type = FOILMSG_KEY_AES_128; break;
                         case 192: opt.key_type = FOILMSG_KEY_AES_192; break;
                         case 256: opt.key_type = FOILMSG_KEY_AES_256; break;
+                        }
+                        if (digest) {
+                            if (!g_ascii_strcasecmp(digest, "MD5") ||
+                                !g_ascii_strcasecmp(digest, "MD-5")) {
+                                opt.signature = FOILMSG_SIGNATURE_MD5_RSA;
+                            } else if (!g_ascii_strcasecmp(digest, "SHA1") ||
+                                !g_ascii_strcasecmp(digest, "SHA-1")) {
+                                opt.signature = FOILMSG_SIGNATURE_SHA1_RSA;
+                            } else if (!g_ascii_strcasecmp(digest, "SHA256") ||
+                                !g_ascii_strcasecmp(digest, "SHA-256")) {
+                                opt.signature = FOILMSG_SIGNATURE_SHA256_RSA;
+                            } else {
+                                GWARN("Invalid signature digest \"%s\", using "
+                                    "the default one (MD5)", digest);
+                            }
                         }
                         ret = foilpng_encode(pub, priv, in, type, in_file,
                             &opt, out);
@@ -676,6 +695,7 @@ main(
     g_free(pub_key);
     g_free(pass);
     g_free(type);
+    g_free(digest);
     return ret;
 }
 
