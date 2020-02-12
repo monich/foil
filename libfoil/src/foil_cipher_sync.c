@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2020 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,6 +26,8 @@
  * are those of the authors and should not be interpreted as representing
  * any official policies, either expressed or implied.
  */
+
+#define GLIB_DISABLE_DEPRECATION_WARNINGS
 
 #include "foil_cipher_sync.h"
 
