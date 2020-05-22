@@ -44,13 +44,13 @@ Command line encryption/decryption utilities.
 %setup -q
 
 %build
-make -C libfoil KEEP_SYMBOLS=1 release pkgconfig
-make -C tools KEEP_SYMBOLS=1 release
+make -C libfoil LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release pkgconfig
+make -C tools LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release
 
 %install
 rm -rf %{buildroot}
-make -C libfoil install-dev DESTDIR=%{buildroot}
-make -C tools install DESTDIR=%{buildroot}
+make -C libfoil DESTDIR=%{buildroot} LIBDIR=%{_libdir} install-dev
+make -C tools DESTDIR=%{buildroot} install
 
 %check
 make check

@@ -13,9 +13,11 @@ debian/foil-tools.debhelper.log
 debian/foil-tools.substvars
 debian/foil-tools
 debian/libfoil-dev.debhelper.log
+debian/libfoil-dev.install
 debian/libfoil-dev.substvars
 debian/libfoil-dev
 debian/libfoil.debhelper.log
+debian/libfoil.install
 debian/libfoil.postinst.debhelper
 debian/libfoil.postrm.debhelper
 debian/libfoil.substvars

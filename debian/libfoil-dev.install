@@ -1,3 +1,0 @@
-debian/tmp/usr/lib/libfoil.so usr/lib
-libfoil/include/*.h usr/include/foil
-libfoil/build/libfoil.pc usr/lib/pkgconfig

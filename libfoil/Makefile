@@ -116,7 +116,7 @@ IMPL_COVERAGE_BUILD_DIR = $(COVERAGE_BUILD_DIR)/$(IMPL)
 # Tools and flags
 #
 
-CC = $(CROSS_COMPILE)gcc
+CC ?= $(CROSS_COMPILE)gcc
 LD = $(CC)
 WARNINGS = -Wall
 INCLUDES = -I$(INCLUDE_DIR) -I$(SRC_DIR)
@@ -129,10 +129,7 @@ DEBUG_FLAGS = -g
 RELEASE_FLAGS =
 COVERAGE_FLAGS = -g
 
-ifndef KEEP_SYMBOLS
-KEEP_SYMBOLS = 0
-endif
-
+KEEP_SYMBOLS ?= 0
 ifneq ($(KEEP_SYMBOLS),0)
 RELEASE_FLAGS += -g
 endif
@@ -196,8 +193,6 @@ debug: $(DEBUG_LIB) $(DEBUG_SO) $(DEBUG_LINK)
 release: $(RELEASE_LIB) $(RELEASE_SO) $(RELEASE_LINK)
 
 coverage: $(COVERAGE_LIB)
-
-pkgconfig: $(PKGCONFIG)
 
 print_debug_so:
 	@echo $(DEBUG_SO)
@@ -292,8 +287,14 @@ $(DEBUG_LINK):
 $(RELEASE_LINK):
 	ln -sf $(LIB_SO) $@
 
+# This one could be substituted with arch specific dir
+LIBDIR ?= /usr/lib
+ALIBDIR := $(shell echo /$(LIBDIR) | sed -r 's|/+|/|g')
+
+pkgconfig: $(PKGCONFIG)
+
 $(PKGCONFIG): $(LIB_NAME).pc.in
-	sed -e 's/\[version\]/'$(PCVERSION)/g $< > $@
+	sed -e 's|@version@|$(PCVERSION)|g' -e 's|@libdir@|$(ALIBDIR)|' $< > $@
 
 #
 # Install
@@ -303,9 +304,9 @@ INSTALL = install
 INSTALL_DIRS = $(INSTALL) -d
 INSTALL_FILES = $(INSTALL) -m 644
 
-INSTALL_LIB_DIR = $(DESTDIR)/usr/lib
+INSTALL_LIB_DIR = $(DESTDIR)$(ALIBDIR)
 INSTALL_INCLUDE_DIR = $(DESTDIR)/usr/include/$(NAME)
-INSTALL_PKGCONFIG_DIR = $(DESTDIR)/usr/lib/pkgconfig
+INSTALL_PKGCONFIG_DIR = $(DESTDIR)$(ALIBDIR)/pkgconfig
 
 install: $(INSTALL_LIB_DIR)
 	$(INSTALL_FILES) $(RELEASE_SO) $(INSTALL_LIB_DIR)

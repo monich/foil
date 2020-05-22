@@ -4,6 +4,14 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+LIBDIR=usr/lib/$(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+override_dh_auto_build:
+	dh_auto_build -- LIBDIR=$(LIBDIR) release pkgconfig
+
+override_dh_auto_install:
+	dh_auto_install -- LIBDIR=$(LIBDIR) install
+
 override_dh_auto_test:
 	make -C test test
 

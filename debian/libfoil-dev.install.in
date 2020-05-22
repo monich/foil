@@ -1,0 +1,3 @@
+debian/tmp/@LIBDIR@/libfoil.so @LIBDIR@
+debian/tmp/@LIBDIR@/pkgconfig/libfoil.pc @LIBDIR@/pkgconfig
+debian/tmp/usr/include/* usr/include/
