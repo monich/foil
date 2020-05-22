@@ -1,8 +1,14 @@
+libfoil (1.0.20) unstable; urgency=low
+
+  * Respect arch specific lib dir
+
+ -- Slava Monich <slava@monich.com>  Fri, 22 May 2020 19:08:39 +0300
+
 libfoil (1.0.19) unstable; urgency=low
 
   * Added -D (signature digest) option to foilmsg and foilpng
 
- -- Slava Monich <slava@monich.com>  Mon, 02 Dec 2019 17:34:44 +0200
+ -- Slava Monich <slava@monich.com>  Tue, 07 Jan 2020 19:33:39 +0200
 
 libfoil (1.0.18) unstable; urgency=low
 
