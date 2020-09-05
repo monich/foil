@@ -80,7 +80,7 @@ foil_key_aes_generate_any(
     guint bits)
 {
     switch (bits) {
-    case FOIL_KEY_BITS_DEFAULT: bits = 128; /* no break */
+    case FOIL_KEY_BITS_DEFAULT: bits = 128; /* fallthrough */
     case 128: return foil_key_aes_generate(FOIL_KEY_AES128, bits);
     case 192: return foil_key_aes_generate(FOIL_KEY_AES192, bits);
     case 256: return foil_key_aes_generate(FOIL_KEY_AES256, bits);
