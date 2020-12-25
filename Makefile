@@ -24,7 +24,7 @@ clean:
 	rm -fr debian/tmp debian/libfoil debian/libfoil-dev
 	rm -f documentation.list debian/files debian/*.substvars
 	rm -f debian/*.debhelper.log debian/*.debhelper debian/*~
-	rm $(GEN_INSTALL_FILES)
+	rm -f $(GEN_INSTALL_FILES)
 
 pkgconfig:
 	make LIBDIR="$(LIBDIR)" -C libfoil pkgconfig
