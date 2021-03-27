@@ -1,3 +1,10 @@
+libfoil (1.0.21) unstable; urgency=low
+
+  * Fixed compilation warnings
+  * Don't fail build if generated files are missing
+
+ -- Slava Monich <slava@monich.com>  Sat, 27 Mar 2021 04:02:05 +0200
+
 libfoil (1.0.20) unstable; urgency=low
 
   * Respect arch specific lib dir
