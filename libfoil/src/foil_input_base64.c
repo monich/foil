@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -277,11 +277,11 @@ foil_input_base64_read(
         case 4:
             self->buffered++;
             self->buf[--off] = ((chunk[2]<<6)&0xC0) | (chunk[3]&0x3F);
-            /* no break */
+            /* fallthrough */
         case 3:
             self->buffered++;
             self->buf[--off] = ((chunk[1]<<4)&0xF0) | ((chunk[2]>>2)&0x0F);
-            /* no break */
+            /* fallthrough */
         case 2:
             self->buffered++;
             self->buf[--off] = ((chunk[0]<<2)&0xFC) | ((chunk[1]>>4)&0x03);

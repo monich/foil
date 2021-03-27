@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -769,9 +769,9 @@ foil_asn1_encode_integer(
     bytes.val = data;
     bytes.len = 0;
     switch (len) {
-    case 4: data[bytes.len++] = (guint8)(value >> 24);
-    case 3: data[bytes.len++] = (guint8)(value >> 16);
-    case 2: data[bytes.len++] = (guint8)(value >> 8);
+    case 4: data[bytes.len++] = (guint8)(value >> 24); /* fallthrough */
+    case 3: data[bytes.len++] = (guint8)(value >> 16); /* fallthrough */
+    case 2: data[bytes.len++] = (guint8)(value >> 8);  /* fallthrough */
     case 1: data[bytes.len++] = (guint8)(value);
     }
     return foil_asn1_encode_integer_bytes(out, &bytes);

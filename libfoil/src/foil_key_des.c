@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Slava Monich
+ * Copyright (C) 2019-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -166,7 +166,7 @@ foil_key_des_generate(
         guint8 key2[FOIL_DES_KEY_SIZE];
         guint8 key3[FOIL_DES_KEY_SIZE];
         switch (bits) {
-        case FOIL_KEY_BITS_DEFAULT: bits = FOIL_DES_KEY_BITS*3; /* no break */
+        case FOIL_KEY_BITS_DEFAULT: bits = FOIL_DES_KEY_BITS*3; /* fallthrough */
         case FOIL_DES_KEY_BITS*3:
             /* Keying option 1 */
             if (foil_key_des_generate_key(klass, key1) &&
