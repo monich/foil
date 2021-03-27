@@ -23,6 +23,7 @@ debian/libfoil.postrm.debhelper
 debian/libfoil.substvars
 debian/libfoil
 debian/tmp
+debian/.debhelper
 documentation.list
 installroot
 build
