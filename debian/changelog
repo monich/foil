@@ -1,3 +1,9 @@
+libfoil (1.0.22) unstable; urgency=low
+
+  * Added support for SHA512
+
+ -- Slava Monich <slava@monich.com>  Sun, 18 Apr 2021 02:23:14 +0300
+
 libfoil (1.0.21) unstable; urgency=low
 
   * Fixed compilation warnings
