@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -383,6 +383,10 @@ foilmsg_encrypt_signature_digest(
     case FOILMSG_SIGNATURE_SHA256_RSA:
         type = FOIL_DIGEST_SHA256;
         *tag = FOILMSG_SIGNATURE_FORMAT_SHA256_RSA;
+        break;
+    case FOILMSG_SIGNATURE_SHA512_RSA:
+        type = FOIL_DIGEST_SHA512;
+        *tag = FOILMSG_SIGNATURE_FORMAT_SHA512_RSA;
         break;
     }
     return foil_digest_new(type);

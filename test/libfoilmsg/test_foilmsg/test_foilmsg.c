@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -580,6 +580,11 @@ static const FoilMsgEncryptOptions options_aes_256_sha256_rsa = {
     FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_SHA256_RSA
 };
 
+static const FoilMsgEncryptOptions options_aes_256_sha512_rsa = {
+    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_SHA512_RSA
+};
+
 static const FoilMsgEncryptOptions options_aes_256_invalid_sig_alg = {
     FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
     FOILMSG_CIPHER_AES_CBC, (FOILMSG_SIGNATURE)-1
@@ -656,6 +661,11 @@ static const TestFoilMsg foilmsg_tests[] = {
          "Test of SHA256/RSA signature",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_aes_256_sha256_rsa
+    },{
+        TEST_("Signature/SHA512"), test_foilmsg_text,
+         "Test of SHA512/RSA signature",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_256_sha512_rsa
     },{
         TEST_("Signature/Invalid"), test_foilmsg_text,
          "Test of invalid signature algorithm",

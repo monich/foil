@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 by Slava Monich
+ * Copyright (C) 2017-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -436,7 +436,7 @@ main(
         { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
           "Encrypt to self and the recipient", NULL },
         { "digest", 'D', 0, G_OPTION_ARG_STRING, &digest,
-          "Signature digest (MD5, SHA1 or SHA256) [MD5]", "DIGEST" },
+          "Signature digest (MD5, SHA1, SHA256 or SHA512) [MD5]", "DIGEST" },
         { NULL }
     };
     const char* summary =
@@ -657,6 +657,9 @@ main(
                             } else if (!g_ascii_strcasecmp(digest, "SHA256") ||
                                 !g_ascii_strcasecmp(digest, "SHA-256")) {
                                 opt.signature = FOILMSG_SIGNATURE_SHA256_RSA;
+                            } else if (!g_ascii_strcasecmp(digest, "SHA512") ||
+                                !g_ascii_strcasecmp(digest, "SHA-512")) {
+                                opt.signature = FOILMSG_SIGNATURE_SHA512_RSA;
                             } else {
                                 GWARN("Invalid signature digest \"%s\", using "
                                     "the default one (MD5)", digest);

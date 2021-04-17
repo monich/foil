@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,6 +60,7 @@ typedef struct foilmsg_encrypt_key {
 #define FOILMSG_SIGNATURE_FORMAT_MD5_RSA    (1)
 #define FOILMSG_SIGNATURE_FORMAT_SHA1_RSA   (2)
 #define FOILMSG_SIGNATURE_FORMAT_SHA256_RSA (3)
+#define FOILMSG_SIGNATURE_FORMAT_SHA512_RSA (4)
 
 /* N.B. Must be freed with foilmsg_info_free */
 typedef struct foilmsg_info {
@@ -108,7 +109,8 @@ typedef enum foilmsg_cipher {
 typedef enum foilmsg_signature {
     FOILMSG_SIGNATURE_MD5_RSA,
     FOILMSG_SIGNATURE_SHA1_RSA,
-    FOILMSG_SIGNATURE_SHA256_RSA
+    FOILMSG_SIGNATURE_SHA256_RSA,
+    FOILMSG_SIGNATURE_SHA512_RSA
 } FOILMSG_SIGNATURE;
 
 #define FOILMSG_KEY_TYPE_DEFAULT (FOILMSG_KEY_AES_128)
