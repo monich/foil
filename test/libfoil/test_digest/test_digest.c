@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -114,7 +117,7 @@ static const guint8 test_sha1_data4[] = {
     0x4F,0x46,0x04,0x52
 };
 
-/* SHA256 examples from http://www.ietf.org/rfc/rfc4634 */
+/* SHA256 examples from https://www.ietf.org/rfc/rfc4634 */
 
 #define SHA256_TEST1    "abc"
 #define SHA256_TEST2a   "abcdbcdecdefdefgefghfghighij"
@@ -150,6 +153,65 @@ static const guint8 test_sha256_data4[] = {
     0x35,0xF2,0x5A,0xB5,0x56,0x2B,0xFB,0xB5
 };
 
+/* SHA512 examples from https://tools.ietf.org/html/rfc6234 */
+
+#define SHA512_TEST1    "abc"
+#define SHA512_TEST2_1  "abcdbcdecdefdefgefghfghighij" \
+                        "hijkijkljklmklmnlmnomnopnopq"
+#define SHA512_TEST2a   "abcdefghbcdefghicdefghijdefg" \
+                        "hijkefghijklfghijklmghijklmn"
+#define SHA512_TEST2b   "hijklmnoijklmnopjklmnopqklmn" \
+                        "opqrlmnopqrsmnopqrstnopqrstu"
+#define SHA512_TEST2    SHA512_TEST2a SHA512_TEST2b
+#define SHA512_TEST3    "a"
+#define SHA512_TEST4a   "01234567012345670123456701234567"
+#define SHA512_TEST4b   "01234567012345670123456701234567"
+#define SHA512_TEST4     SHA512_TEST4a SHA512_TEST4b
+
+static const guint8 test_sha512_data1[] = {
+    0xDD,0xAF,0x35,0xA1,0x93,0x61,0x7A,0xBA,
+    0xCC,0x41,0x73,0x49,0xAE,0x20,0x41,0x31,
+    0x12,0xE6,0xFA,0x4E,0x89,0xA9,0x7E,0xA2,
+    0x0A,0x9E,0xEE,0xE6,0x4B,0x55,0xD3,0x9A,
+    0x21,0x92,0x99,0x2A,0x27,0x4F,0xC1,0xA8,
+    0x36,0xBA,0x3C,0x23,0xA3,0xFE,0xEB,0xBD,
+    0x45,0x4D,0x44,0x23,0x64,0x3C,0xE8,0x0E,
+    0x2A,0x9A,0xC9,0x4F,0xA5,0x4C,0xA4,0x9F
+};
+
+static const guint8 test_sha512_data2[] = {
+    0x8E,0x95,0x9B,0x75,0xDA,0xE3,0x13,0xDA,
+    0x8C,0xF4,0xF7,0x28,0x14,0xFC,0x14,0x3F,
+    0x8F,0x77,0x79,0xC6,0xEB,0x9F,0x7F,0xA1,
+    0x72,0x99,0xAE,0xAD,0xB6,0x88,0x90,0x18,
+    0x50,0x1D,0x28,0x9E,0x49,0x00,0xF7,0xE4,
+    0x33,0x1B,0x99,0xDE,0xC4,0xB5,0x43,0x3A,
+    0xC7,0xD3,0x29,0xEE,0xB6,0xDD,0x26,0x54,
+    0x5E,0x96,0xE5,0x5B,0x87,0x4B,0xE9,0x09
+};
+
+static const guint8 test_sha512_data3[] = {
+    0xE7,0x18,0x48,0x3D,0x0C,0xE7,0x69,0x64,
+    0x4E,0x2E,0x42,0xC7,0xBC,0x15,0xB4,0x63,
+    0x8E,0x1F,0x98,0xB1,0x3B,0x20,0x44,0x28,
+    0x56,0x32,0xA8,0x03,0xAF,0xA9,0x73,0xEB,
+    0xDE,0x0F,0xF2,0x44,0x87,0x7E,0xA6,0x0A,
+    0x4C,0xB0,0x43,0x2C,0xE5,0x77,0xC3,0x1B,
+    0xEB,0x00,0x9C,0x5C,0x2C,0x49,0xAA,0x2E,
+    0x4E,0xAD,0xB2,0x17,0xAD,0x8C,0xC0,0x9B
+};
+
+static const guint8 test_sha512_data4[] = {
+    0x89,0xD0,0x5B,0xA6,0x32,0xC6,0x99,0xC3,
+    0x12,0x31,0xDE,0xD4,0xFF,0xC1,0x27,0xD5,
+    0xA8,0x94,0xDA,0xD4,0x12,0xC0,0xE0,0x24,
+    0xDB,0x87,0x2D,0x1A,0xBD,0x2B,0xA8,0x14,
+    0x1A,0x0F,0x85,0x07,0x2A,0x9B,0xE1,0xE2,
+    0xAA,0x04,0xCF,0x33,0xC7,0x65,0xCB,0x51,
+    0x08,0x13,0xA3,0x9C,0xD5,0xA8,0x4C,0x4A,
+    0xCA,0xA6,0x4D,0x3F,0x3F,0xB7,0xBA,0xE9
+};
+
 static
 void
 test_basic(
@@ -177,10 +239,11 @@ test_basic(
     g_assert(!foil_digest_bytes(0, NULL));
     g_assert(!foil_digest_bytes(0, bytes));
     g_assert(!foil_digest_type_block_size(FOIL_TYPE_DIGEST));
-    g_assert(foil_digest_type_block_size(FOIL_DIGEST_MD5) == 64u);
-    g_assert(foil_digest_type_block_size(FOIL_DIGEST_SHA1) == 64u);
-    g_assert(foil_digest_type_block_size(FOIL_DIGEST_SHA256) == 64u);
-    g_assert(foil_digest_block_size(md5) == 64u);
+    g_assert_cmpuint(foil_digest_type_block_size(FOIL_DIGEST_MD5), == ,64);
+    g_assert_cmpuint(foil_digest_type_block_size(FOIL_DIGEST_SHA1), == ,64);
+    g_assert_cmpuint(foil_digest_type_block_size(FOIL_DIGEST_SHA256), == ,64);
+    g_assert_cmpuint(foil_digest_type_block_size(FOIL_DIGEST_SHA512), == ,128);
+    g_assert_cmpuint(foil_digest_block_size(md5), == ,64);
     foil_digest_update(NULL, NULL, 0);
     foil_digest_update_bytes(NULL, NULL);
     foil_digest_update_bytes(md5, NULL);
@@ -291,6 +354,20 @@ test_copy(
 
     foil_digest_unref(d1);
     foil_digest_unref(d2);
+
+    /* SHA512 */
+    d1 = foil_digest_new_sha512();
+    d2 = foil_digest_new_sha512();
+    foil_digest_update(d1, SHA512_TEST1, strlen(SHA512_TEST1));
+    g_assert(foil_digest_copy(d1, d2));
+    foil_digest_update(d1, SHA512_TEST2, strlen(SHA512_TEST2));
+    b1 = foil_digest_finish(d1);
+    g_assert(g_bytes_get_size(b1) == sizeof(test_sha512_data2));
+    g_assert(!memcmp(g_bytes_get_data(b1, NULL), test_sha512_data2,
+        sizeof(test_sha512_data2)));
+
+    foil_digest_unref(d1);
+    foil_digest_unref(d2);
 }
 
 static
@@ -349,6 +426,7 @@ test_digest(
 #define TEST_MD5(i,n) TEST_(MD5,md5,i,n)
 #define TEST_SHA1(i,n) TEST_(SHA1,sha1,i,n)
 #define TEST_SHA256(i,n) TEST_(SHA256,sha256,i,n)
+#define TEST_SHA512(i,n) TEST_(SHA512,sha512,i,n)
 
 static const TestDigest tests[] = {
     { TEST_NAME("Basic"), test_basic },
@@ -371,7 +449,12 @@ static const TestDigest tests[] = {
     TEST_SHA256(1,1),
     TEST_SHA256(2,1),
     TEST_SHA256(3,1000000),
-    TEST_SHA256(4,10)
+    TEST_SHA256(4,10),
+    /* SHA512 */
+    TEST_SHA512(1,1),
+    TEST_SHA512(2,1),
+    TEST_SHA512(3,1000000),
+    TEST_SHA512(4,10)
 };
 
 int main(int argc, char* argv[])

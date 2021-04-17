@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -55,20 +58,24 @@ typedef struct foil_digest_class {
 typedef FoilDigest FoilDigestMD5;
 typedef FoilDigest FoilDigestSHA1;
 typedef FoilDigest FoilDigestSHA256;
+typedef FoilDigest FoilDigestSHA512;
 
 typedef FoilDigestClass FoilDigestMD5Class;
 typedef FoilDigestClass FoilDigestSHA1Class;
 typedef FoilDigestClass FoilDigestSHA256Class;
+typedef FoilDigestClass FoilDigestSHA512Class;
 
 /* Abstract types */
 GType foil_digest_get_type(void);
 GType foil_digest_md5_get_type(void);
 GType foil_digest_sha1_get_type(void);
 GType foil_digest_sha256_get_type(void);
+GType foil_digest_sha512_get_type(void);
 #define FOIL_TYPE_DIGEST (foil_digest_get_type())
 #define FOIL_TYPE_DIGEST_MD5 (foil_digest_md5_get_type())
 #define FOIL_TYPE_DIGEST_SHA1 (foil_digest_sha1_get_type())
 #define FOIL_TYPE_DIGEST_SHA256 (foil_digest_sha256_get_type())
+#define FOIL_TYPE_DIGEST_SHA512 (foil_digest_sha512_get_type())
 
 #define FOIL_DIGEST_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
         FOIL_TYPE_DIGEST, FoilDigestClass))

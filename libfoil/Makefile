@@ -57,6 +57,7 @@ SRC = \
   foil_digest_md5.c \
   foil_digest_sha1.c \
   foil_digest_sha256.c \
+  foil_digest_sha512.c \
   foil_hmac.c \
   foil_input.c \
   foil_input_base64.c \
@@ -91,6 +92,7 @@ IMPL_SRC = \
   foil_openssl_digest_md5.c \
   foil_openssl_digest_sha1.c \
   foil_openssl_digest_sha256.c \
+  foil_openssl_digest_sha512.c \
   foil_openssl_key_des.c \
   foil_openssl_key_rsa_private.c \
   foil_openssl_key_rsa_public.c \

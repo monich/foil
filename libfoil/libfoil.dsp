@@ -124,6 +124,10 @@ SOURCE=.\src\foil_digest_sha256.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\foil_digest_sha512.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\foil_hmac.c
 # End Source File
 # Begin Source File
@@ -401,6 +405,10 @@ SOURCE=.\src\openssl\foil_openssl_digest_sha1.c
 # Begin Source File
 
 SOURCE=.\src\openssl\foil_openssl_digest_sha256.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\openssl\foil_openssl_digest_sha512.c
 # End Source File
 # Begin Source File
 

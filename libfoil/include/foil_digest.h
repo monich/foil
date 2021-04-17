@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,6 +11,9 @@
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -110,13 +113,16 @@ foil_digest_free_to_bytes(
 GType foil_impl_digest_md5_get_type(void);
 GType foil_impl_digest_sha1_get_type(void);
 GType foil_impl_digest_sha256_get_type(void);
+GType foil_impl_digest_sha512_get_type(void); /* Since 1.0.22 */
 #define FOIL_DIGEST_MD5 (foil_impl_digest_md5_get_type())
 #define FOIL_DIGEST_SHA1 (foil_impl_digest_sha1_get_type())
 #define FOIL_DIGEST_SHA256 (foil_impl_digest_sha256_get_type())
+#define FOIL_DIGEST_SHA512 (foil_impl_digest_sha512_get_type())
 
 #define foil_digest_new_md5() foil_digest_new(FOIL_DIGEST_MD5)
 #define foil_digest_new_sha1() foil_digest_new(FOIL_DIGEST_SHA1)
 #define foil_digest_new_sha256() foil_digest_new(FOIL_DIGEST_SHA256)
+#define foil_digest_new_sha512() foil_digest_new(FOIL_DIGEST_SHA512)
 
 G_END_DECLS
 
