@@ -1,26 +1,31 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -170,7 +175,7 @@ void
 test_skip(
     void)
 {
-    FoilParsePos pos;
+    GUtilRange pos;
     static const FoilBytes bytes = { (const void*)"xyz", 3 };
 
     /* Test NULL resistance */
@@ -221,7 +226,7 @@ test_format_header_1(
     const char* value,
     const char* expected)
 {
-    FoilParsePos pos;
+    GUtilRange pos;
     GHashTable* headers;
     char* header = foil_format_header(tag, value);
 
@@ -314,7 +319,7 @@ test_parse_headers(
     void)
 {
     GString* buf = g_string_new(NULL);
-    FoilParsePos pos;
+    GUtilRange pos;
     GHashTable* headers;
 
     foil_parse_init_string(&pos, "");
@@ -345,7 +350,7 @@ test_base64(
     static const guint8 a[] = { 0x01 };
     static const guint8 b[] = { 0x01, 0x02 };
     static const guint8 c[] = { 0x01, 0x02, 0x03 };
-    FoilParsePos pos;
+    GUtilRange pos;
     GBytes* bytes;
 
     foil_parse_init_string(&pos, "AQ");
@@ -434,7 +439,7 @@ test_asn1_len(
     FoilInput* in;
     guint32 len;
     gboolean def;
-    FoilParsePos pos;
+    GUtilRange pos;
 
     pos.ptr = pos.end = len_short;
     in = foil_input_mem_new(NULL);
@@ -626,7 +631,7 @@ test_asn1_seq(
     const FoilBytes bytes1 = { seq1 + 2, sizeof(seq1) - 2 };
     const FoilBytes bytes2 = { seq2 + 4, sizeof(seq2) - 4 };
     const FoilBytes* data1 = &bytes1;
-    FoilParsePos pos;
+    GUtilRange pos;
     guint32 len;
     FoilInput* in0 = foil_input_mem_new(NULL);
     FoilInput* in1 = foil_input_mem_new_static(seq1, sizeof(seq1));
@@ -747,7 +752,7 @@ test_asn1_bit_string(
 
     guint i;
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     static const guint8 not_bit_string[] = { 0x00 };
     static const guint8 broken_bit_string[] = { 0x03, 0x82, 0x01 };
     static const guint8 broken_bit_string2[] = { 0x03, 0x00 };
@@ -959,7 +964,7 @@ test_asn1_octet_string2(
 
     guint i;
     for (i=0; i<G_N_ELEMENTS(subtest); i++) {
-        FoilParsePos pos, pos2;
+        GUtilRange pos, pos2;
         FoilBytes bytes;
         gboolean expected = subtest[i].good;
         pos.ptr = subtest[i].data;
@@ -1021,7 +1026,7 @@ test_asn1_ia5_string(
         gsize length;
         FoilInput* in = foil_input_mem_new_static(subtest->data, subtest->len);
         char* str = foil_asn1_read_ia5_string(in, -1, &length);
-        FoilParsePos pos, pos2;
+        GUtilRange pos, pos2;
         FoilBytes bytes;
         gboolean expected = subtest->good;
         pos.ptr = subtest->data;
@@ -1120,7 +1125,7 @@ test_asn1_integer(
         const struct asn1_int_test* subtest = number + i;
         FoilInput* in1 = foil_input_mem_new_static(subtest->data, subtest->len);
         FoilInput* in2 = foil_input_mem_new_static(subtest->data, subtest->len);
-        FoilParsePos pos, pos1;
+        GUtilRange pos, pos1;
         gint32 value;
         if (subtest->ok) {
             GBytes* enc1 = foil_asn1_encode_integer_value(subtest->value);

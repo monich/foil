@@ -1,26 +1,31 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -168,7 +173,7 @@ foil_abstract_class_ref(
 
 gsize
 foil_parse_init_data(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     const FoilBytes* data)
 {
     if (data) {
@@ -182,7 +187,7 @@ foil_parse_init_data(
 
 gsize
 foil_parse_init_bytes(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     GBytes* bytes)
 {
     if (bytes) {
@@ -198,7 +203,7 @@ foil_parse_init_bytes(
 
 gsize
 foil_parse_init_string(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     const char* str)
 {
     if (pos) {
@@ -216,7 +221,7 @@ foil_parse_init_string(
 
 void
 foil_parse_skip_spaces(
-    FoilParsePos* pos)
+    GUtilRange* pos)
 {
     while (pos->ptr < pos->end && isspace(pos->ptr[0])) {
         pos->ptr++;
@@ -226,7 +231,7 @@ foil_parse_skip_spaces(
 static
 char
 foil_parse_skip_to_next_line2(
-    FoilParsePos* pos)
+    GUtilRange* pos)
 {
     char last = 0;
     while (pos->ptr < pos->end && *pos->ptr != '\r' && *pos->ptr != '\n') {
@@ -241,7 +246,7 @@ foil_parse_skip_to_next_line2(
 
 gboolean
 foil_parse_skip_to_next_line(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     gboolean continued)
 {
     char last = foil_parse_skip_to_next_line2(pos);
@@ -255,7 +260,7 @@ foil_parse_skip_to_next_line(
 
 gboolean
 foil_parse_skip_bytes(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     const FoilBytes* bytes)
 {
     if (pos->end >= pos->ptr + bytes->len &&
@@ -269,7 +274,7 @@ foil_parse_skip_bytes(
 static
 char
 foil_parse_read_line2(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     GString* buf,
     gboolean skip_spaces)
 {
@@ -294,7 +299,7 @@ foil_parse_read_line2(
 static
 gsize
 foil_parse_read_line(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     GString* buf)
 {
     char last;
@@ -312,7 +317,7 @@ foil_parse_read_line(
 static
 gsize
 foil_parse_read_tag_line(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     GString* buf)
 {
     /* Skip empty lines */
@@ -337,7 +342,7 @@ foil_parse_read_tag_line(
 
 GHashTable*
 foil_parse_headers(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     GString* buf)
 {
     GHashTable* headers = NULL;
@@ -448,7 +453,7 @@ foil_param_add(
 
 GBytes*
 foil_parse_base64(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint flags)
 {
     FoilInput* mem = foil_input_mem_new_static(pos->ptr, pos->end - pos->ptr);

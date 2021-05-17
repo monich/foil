@@ -5,22 +5,27 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -38,7 +43,7 @@
  */
 gboolean
 foil_asn1_parse_len(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint32* len,
     gboolean* def)
 {
@@ -90,7 +95,7 @@ foil_asn1_peek_len(
             const unsigned int n = x & 0x7f;
             ptr = foil_input_peek(in, off+n+1, &available);
             if (available >= (off+n+1)) {
-                FoilParsePos pos;
+                GUtilRange pos;
                 pos.ptr = ptr + off;
                 pos.end = pos.ptr + available - off;
                 if (foil_asn1_parse_len(&pos, len, def)) {
@@ -129,11 +134,11 @@ foil_asn1_read_len(
  */
 gboolean
 foil_asn1_is_block_header(
-    const FoilParsePos* pos,
+    const GUtilRange* pos,
     guint32* total_len)
 {
     if (pos->ptr < pos->end) {
-        FoilParsePos tmp = *pos;
+        GUtilRange tmp = *pos;
         guint32 data_len;
         gboolean def;
         tmp.ptr++;
@@ -151,7 +156,7 @@ foil_asn1_is_block_header(
 
 gboolean
 foil_asn1_is_sequence(
-    const FoilParsePos* pos)
+    const GUtilRange* pos)
 {
     return pos->ptr < pos->end &&
         (pos->ptr[0] & (~ASN1_CLASS_MASK)) ==
@@ -160,7 +165,7 @@ foil_asn1_is_sequence(
 
 gboolean
 foil_asn1_is_integer(
-    const FoilParsePos* pos)
+    const GUtilRange* pos)
 {
     return pos->ptr < pos->end &&
         (pos->ptr[0] & (~ASN1_CLASS_MASK)) == ASN1_TAG_INTEGER;
@@ -168,7 +173,7 @@ foil_asn1_is_integer(
 
 gboolean
 foil_asn1_is_bit_string(
-    const FoilParsePos* pos)
+    const GUtilRange* pos)
 {
     return pos->ptr < pos->end &&
         (pos->ptr[0] & (~ASN1_CLASS_MASK)) == ASN1_TAG_BIT_STRING;
@@ -176,7 +181,7 @@ foil_asn1_is_bit_string(
 
 gboolean
 foil_asn1_is_octet_string(
-    const FoilParsePos* pos)
+    const GUtilRange* pos)
 {
     return pos->ptr < pos->end &&
         (pos->ptr[0] & (~ASN1_CLASS_MASK)) == ASN1_TAG_OCTET_STRING;
@@ -184,7 +189,7 @@ foil_asn1_is_octet_string(
 
 gboolean
 foil_asn1_is_ia5_string(
-    const FoilParsePos* pos)
+    const GUtilRange* pos)
 {
     return pos->ptr < pos->end &&
         (pos->ptr[0] & (~ASN1_CLASS_MASK)) == ASN1_TAG_IA5_STRING;
@@ -193,10 +198,10 @@ foil_asn1_is_ia5_string(
 static
 gboolean
 foil_asn1_parse_skip_header(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint32* len)
 {
-    FoilParsePos tmp = *pos;
+    GUtilRange tmp = *pos;
     guint32 seq_len;
     gboolean def;
     tmp.ptr++;
@@ -210,7 +215,7 @@ foil_asn1_parse_skip_header(
 
 gboolean
 foil_asn1_parse_skip_sequence_header(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint32* len)
 {
     return foil_asn1_is_sequence(pos) &&
@@ -219,11 +224,11 @@ foil_asn1_parse_skip_sequence_header(
 
 gboolean
 foil_asn1_parse_start_sequence(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint32* len)
 {
     guint32 seq_len;
-    FoilParsePos tmp = *pos;
+    GUtilRange tmp = *pos;
     if (foil_asn1_parse_skip_sequence_header(&tmp, &seq_len) &&
         /* Overflow can occur on 32-bit systems */
         tmp.ptr + seq_len >= tmp.ptr &&
@@ -237,12 +242,12 @@ foil_asn1_parse_start_sequence(
 
 gboolean
 foil_asn1_parse_start_bit_string(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint32* num_bytes,
     guint8* unused_bits)
 {
     if (foil_asn1_is_bit_string(pos)) {
-        FoilParsePos tmp = *pos;
+        GUtilRange tmp = *pos;
         guint32 len;
         if (foil_asn1_parse_skip_header(&tmp, &len) &&
             /* Overflow can occur on 32-bit systems */
@@ -392,11 +397,11 @@ foil_asn1_read_ia5_string(
 
 gboolean
 foil_asn1_parse_integer_bytes(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     FoilBytes* bytes)
 {
     if (foil_asn1_is_integer(pos)) {
-        FoilParsePos tmp = *pos;
+        GUtilRange tmp = *pos;
         guint32 len;
         tmp.ptr++;
         /*
@@ -419,11 +424,11 @@ foil_asn1_parse_integer_bytes(
 
 gboolean
 foil_asn1_parse_int32(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     gint32* value)
 {
     FoilBytes bytes;
-    FoilParsePos tmp = *pos;
+    GUtilRange tmp = *pos;
     if (foil_asn1_parse_integer_bytes(&tmp, &bytes) && bytes.len <= 4) {
         if (value) {
             *value = foil_asn1_decode_int32(&bytes);
@@ -437,13 +442,13 @@ foil_asn1_parse_int32(
 static
 gboolean
 foil_asn1_parse_block(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint tag,
     FoilBytes* bytes)
 {
     if (pos->ptr < pos->end &&
         (pos->ptr[0] & (guint)(~ASN1_CLASS_MASK)) == tag) {
-        FoilParsePos tmp = *pos;
+        GUtilRange tmp = *pos;
         guint32 len;
         gboolean def;
         tmp.ptr++;
@@ -464,11 +469,11 @@ foil_asn1_parse_block(
 
 gboolean
 foil_asn1_parse_bit_string(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     FoilBytes* bytes,
     guint8* unused_bits)
 {
-    FoilParsePos tmp_pos = *pos;
+    GUtilRange tmp_pos = *pos;
     FoilBytes tmp_bytes;
     /* First byte - number of unused bits, always present */
     if (foil_asn1_parse_block(&tmp_pos, ASN1_TAG_BIT_STRING, &tmp_bytes) &&
@@ -487,7 +492,7 @@ foil_asn1_parse_bit_string(
 
 gboolean
 foil_asn1_parse_object_id(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     FoilBytes* oid_bytes)
 {
     return foil_asn1_parse_block(pos, ASN1_TAG_OBJECT_ID, oid_bytes);
@@ -495,7 +500,7 @@ foil_asn1_parse_object_id(
 
 gboolean
 foil_asn1_parse_octet_string(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     FoilBytes* bytes)
 {
     return foil_asn1_parse_block(pos, ASN1_TAG_OCTET_STRING, bytes);
@@ -503,7 +508,7 @@ foil_asn1_parse_octet_string(
 
 gboolean
 foil_asn1_parse_ia5_string(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     FoilBytes* bytes)
 {
     return foil_asn1_parse_block(pos, ASN1_TAG_IA5_STRING, bytes);

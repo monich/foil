@@ -1,29 +1,31 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
- *  3. Neither the names of the copyright holders nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -144,12 +146,12 @@ foilmsg_get_value(
 static
 gboolean
 foilmsg_decode_tagged_data(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     FoilMsgTaggedData* block)
 {
     guint32 len;
     if (foil_asn1_parse_start_sequence(pos, &len)) {
-        FoilParsePos seq;
+        GUtilRange seq;
         seq.ptr = pos->ptr;
         seq.end = pos->ptr + len;
         if (foil_asn1_parse_int32(&seq, &block->tag) &&
@@ -186,13 +188,13 @@ foilmsg_free_encrypt_key(
 static
 FoilMsgInfo*
 foilmsg_parse_encrypted_keys(
-    FoilParsePos* pos)
+    GUtilRange* pos)
 {
     FoilMsgInfo* msg = NULL;
     guint32 len;
     if (foil_asn1_parse_start_sequence(pos, &len)) {
         gint32 key_format;
-        FoilParsePos seq;
+        GUtilRange seq;
         seq.ptr = pos->ptr;
         seq.end = pos->ptr + len;
         if (foil_asn1_parse_int32(&seq, &key_format)) {
@@ -200,7 +202,7 @@ foilmsg_parse_encrypted_keys(
             GSList* keys = NULL;
             guint i, nkeys = 0;
             while (foil_asn1_parse_start_sequence(&seq, &len)) {
-                FoilParsePos seq2;
+                GUtilRange seq2;
                 seq2.ptr = seq.ptr;
                 seq2.end = seq.ptr + len;
                 key = g_slice_new(FoilMsgEncryptKey);
@@ -361,7 +363,7 @@ foilmsg_parse(
     const FoilBytes* bytes)
 {
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     pos.ptr = bytes->val;
     pos.end = pos.ptr + bytes->len;
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
@@ -621,7 +623,7 @@ foilmsg_to_binary(
 {
     GBytes* bytes = NULL;
     if (G_LIKELY(data)) {
-        FoilParsePos pos;
+        GUtilRange pos;
         pos.ptr = data->val;
         pos.end = pos.ptr + data->len;
         foil_parse_skip_spaces(&pos);
@@ -657,7 +659,7 @@ foilmsg_decrypt_text_bytes(
 {
     FoilMsg* ret = NULL;
     if (G_LIKELY(recipient) && G_LIKELY(text)) {
-        FoilParsePos pos;
+        GUtilRange pos;
         pos.ptr = text->val;
         pos.end = pos.ptr + text->len;
         foil_parse_skip_spaces(&pos);

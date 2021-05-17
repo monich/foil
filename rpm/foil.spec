@@ -10,12 +10,13 @@ Source: %{name}-%{version}.tar.bz2
 
 %define glib_version 2.36
 %define libglibutil_version 1.0.24
+%define libglibutil_build_version 1.0.54
 
 BuildRequires: file-devel
 BuildRequires: pkgconfig(openssl)
 BuildRequires: pkgconfig(libpng)
 BuildRequires: pkgconfig(glib-2.0) >= %{glib_version}
-BuildRequires: pkgconfig(libglibutil) >= %{libglibutil_version}
+BuildRequires: pkgconfig(libglibutil) >= %{libglibutil_build_version}
 Requires: glib2 >= %{glib_version}
 Requires: libglibutil >= %{libglibutil_version}
 Requires(post): /sbin/ldconfig
@@ -27,6 +28,7 @@ Provides glib based cryptography API.
 %package devel
 Summary: Development library for %{name}
 Requires: %{name} = %{version}
+Requires: pkgconfig(libglibutil) >= %{libglibutil_build_version}
 Requires: pkgconfig
 
 %description devel

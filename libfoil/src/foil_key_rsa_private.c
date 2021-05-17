@@ -1,26 +1,31 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -205,12 +210,12 @@ foil_key_rsa_private_to_bytes(
 static
 gboolean
 foil_key_rsa_private_parse_aid(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     FoilBytes* oid,
     FoilBytes* params)
 {
     guint32 len;
-    FoilParsePos parse = *pos;
+    GUtilRange parse = *pos;
     if (foil_asn1_parse_start_sequence(&parse, &len)) {
         parse.end = parse.ptr + len;
         if (foil_asn1_parse_object_id(&parse, oid)) {
@@ -248,7 +253,7 @@ foil_key_rsa_private_parse_pkcs1(
     const FoilBytes* data)
 {
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     foil_parse_init_data(&pos, data);
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
         gint32 version;
@@ -290,7 +295,7 @@ foil_key_rsa_private_parse_pkcs8(
     static const guint8 oid_rsa_bytes[] = { ASN1_OID_RSA_BYTES };
     static const FoilBytes oid_rsa = { oid_rsa_bytes, sizeof(oid_rsa_bytes) };
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     foil_parse_init_data(&pos, data);
     /* PrivateKeyInfo */
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
@@ -535,7 +540,7 @@ foil_key_rsa_private_decrypt_pbes2(
 
     GBytes* decrypted = NULL;
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     foil_parse_init_data(&pos, params);
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
         FoilBytes kdf, kdf_param, alg, alg_param;
@@ -652,7 +657,7 @@ foil_key_rsa_private_decrypt_pkcs8(
         OID_PBES2, sizeof(OID_PBES2)
     };
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     foil_parse_init_bytes(&pos, bytes);
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
         FoilBytes oid;
@@ -694,7 +699,7 @@ foil_key_rsa_private_parse_text(
     const guint8* start = foil_memmem(data, prefix);
     if (start && data->len > (prefix->len + suffix->len)) {
         GBytes* decoded;
-        FoilParsePos pos;
+        GUtilRange pos;
         GHashTable* headers;
 
         /* Parse the header tags */

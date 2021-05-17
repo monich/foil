@@ -1,26 +1,31 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -129,7 +134,7 @@ foil_key_rsa_public_data_equal(
 static
 gboolean
 foil_key_rsa_public_parse_len(
-    FoilParsePos* pos,
+    GUtilRange* pos,
     guint32* len)
 {
     if ((pos->ptr + 4) <= pos->end) {
@@ -205,7 +210,7 @@ foil_key_rsa_public_parse_ssh_rsa_binary(
     if (FOIL_KEY_RSA_PUBLIC_HAS_PREFIX(data->val, data->len,
         rsa_public_binary_prefix)) {
         guint32 len;
-        FoilParsePos pos;
+        GUtilRange pos;
         pos.ptr = data->val + G_N_ELEMENTS(rsa_public_binary_prefix);
         pos.end = data->val + data->len;
         if (foil_key_rsa_public_parse_len(&pos, &len) &&
@@ -233,7 +238,7 @@ foil_key_rsa_public_parse_ssh_rsa_text(
 {
     gboolean ok = FALSE;
     if (FOIL_KEY_RSA_PUBLIC_HAS_TEXT_PREFIX(data, ssh_rsa_text_prefix)) {
-        FoilParsePos pos;
+        GUtilRange pos;
         pos.ptr = data->val + G_N_ELEMENTS(ssh_rsa_text_prefix);
         pos.end = data->val + data->len;
         if (pos.ptr < pos.end && isspace(*pos.ptr)) {
@@ -269,7 +274,7 @@ foil_key_rsa_public_parse_asn1(
     const FoilBytes* bytes)
 {
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     foil_parse_init_data(&pos, bytes);
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
         pos.end = pos.ptr + len;
@@ -326,10 +331,10 @@ foil_key_rsa_public_parse_rfc5208(
     static const FoilBytes oid_rsa = { oid_rsa_bytes, sizeof(oid_rsa_bytes) };
     gboolean ok = FALSE;
     guint32 len;
-    FoilParsePos pos;
+    GUtilRange pos;
     foil_parse_init_data(&pos, data);
     if (foil_asn1_parse_start_sequence(&pos, &len)) {
-        FoilParsePos aid;
+        GUtilRange aid;
         pos.end = pos.ptr + len;
         aid = pos;
         /* Check AlgorithmIdentifier */
@@ -356,7 +361,7 @@ foil_key_rsa_public_parse_pkcs8(
 {
     gboolean ok = FALSE;
     if (FOIL_KEY_RSA_PUBLIC_HAS_TEXT_PREFIX(data, rsa_public_pkcs8_prefix)) {
-        FoilParsePos pos;
+        GUtilRange pos;
         pos.ptr = data->val + G_N_ELEMENTS(rsa_public_pkcs8_prefix);
         pos.end = data->val + data->len;
         if (foil_parse_skip_to_next_line(&pos, TRUE) && (pos.ptr < pos.end) &&
@@ -391,7 +396,7 @@ foil_key_rsa_public_parse_rfc4716(
 {
     gboolean ok = FALSE;
     if (FOIL_KEY_RSA_PUBLIC_HAS_TEXT_PREFIX(data, rsa_public_rfc4716_prefix)) {
-        FoilParsePos pos;
+        GUtilRange pos;
         pos.ptr = data->val + G_N_ELEMENTS(rsa_public_rfc4716_prefix);
         pos.end = data->val + data->len;
         if (foil_parse_skip_to_next_line(&pos, TRUE)) {
