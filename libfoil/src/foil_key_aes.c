@@ -37,8 +37,6 @@
 #include "foil_input.h"
 #include "foil_util.h"
 
-#include <ctype.h>
-
 /* Logging */
 #define GLOG_MODULE_NAME foil_log_key
 #include "foil_log_p.h"

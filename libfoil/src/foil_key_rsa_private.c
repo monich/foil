@@ -49,8 +49,6 @@
 #include <gutil_strv.h>
 #include <gutil_misc.h>
 
-#include <ctype.h>
-
 /* Logging */
 #define GLOG_MODULE_NAME foil_log_key
 #include "foil_log_p.h"
