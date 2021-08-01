@@ -816,6 +816,45 @@ foil_asn1_encode_ia5_string_bytes(
     return NULL;
 }
 
+gboolean
+foil_asn1_parse_tag(
+    GUtilRange* pos,
+    guint8* id,   /* Full tag or just leading octet for multi-byte tags */
+    guint32* num) /* Since 1.0.23 */
+{
+    if (pos->ptr < pos->end) {
+        if ((pos->ptr[0] & ASN1_TAG_NUMBER_MASK) == ASN1_TAG_NUMBER_MASK) {
+            const guint8* ptr = pos->ptr + 1;
+            unsigned int i, tag = 0;
+
+            /* Must be a tag with a number greater than or equal to 31 */
+            for (i = 0; i < 5 && ptr < pos->end; i++) {
+                const guint8 octet = *ptr++;
+                const guint8 bits = (octet & 0x7f);
+                if (!bits || (tag & 0xfe000000)) {
+                    /* Too many bits or all data bits are zero. */
+                    break;
+                } else {
+                    tag = (tag << 7) | bits;
+                    if (!(octet & 0x80)) {
+                        if (id) *id = pos->ptr[0];
+                        if (num) *num = tag;
+                        pos->ptr = ptr;
+                        return TRUE;
+                    }
+                }
+            }
+        } else {
+            /* Single-byte tag */
+            if (id) *id = pos->ptr[0];
+            if (num) *num = (pos->ptr[0] & ASN1_TAG_NUMBER_MASK);
+            pos->ptr++;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 /*
  * Local Variables:
  * mode: C

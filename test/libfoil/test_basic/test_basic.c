@@ -1163,6 +1163,65 @@ test_asn1_integer(
     }
 }
 
+static
+void
+test_asn1_tag(
+    void)
+{
+    static const guint8 x22 [] = { 0x22 };
+    static const guint8 x5f31 [] = { 0x5f, 0x31 };
+    static const guint8 x5f817f [] = { 0x5f, 0x81, 0x7f };
+    static const guint8 x5f00 [] = { 0x5f, 0x00 }; /* Zero byte */
+    static const guint8 x5f81 [] = { 0x5f, 0x81 }; /* Too short */
+    static const guint8 x7fffffffff7f [] =
+        { 0x7f, 0xff, 0xff, 0xff, 0xff, 0x7f }; /* Too many bits */
+    static const guint8 x5f818181818181 [] =
+        { 0x5f, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81 }; /* Too long */
+    static const struct asn1_tag_test {
+        gboolean ok;
+        guint8 id;
+        guint tag;
+        FoilBytes data;
+    } tests [] = {
+        { TRUE, 0x22, 0x02, { TEST_ARRAY_AND_SIZE(x22) } },
+        { TRUE, 0x5f, 0x31, { TEST_ARRAY_AND_SIZE(x5f31) } },
+        { TRUE, 0x5f, 0xff, { TEST_ARRAY_AND_SIZE(x5f817f) } },
+        { FALSE, 0, 0, { TEST_ARRAY_AND_SIZE(x5f00) } },
+        { FALSE, 0, 0, { TEST_ARRAY_AND_SIZE(x5f81) } },
+        { FALSE, 0, 0, { TEST_ARRAY_AND_SIZE(x7fffffffff7f) } },
+        { FALSE, 0, 0, { TEST_ARRAY_AND_SIZE(x5f818181818181) } }
+    };
+
+    GUtilRange pos;
+    gsize i;
+
+    memset(&pos, 0, sizeof(pos));
+    g_assert(!foil_asn1_parse_tag(&pos, NULL, NULL));
+    for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+        const FoilBytes* data = &tests[i].data;
+        gboolean ok = tests[i].ok;
+        guint8 id = 0;
+        guint tag = 0;
+
+        pos.ptr = data->val;
+        pos.end = pos.ptr + data->len;
+        g_assert(foil_asn1_parse_tag(&pos, NULL, NULL) == ok);
+
+        pos.ptr = data->val;
+        pos.end = pos.ptr + data->len;
+        g_assert(foil_asn1_parse_tag(&pos, &id, &tag) == ok);
+        if (ok) {
+            g_assert_cmpuint(id, == ,tests[i].id);
+            g_assert_cmpuint(tag, == ,tests[i].tag);
+            g_assert(pos.ptr == pos.end);
+        } else {
+            g_assert(pos.ptr == data->val);
+            g_assert_cmpuint(id, == ,0);
+            g_assert_cmpuint(tag, == ,0);
+        }
+    }
+}
+
 #define TEST_(name) "/basic/" name
 
 int main(int argc, char* argv[])
@@ -1183,6 +1242,7 @@ int main(int argc, char* argv[])
     g_test_add_func(TEST_("asn1/OctetString2"), test_asn1_octet_string2);
     g_test_add_func(TEST_("asn1/IA5String"), test_asn1_ia5_string);
     g_test_add_func(TEST_("asn1/Integer"), test_asn1_integer);
+    g_test_add_func(TEST_("asn1/Tag"), test_asn1_tag);
     return test_run();
 }
 

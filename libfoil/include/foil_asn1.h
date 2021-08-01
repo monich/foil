@@ -238,6 +238,13 @@ GBytes*
 foil_asn1_encode_ia5_string_bytes(
     const char* str);
 
+/* Since 1.0.23 */
+gboolean
+foil_asn1_parse_tag(
+    GUtilRange* pos,
+    guint8* tag_id, /* Full tag or just leading octet for multi-byte tags */
+    guint32* tag_num);
+
 G_END_DECLS
 
 #endif /* FOIL_ASN1_H */
