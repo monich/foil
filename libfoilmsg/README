@@ -34,13 +34,18 @@ to the requirements of the block cipher, i.e. after decryption it
 can be followed by (relatively) small amount of garbage.
 The format tag is 1 for AES in CBC mode, 2 for AES in CFB mode.
 
-signature is the hash of encryptedData part, encrypted with the
-sender's private key.
-The format tag is 1 for MD-5 hash + 16 bytes of random padding,
-encrypted with RSA private key. When signature is being verified,
-padding is (obviously) ignored. Since RSA iself inflates the data,
-padding doesn't actually increase the size of the signature part,
-but kills any correlation with the input data.
+signature is the hash of encryptedData part + the same amount of
+random padding (16 bytes for MD-5, 20 bytes for SHA-1 and so on),
+encrypted with sender's RSA private key. Signature tag specifies
+the hash algorithm:
+1 for MD-5
+2 for SHA-1
+3 for SHA-256
+4 for SHA-512
+When signature is being verified, the padding is (obviously) ignored.
+Since RSA iself inflates the data, padding normally doesn't increase
+the size of the signature part, but does kill any correlation with
+the input data.
 
 EncryptedKeys
 =============
@@ -67,9 +72,9 @@ encrypted with the public key that matches the fingerprint.
 The exact format depends on the block cipher algorithm and is
 specified by keyFormat.
 
-keyFormat is 1 for AES 128 (16 bytes key + 16 bytes IV)
-keyFormat is 2 for AES 192 (24 bytes key + 16 bytes IV)
-keyFormat is 3 for AES 256 (32 bytes key + 16 bytes IV)
+keyFormat is 1 for AES-128 (16 bytes key + 16 bytes IV)
+keyFormat is 2 for AES-192 (24 bytes key + 16 bytes IV)
+keyFormat is 3 for AES-256 (32 bytes key + 16 bytes IV)
 
 Since RSA iself inflates the data, the key size doesn't actually
 increase the size of the encrypted key.
