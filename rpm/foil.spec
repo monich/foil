@@ -1,5 +1,5 @@
 Name: libfoil
-Version: 1.0.22
+Version: 1.0.23
 Release: 0
 Summary: Yet another glib-style crypto API
 Group: Development/Libraries
@@ -13,6 +13,7 @@ Source: %{name}-%{version}.tar.bz2
 %define libglibutil_build_version 1.0.54
 
 BuildRequires: file-devel
+BuildRequires: pkgconfig
 BuildRequires: pkgconfig(openssl)
 BuildRequires: pkgconfig(libpng)
 BuildRequires: pkgconfig(glib-2.0) >= %{glib_version}
@@ -29,7 +30,6 @@ Provides glib based cryptography API.
 Summary: Development library for %{name}
 Requires: %{name} = %{version}
 Requires: pkgconfig(libglibutil) >= %{libglibutil_build_version}
-Requires: pkgconfig
 
 %description devel
 This package contains the development library for %{name}.

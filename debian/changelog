@@ -1,3 +1,11 @@
+libfoil (1.0.23) unstable; urgency=low
+
+  * Replaced FoilParsePos with GUtilRange
+  * Added foil_asn1_parse_tag()
+  * Allow side-linking with libglibutil
+
+ -- Slava Monich <slava@monich.com>  Thu, 21 Oct 2021 04:44:25 +0300
+
 libfoil (1.0.22) unstable; urgency=low
 
   * Added support for SHA512
