@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2021 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,7 +47,8 @@
 #define TEST_IV         (0x04)
 #define TEST_PLAINTEXT  (0x08)
 #define TEST_CIPHERTEXT (0x10)
-#define TEST_ALL        (0x1f)
+#define TEST_REQUIRED   (TEST_COUNT|TEST_KEY|TEST_PLAINTEXT|TEST_CIPHERTEXT)
+#define TEST_ALL        (TEST_REQUIRED|TEST_IV)
 
 typedef enum aes_test_section {
     TEST_SECTION_NONE = -1,
@@ -91,8 +92,7 @@ test_read_line(
     g_string_truncate(str, 0);
     while ((c = fgetc(f)) != EOF) {
         if (c == '\r' || c == '\n') {
-            while ((c = fgetc(f)) != EOF && (c == '\r' || c == '\n'));
-            if (c != EOF) ungetc(c, f);
+            if (c == '\r') c = fgetc(f);
             break;
         }
         if (!isspace(c)) g_string_append_c(str, c);
@@ -155,6 +155,26 @@ test_parse_line(
 }
 
 static
+void
+test_append(
+    Tests* tests,
+    TestSection section,
+    const Test* test)
+{
+    Test* t = g_new(Test, 1);
+    *t = *test;
+    if (!t->iv) {
+        /* Default IV (16 bytes) */
+        static const guint8 iv[] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        };
+        t->iv = g_bytes_new_static(iv, sizeof(iv));
+    }
+    tests->tests[section] = g_slist_append(tests->tests[section], t);
+}
+
+static
 gboolean
 test_parse_file(
     const char* fname,
@@ -178,15 +198,21 @@ test_parse_file(
                 flags = 0;
             } else if (section != TEST_SECTION_NONE) {
                 flags |= test_parse_line(line, &test);
-                if ((flags & TEST_ALL) == TEST_ALL) {
-                    Test* t = g_new0(Test, 1);
-                    *t = test;
-                    tests->tests[section] = g_slist_append(
-                        tests->tests[section], t);
+                if ((flags & TEST_ALL) == TEST_ALL ||
+                   (((flags & TEST_REQUIRED) == TEST_REQUIRED) && !line[0])) {
+                    test_append(tests, section, &test);
                     flags = 0;
                     memset(&test, 0, sizeof(test));
                 }
             }
+        }
+        if ((flags & TEST_REQUIRED) == TEST_REQUIRED) {
+            test_append(tests, section, &test);
+        } else {
+            g_assert(!test.key);
+            g_assert(!test.iv);
+            g_assert(!test.plaintext);
+            g_assert(!test.ciphertext);
         }
         g_string_free(str, TRUE);
         fclose(f);
@@ -362,6 +388,8 @@ int main(int argc, char* argv[])
 {
     guint i;
     g_test_init(&argc, &argv, NULL);
+    gutil_log_default.level = g_test_verbose() ?
+        GLOG_LEVEL_VERBOSE : GLOG_LEVEL_NONE;
     for (i = 0; i < G_N_ELEMENTS(ecb_tests); i++) {
         const char* fname = ecb_tests[i];
         char* name = g_strconcat(TEST_PREFIX, fname, NULL);
