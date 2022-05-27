@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Slava Monich
+ * Copyright (C) 2019-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,7 @@ typedef struct foil_openssl_key_des {
     FoilOpensslKeyDesData* k3;
 } FoilOpensslKeyDes;
 
-GType foil_openssl_key_des_get_type(void);
+GType foil_openssl_key_des_get_type(void) FOIL_INTERNAL;
 #define FOIL_OPENSSL_TYPE_KEY_DES (foil_openssl_key_des_get_type())
 #define FOIL_OPENSSL_KEY_DES(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
     FOIL_OPENSSL_TYPE_KEY_DES, FoilOpensslKeyDes))

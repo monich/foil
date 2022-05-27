@@ -33,8 +33,8 @@
 #ifndef FOIL_KEY_DES_P_H
 #define FOIL_KEY_DES_P_H
 
-#include "foil_key_des.h"
 #include "foil_key_p.h"
+#include "foil_key_des.h"
 
 typedef struct foil_key_des_class FoilKeyDesClass;
 

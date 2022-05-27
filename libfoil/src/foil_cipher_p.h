@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,14 +85,16 @@ void
 foil_cipher_default_padding_func(
     guint8* block,
     gsize data_size,
-    gsize block_size);
+    gsize block_size)
+    FOIL_INTERNAL;
 
 int
 foil_cipher_symmetric_finish(
     FoilCipher* cipher,
     const void* from,
     int flen,
-    void* to);
+    void* to)
+    FOIL_INTERNAL;
 
 #endif /* FOIL_CIPHER_P_H */
 

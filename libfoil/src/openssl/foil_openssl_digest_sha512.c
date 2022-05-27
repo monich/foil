@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 by Slava Monich
+ * Copyright (C) 2021-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,8 @@ typedef struct foil_openssl_digest_sha512 {
     FoilDigestSHA512 sha512;
     SHA512_CTX ctx;
 } FoilOpensslDigestSHA512;
+
+GType foil_openssl_digest_sha512_get_type() FOIL_INTERNAL;
 
 G_DEFINE_TYPE(FoilOpensslDigestSHA512, foil_openssl_digest_sha512, \
         FOIL_TYPE_DIGEST_SHA512)

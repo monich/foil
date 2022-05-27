@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,70 +35,82 @@
 #ifndef FOIL_UTIL_P_H
 #define FOIL_UTIL_P_H
 
-#include "foil_util.h"
 #include "foil_types_p.h"
+#include "foil_util.h"
 
 guint8*
 foil_bytes_copy(
     FoilBytes* dest,
     const FoilBytes* src,
-    guint8* ptr);
+    guint8* ptr)
+    FOIL_INTERNAL;
 
 void
 foil_bytes_digest(
     FoilBytes* bytes,
-    FoilDigest* digest);
+    FoilDigest* digest)
+    FOIL_INTERNAL;
 
 void*
 foil_class_ref(
     GType type,
-    GType base);
+    GType base)
+    FOIL_INTERNAL;
 
 void*
 foil_abstract_class_ref(
     GType type,
-    GType base);
+    GType base)
+    FOIL_INTERNAL;
 
 gsize
 foil_parse_init_data(
     GUtilRange* pos,
-    const FoilBytes* data);
+    const FoilBytes* data)
+    FOIL_INTERNAL;
 
 gsize
 foil_parse_init_bytes(
     GUtilRange* pos,
-    GBytes* bytes);
+    GBytes* bytes)
+    FOIL_INTERNAL;
 
 gsize
 foil_parse_init_string(
     GUtilRange* pos,
-    const char* str);
+    const char* str)
+    FOIL_INTERNAL;
 
 gboolean
 foil_parse_skip_to_next_line(
     GUtilRange* pos,
-    gboolean continued);
+    gboolean continued)
+    FOIL_INTERNAL;
 
 GHashTable*
 foil_parse_headers(
     GUtilRange* pos,
-    GString* buf);
+    GString* buf)
+    FOIL_INTERNAL;
 
 char*
 foil_format_header(
     const char* tag,
-    const char* value);
+    const char* value)
+    FOIL_INTERNAL;
 
 GHashTable*
 foil_param_add(
     GHashTable* params,
     const char* key,
-    const char* value);
+    const char* value)
+    FOIL_INTERNAL;
 
 const void*
 foil_memmem(
     const FoilBytes* haystack,
-    const FoilBytes* needle);
+    const FoilBytes* needle)
+    FOIL_INTERNAL;
 
 #endif /* FOIL_UTIL_P_H */
 

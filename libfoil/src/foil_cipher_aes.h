@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@ typedef struct foil_cipher_aes {
     guint8 block[FOIL_AES_BLOCK_SIZE];
 } FoilCipherAes;
 
-GType foil_cipher_aes_get_type(void);
+GType foil_cipher_aes_get_type(void) FOIL_INTERNAL;
 #define FOIL_TYPE_CIPHER_AES (foil_cipher_aes_get_type())
 #define FOIL_CIPHER_AES(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
         FOIL_TYPE_CIPHER_AES, FoilCipherAes))

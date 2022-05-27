@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Slava Monich
+ * Copyright (C) 2019-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,10 @@ typedef FoilOpensslCipherDesCbc FoilOpensslCipherDesCbcEncrypt;
 typedef FoilOpensslCipherDesCbc FoilOpensslCipherDesCbcDecrypt;
 typedef FoilOpensslCipherDesCbcClass FoilOpensslCipherDesCbcEncryptClass;
 typedef FoilOpensslCipherDesCbcClass FoilOpensslCipherDesCbcDecryptClass;
+
+GType foil_openssl_cipher_des_cbc_get_type() FOIL_INTERNAL;
+GType foil_openssl_cipher_des_cbc_encrypt_get_type() FOIL_INTERNAL;
+GType foil_openssl_cipher_des_cbc_decrypt_get_type() FOIL_INTERNAL;
 
 G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherDesCbc,
     foil_openssl_cipher_des_cbc,

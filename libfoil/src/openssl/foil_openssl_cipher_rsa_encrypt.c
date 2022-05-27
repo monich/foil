@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,8 @@
 
 typedef FoilOpensslCipherRsaClass FoilOpensslCipherRsaEncryptClass;
 typedef FoilOpensslCipherRsa FoilOpensslCipherRsaEncrypt;
+
+GType foil_openssl_cipher_rsa_encrypt_get_type() FOIL_INTERNAL;
 
 G_DEFINE_TYPE(FoilOpensslCipherRsaEncrypt, foil_openssl_cipher_rsa_encrypt,
         FOIL_OPENSSL_TYPE_CIPHER_RSA)

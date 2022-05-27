@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,11 @@ typedef FoilOpensslCipherAesEncryptClass FoilOpensslCipherAesEcbEncryptClass;
 typedef FoilOpensslCipherAesEncrypt FoilOpensslCipherAesCbcEncrypt;
 typedef FoilOpensslCipherAesEncrypt FoilOpensslCipherAesCfbEncrypt;
 typedef FoilOpensslCipherAesEncrypt FoilOpensslCipherAesEcbEncrypt;
+
+GType foil_openssl_cipher_aes_encrypt_get_type() FOIL_INTERNAL;
+GType foil_openssl_cipher_aes_cbc_encrypt_get_type() FOIL_INTERNAL;
+GType foil_openssl_cipher_aes_cfb_encrypt_get_type() FOIL_INTERNAL;
+GType foil_openssl_cipher_aes_ecb_encrypt_get_type() FOIL_INTERNAL;
 
 G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherAesEncrypt,
     foil_openssl_cipher_aes_encrypt, FOIL_TYPE_CIPHER_AES)
