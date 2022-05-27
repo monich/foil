@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,50 +32,49 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_TYPES_H
-#define FOIL_TYPES_H
+#ifndef FOIL_VERSION_H
+#define FOIL_VERSION_H
 
-#include <gutil_types.h>
+/*
+ * This header first appeared in version 1.0.24 therefore version checks
+ * in the code which is supposed to be compilable against earlier versions
+ * of libfoil should look like this:
+ *
+ * #if defined(FOIL_CORE_VERSION) && \
+ *             FOIL_CORE_VERSION > FOIL_VERSION_WORD(1,0,24)
+ * ...
+ * #endif
+ *
+ * of better like this:
+ *
+ * #ifdef FOIL_VERSION_1_0_24
+ * ...
+ * #endif
+ *
+ * FOIL_VERSION_X_Y_Z macros will be added with each release. The fact that
+ * such macro is defined means that you're compiling against libfoil version
+ * X.Y.Z or greater.
+ */
 
-#include <foil_version.h>
+#define FOIL_VERSION_MAJOR   1
+#define FOIL_VERSION_MINOR   0
+#define FOIL_VERSION_RELEASE 23
+#define FOIL_VERSION_STRING  "1.0.23"
 
-G_BEGIN_DECLS
+#define FOIL_VERSION_WORD(v1,v2,v3) \
+    ((((v1) & 0x7f) << 24) | \
+     (((v2) & 0xfff) << 12) | \
+      ((v3) & 0xfff))
 
-typedef struct foil_digest FoilDigest;
-typedef struct foil_cipher FoilCipher;
-typedef struct foil_cmac FoilCmac;
-typedef struct foil_hmac FoilHmac;
-typedef struct foil_input FoilInput;
-typedef struct foil_key FoilKey;
-typedef struct foil_output FoilOutput;
-typedef struct foil_private_key FoilPrivateKey;
-typedef struct foil_random FoilRandom;
+#define FOIL_VERSION_GET_MAJOR(v)   (((v) >> 24) & 0x7f)
+#define FOIL_VERSION_GET_MINOR(v)   (((v) >> 12) & 0xfff)
+#define FOIL_VERSION_GET_RELEASE(v)  ((v) & 0xfff)
 
-typedef struct foil_bytes {
-    const guint8* val;
-    gsize len;
-} FoilBytes;
+/* Version as a single word */
+#define FOIL_VERSION FOIL_VERSION_WORD \
+    (FOIL_VERSION_MAJOR, FOIL_VERSION_MINOR, FOIL_VERSION_RELEASE)
 
-#define FoilParsePos GUtilRange
-
-#define FOIL_ERROR (foil_error_quark())
-GQuark foil_error_quark(void);
-
-typedef enum foil_error {
-    FOIL_ERROR_UNSPECIFIED,             /* Unspecified (internal?) error */
-    FOIL_ERROR_INVALID_ARG,             /* Invalid argument(s) */
-    FOIL_ERROR_KEY_UNSUPPORTED,         /* Unsupported operation */
-    FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT, /* Invalid or unsupported format */
-    FOIL_ERROR_KEY_ENCRYPTED,           /* Key is encrypted, need passphrase */
-    FOIL_ERROR_KEY_UNKNOWN_ENCRYPTION,  /* Unsupported key encryption */
-    FOIL_ERROR_KEY_DECRYPTION_FAILED,   /* Probably, invalid passphrase */
-    FOIL_ERROR_KEY_READ,                /* I/O error */
-    FOIL_ERROR_KEY_WRITE                /* I/O error */
-} FoilError;
-
-G_END_DECLS
-
-#endif /* FOIL_TYPES_H */
+#endif /* FOIL_VERSION_H */
 
 /*
  * Local Variables:

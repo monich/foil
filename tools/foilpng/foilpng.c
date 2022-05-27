@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 by Slava Monich
+ * Copyright (C) 2017-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -399,7 +399,7 @@ main(
     gboolean verbose = FALSE;
     gboolean decrypt = FALSE;
     gboolean for_self = FALSE;
-#ifdef VERSION
+#ifdef FOIL_VERSION_STRING
     gboolean print_version = FALSE;
 #endif
     GError* error = NULL;
@@ -422,7 +422,7 @@ main(
           "Public key of the other party", "FILE" },
         { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
           "Enable verbose output", NULL },
-#ifdef VERSION
+#ifdef FOIL_VERSION_STRING
         { "version", 0, 0, G_OPTION_ARG_NONE, &print_version,
           "Print version and exit", NULL },
 #endif
@@ -488,9 +488,9 @@ main(
         ok = FALSE;
     }
 
-#ifdef VERSION
+#ifdef FOIL_VERSION_STRING
     if (ok && print_version) {
-        printf("%s %s\n", gutil_log_default.name, G_STRINGIFY(VERSION));
+        printf("%s %s\n", gutil_log_default.name, FOIL_VERSION_STRING);
         ret = RET_OK;
     } else
 #endif

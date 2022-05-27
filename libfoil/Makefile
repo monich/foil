@@ -43,13 +43,30 @@ endif
 all: debug release pkgconfig
 
 #
+# Directories
+#
+
+SRC_DIR = src
+IMPL_SRC_DIR = src/$(IMPL)
+INCLUDE_DIR = include
+BUILD_DIR = build
+DEBUG_BUILD_DIR = $(BUILD_DIR)/debug
+RELEASE_BUILD_DIR = $(BUILD_DIR)/release
+COVERAGE_BUILD_DIR = $(BUILD_DIR)/coverage
+IMPL_DEBUG_BUILD_DIR = $(DEBUG_BUILD_DIR)/$(IMPL)
+IMPL_RELEASE_BUILD_DIR = $(RELEASE_BUILD_DIR)/$(IMPL)
+IMPL_COVERAGE_BUILD_DIR = $(COVERAGE_BUILD_DIR)/$(IMPL)
+
+#
 # Library version
 #
 
-VERSION_FILE = ../VERSION
-VERSION_MAJOR = $(shell head -1 $(VERSION_FILE) | cut -f1 -d.)
-VERSION_MINOR = $(shell head -1 $(VERSION_FILE) | cut -f2 -d.)
-VERSION_RELEASE = $(shell head -1 $(VERSION_FILE) | cut -f3 -d.)
+VERSION_FILE = $(INCLUDE_DIR)/foil_version.h
+get_version = $(shell grep -E "^ *\\\#define +FOIL_VERSION_$1 +[0-9]+$$" $(VERSION_FILE) | sed "s/  */ /g" | cut -d " " -f 3)
+
+VERSION_MAJOR = $(call get_version,MAJOR)
+VERSION_MINOR = $(call get_version,MINOR)
+VERSION_RELEASE = $(call get_version,RELEASE)
 
 # Version for pkg-config
 PCVERSION = $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_RELEASE)
@@ -122,21 +139,6 @@ IMPL_SRC = \
   foil_openssl_key_rsa_public.c \
   foil_openssl_random.c \
   foil_openssl_rsa.c
-
-#
-# Directories
-#
-
-SRC_DIR = src
-IMPL_SRC_DIR = src/$(IMPL)
-INCLUDE_DIR = include
-BUILD_DIR = build
-DEBUG_BUILD_DIR = $(BUILD_DIR)/debug
-RELEASE_BUILD_DIR = $(BUILD_DIR)/release
-COVERAGE_BUILD_DIR = $(BUILD_DIR)/coverage
-IMPL_DEBUG_BUILD_DIR = $(DEBUG_BUILD_DIR)/$(IMPL)
-IMPL_RELEASE_BUILD_DIR = $(RELEASE_BUILD_DIR)/$(IMPL)
-IMPL_COVERAGE_BUILD_DIR = $(COVERAGE_BUILD_DIR)/$(IMPL)
 
 #
 # Tools and flags
