@@ -58,8 +58,8 @@
 
 #define FOIL_VERSION_MAJOR   1
 #define FOIL_VERSION_MINOR   0
-#define FOIL_VERSION_RELEASE 24
-#define FOIL_VERSION_STRING  "1.0.24"
+#define FOIL_VERSION_RELEASE 25
+#define FOIL_VERSION_STRING  "1.0.25"
 
 /* Version as a single word */
 #define FOIL_VERSION_WORD(v1,v2,v3) \
@@ -85,6 +85,7 @@ foil_version(
 
 /* Specific versions */
 #define FOIL_VERSION_1_0_24 FOIL_VERSION_WORD(1,0,24)
+#define FOIL_VERSION_1_0_25 FOIL_VERSION_WORD(1,0,25)
 
 #endif /* FOIL_VERSION_H */
 
