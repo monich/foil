@@ -121,7 +121,8 @@ SRC = \
   foil_private_key.c \
   foil_random.c \
   foil_sign.c \
-  foil_util.c
+  foil_util.c \
+  foil_version.c
 
 IMPL_SRC = \
   foil_openssl_cipher_des_cbc.c \

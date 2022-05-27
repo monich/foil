@@ -32,58 +32,17 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_VERSION_H
-#define FOIL_VERSION_H
-
-/*
- * This header first appeared in version 1.0.24 therefore version checks
- * in the code which is supposed to be compilable against earlier versions
- * of libfoil should look like this:
- *
- * #if defined(FOIL_CORE_VERSION) && \
- *             FOIL_CORE_VERSION > FOIL_VERSION_WORD(1,0,24)
- * ...
- * #endif
- *
- * of better like this:
- *
- * #ifdef FOIL_VERSION_1_0_24
- * ...
- * #endif
- *
- * FOIL_VERSION_X_Y_Z macros will be added with each release. The fact that
- * such macro is defined means that you're compiling against libfoil version
- * X.Y.Z or greater.
- */
-
-#define FOIL_VERSION_MAJOR   1
-#define FOIL_VERSION_MINOR   0
-#define FOIL_VERSION_RELEASE 23
-#define FOIL_VERSION_STRING  "1.0.23"
-
-/* Version as a single word */
-#define FOIL_VERSION_WORD(v1,v2,v3) \
-    ((((v1) & 0x7f) << 24) | \
-     (((v2) & 0xfff) << 12) | \
-      ((v3) & 0xfff))
-
-#define FOIL_VERSION_GET_MAJOR(v)   (((v) >> 24) & 0x7f)
-#define FOIL_VERSION_GET_MINOR(v)   (((v) >> 12) & 0xfff)
-#define FOIL_VERSION_GET_RELEASE(v)  ((v) & 0xfff)
+#include "foil_version.h"
 
 /*
  * Function for run-time version detection in case if you're linking
- * against a dynamic library.
+ * against a dynamic library
  */
 unsigned int
-foil_version(
-    void); /* Since 1.0.24 */
-
-/* Current version as a single word */
-#define FOIL_VERSION FOIL_VERSION_WORD \
-    (FOIL_VERSION_MAJOR, FOIL_VERSION_MINOR, FOIL_VERSION_RELEASE)
-
-#endif /* FOIL_VERSION_H */
+foil_version() /* Since 1.0.24 */
+{
+    return FOIL_VERSION;
+}
 
 /*
  * Local Variables:
