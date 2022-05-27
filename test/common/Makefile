@@ -15,6 +15,8 @@ ifndef SRC
 SRC = $(EXE).c
 endif
 
+COMMON_SRC ?= test_main.c
+
 #
 # Required packages
 #
