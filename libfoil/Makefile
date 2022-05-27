@@ -107,6 +107,7 @@ SRC = \
   foil_input_file.c \
   foil_input_mem.c \
   foil_input_range.c \
+  foil_kdf.c \
   foil_key.c \
   foil_key_aes.c \
   foil_key_des.c \

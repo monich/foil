@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +32,33 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_TYPES_H
-#define FOIL_TYPES_H
+#ifndef FOIL_KDF_H
+#define FOIL_KDF_H
 
-#include <gutil_types.h>
+#include "foil_types.h"
 
-#include <foil_version.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
-typedef struct foil_digest FoilDigest;
-typedef struct foil_cipher FoilCipher;
-typedef struct foil_cmac FoilCmac;
-typedef struct foil_hmac FoilHmac;
-typedef struct foil_input FoilInput;
-typedef struct foil_kdf FoilKdf; /* Since 1.0.25 */
-typedef struct foil_key FoilKey;
-typedef struct foil_output FoilOutput;
-typedef struct foil_private_key FoilPrivateKey;
-typedef struct foil_random FoilRandom;
+/*
+ * KDF: Key Derivation Functions (RFC 2898)
+ *
+ * Since 1.0.25
+ */
 
-typedef struct foil_bytes {
-    const guint8* val;
-    gsize len;
-} FoilBytes;
-
-#define FoilParsePos GUtilRange
-
-#define FOIL_ERROR (foil_error_quark())
-GQuark foil_error_quark(void);
-
-typedef enum foil_error {
-    FOIL_ERROR_UNSPECIFIED,             /* Unspecified (internal?) error */
-    FOIL_ERROR_INVALID_ARG,             /* Invalid argument(s) */
-    FOIL_ERROR_KEY_UNSUPPORTED,         /* Unsupported operation */
-    FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT, /* Invalid or unsupported format */
-    FOIL_ERROR_KEY_ENCRYPTED,           /* Key is encrypted, need passphrase */
-    FOIL_ERROR_KEY_UNKNOWN_ENCRYPTION,  /* Unsupported key encryption */
-    FOIL_ERROR_KEY_DECRYPTION_FAILED,   /* Probably, invalid passphrase */
-    FOIL_ERROR_KEY_READ,                /* I/O error */
-    FOIL_ERROR_KEY_WRITE                /* I/O error */
-} FoilError;
+GBytes*
+foil_kdf_pbkdf2(
+    GType digest,   /* HMAC digest algorithm, e.g. FOIL_DIGEST_SHA1 */
+    const char* pw, /* UTF-8 encoded password from which to derive the key */
+    gssize pwlen,   /* Negative to strlen() the password */
+    const FoilBytes* salt,
+    guint iter,     /* Number of iterations */
+    guint dklen);   /* Derived key length, zero for auto (digest length) */
 
 G_END_DECLS
 
-#endif /* FOIL_TYPES_H */
+#endif /* FOIL_KDF_H */
 
 /*
  * Local Variables:
