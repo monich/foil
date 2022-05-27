@@ -1,5 +1,6 @@
 Name: libfoil
-Version: 1.0.23
+
+Version: 1.0.24
 Release: 0
 Summary: Yet another glib-style crypto API
 Group: Development/Libraries
@@ -46,8 +47,8 @@ Command line encryption/decryption utilities.
 %setup -q
 
 %build
-make -C libfoil LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release pkgconfig
-make -C tools LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release
+make -C libfoil %{_smp_mflags} LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release pkgconfig
+make -C tools %{_smp_mflags} LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release
 
 %install
 rm -rf %{buildroot}

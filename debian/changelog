@@ -1,3 +1,11 @@
+libfoil (1.0.24) unstable; urgency=low
+
+  * Added version macros for compile-time version detection
+  * Added foil_version() for run-time version detection
+  * Made internal functions truly internal
+
+ -- Slava Monich <slava@monich.com>  Fri, 27 May 2022 14:41:08 +0300
+
 libfoil (1.0.23) unstable; urgency=low
 
   * Replaced FoilParsePos with GUtilRange
