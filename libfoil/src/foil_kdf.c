@@ -86,7 +86,7 @@ foil_kdf_pbkdf2(
          * the digest type is valid.
          */
         FoilHmac* pmac = foil_hmac_new(digest, pw, (pwlen >= 0) ?
-            pwlen : strlen(pw));
+            (gsize) pwlen : strlen(pw));
 
         /*
          * 2. Let l be the number of hLen-octet blocks in the derived key,
