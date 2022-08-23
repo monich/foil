@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 #include "foil_key_rsa_private.h"
 #include "foil_key_rsa_public.h"
 #include "foil_key_aes.h"
+#include "foil_kdf.h"
 #include "foil_random.h"
 #include "foil_cipher.h"
 #include "foil_digest.h"
@@ -446,7 +447,6 @@ foil_key_rsa_private_decrypt_pkcs5(
     return decrypted;
 }
 
-/* PBKDF2 defined in RFC 2898 */
 static
 GBytes*
 foil_key_rsa_private_pbkdf2(
@@ -457,64 +457,15 @@ foil_key_rsa_private_pbkdf2(
     GType digest,
     FoilBytes* iv)
 {
-    const gsize hlen = foil_digest_type_size(digest);
-    const gsize pass_len = pass ? strlen(pass) : 0;
-    FoilHmac* tmpl = foil_hmac_new(digest, pass, pass_len);
-    FoilHmac* hmac = foil_hmac_clone(tmpl);
     const gsize key_size = bits/8;
-    const guint total = key_size + iv->len;
+    const gsize total = key_size + iv->len;
     guint8* data = g_malloc(total);
-    guint8* ptr = data;
-    gsize bytesleft = key_size;
-    gsize i = 1;
+    GBytes* key = foil_kdf_pbkdf2(digest, pass, pass ? strlen(pass) : 0,
+        salt, count, key_size);
 
-    while (bytesleft > 0) {
-        const gsize cplen = MIN(bytesleft, hlen);
-        const guint8* h;
-        guint8 itmp[4];
-        GBytes* b;
-        gsize j;
-
-        itmp[0] = (unsigned char)((i >> 24) & 0xff);
-        itmp[1] = (unsigned char)((i >> 16) & 0xff);
-        itmp[2] = (unsigned char)((i >> 8) & 0xff);
-        itmp[3] = (unsigned char)(i & 0xff);
-
-        /* First time doesn't need a copy, it's already a clone */
-        if (ptr != data) {
-            foil_hmac_copy(hmac, tmpl);
-        }
-        foil_hmac_update(hmac, salt->val, salt->len);
-        foil_hmac_update(hmac, itmp, 4);
-
-        b = g_bytes_ref(foil_hmac_finish(hmac));
-        h = g_bytes_get_data(b, NULL);
-        memcpy(ptr, h, cplen);
-
-        for (j = 1; j < count; j++) {
-            gsize k;
-
-            foil_hmac_copy(hmac, tmpl);
-            foil_hmac_update(hmac, h, hlen);
-
-            g_bytes_unref(b);
-            b = g_bytes_ref(foil_hmac_finish(hmac));
-            h = g_bytes_get_data(b, NULL);
-
-            for (k = 0; k < cplen; k++) {
-                ptr[k] ^= h[k];
-            }
-        }
-
-        g_bytes_unref(b);
-        bytesleft -= cplen;
-        ptr += cplen;
-        i++;
-    }
-
-    foil_hmac_unref(hmac);
-    foil_hmac_unref(tmpl);
-    memcpy(ptr, iv->val, iv->len);
+    memcpy(data, g_bytes_get_data(key, NULL), key_size);
+    memcpy(data + key_size, iv->val, iv->len);
+    g_bytes_unref(key);
     return g_bytes_new_take(data, total);
 }
 
