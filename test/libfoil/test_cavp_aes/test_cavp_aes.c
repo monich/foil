@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -246,7 +246,7 @@ FoilKey*
 test_cavp_aes_key(
     const Test* test)
 {
-    GBytes* key_bytes = test_bytes_concat(test->key, test->iv);
+    GBytes* key_bytes = gutil_bytes_concat(test->key, test->iv, NULL);
     GType key_type;
     FoilKey* key;
     switch (g_bytes_get_size(test->key)*8) {
