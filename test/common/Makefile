@@ -129,9 +129,21 @@ ifneq ($(strip $(DEPS)),)
 endif
 endif
 
-$(DEBUG_OBJS): | $(DEBUG_BUILD_DIR)
-$(RELEASE_OBJS): | $(RELEASE_BUILD_DIR)
-$(COVERAGE_OBJS): | $(COVERAGE_BUILD_DIR)
+DEBUG_DEPS += $(DEBUG_LIB)
+RELEASE_DEPS += $(RELEASE_LIB)
+COVERAGE_DEPS += $(COVERAGE_LIB)
+
+DEBUG_ORDER_DEPS += libfoil-debug
+RELEASE_ORDER_DEPS += libfoil-release
+COVERAGE_ORDER_DEPS += libfoil-coverage
+
+$(DEBUG_LIB): | libfoil-debug
+$(RELEASE_LIB): | libfoil-release
+$(COVERAGE_LIB): | libfoil-coverage
+
+$(DEBUG_EXE) $(DEBUG_OBJS): | $(DEBUG_BUILD_DIR) $(DEBUG_ORDER_DEPS)
+$(RELEASE_EXE) $(RELEASE_OBJS): | $(RELEASE_BUILD_DIR) $(RELEASE_ORDER_DEPS)
+$(COVERAGE_EXE) $(COVERAGE_OBJS): | $(COVERAGE_BUILD_DIR) $(COVERAGE_ORDER_DEPS)
 
 #
 # Rules
@@ -141,15 +153,11 @@ DEBUG_EXE = $(DEBUG_BUILD_DIR)/$(EXE)
 RELEASE_EXE = $(RELEASE_BUILD_DIR)/$(EXE)
 COVERAGE_EXE = $(COVERAGE_BUILD_DIR)/$(EXE)
 
-DEBUG_DEPS += libfoil-debug $(DEBUG_EXE)
-RELEASE_DEPS += libfoil-release $(RELEASE_EXE)
-COVERAGE_DEPS += libfoil-coverage $(COVERAGE_EXE)
+debug: $(DEBUG_EXE)
 
-debug: $(DEBUG_DEPS)
+release: $(RELEASE_EXE)
 
-release: $(RELEASE_DEPS)
-
-coverage: $(COVERAGE_DEPS)
+coverage: $(COVERAGE_EXE)
 
 clean:
 	rm -f *~
@@ -166,6 +174,15 @@ test: test_banner debug
 
 valgrind: test_banner debug
 	@G_DEBUG=gc-friendly G_SLICE=always-malloc valgrind --tool=memcheck --leak-check=full --show-possibly-lost=no $(DEBUG_EXE)
+
+libfoil-debug:
+	@make $(SUBMAKE_OPTS) -C $(LIB_DIR) debug
+
+libfoil-release:
+	@make $(SUBMAKE_OPTS) -C $(LIB_DIR) release
+
+libfoil-coverage:
+	@make $(SUBMAKE_OPTS) -C $(LIB_DIR) coverage
 
 $(DEBUG_BUILD_DIR):
 	mkdir -p $@
@@ -216,23 +233,14 @@ $(COVERAGE_BUILD_DIR)/%.o : $(SRC2_DIR)/%.c
 	$(CC) -c $(COVERAGE_CFLAGS) -MT"$@" -MF"$(@:%.o=%.d)" $< -o $@
 endif
 
-$(DEBUG_EXE): $(DEBUG_LIB) $(DEBUG_BUILD_DIR) $(DEBUG_OBJS)
+$(DEBUG_EXE): $(DEBUG_BUILD_DIR) $(DEBUG_OBJS) $(DEBUG_DEPS)
 	$(LD) $(DEBUG_LDFLAGS) $(DEBUG_OBJS) $(DEBUG_LIBS) -o $@
 
-$(RELEASE_EXE): $(RELEASE_LIB) $(RELEASE_BUILD_DIR) $(RELEASE_OBJS)
+$(RELEASE_EXE): $(RELEASE_BUILD_DIR) $(RELEASE_OBJS) $(RELEASE_DEPS)
 	$(LD) $(RELEASE_LDFLAGS) $(RELEASE_OBJS) $(RELEASE_LIBS) -o $@
 ifeq ($(KEEP_SYMBOLS),0)
 	strip $@
 endif
 
-$(COVERAGE_EXE): $(COVERAGE_LIB) $(COVERAGE_BUILD_DIR) $(COVERAGE_OBJS)
+$(COVERAGE_EXE): $(COVERAGE_BUILD_DIR) $(COVERAGE_OBJS) $(COVERAGE_DEPS)
 	$(LD) $(COVERAGE_LDFLAGS) $(COVERAGE_OBJS) $(COVERAGE_LIBS) -o $@
-
-libfoil-debug:
-	@make $(SUBMAKE_OPTS) -C $(LIB_DIR) debug
-
-libfoil-release:
-	@make $(SUBMAKE_OPTS) -C $(LIB_DIR) release
-
-libfoil-coverage:
-	@make $(SUBMAKE_OPTS) -C $(LIB_DIR) coverage
