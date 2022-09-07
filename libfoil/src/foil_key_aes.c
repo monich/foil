@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -209,15 +209,31 @@ foil_key_aes_equal(
 
 static
 GBytes*
-foil_key_aes_to_bytes(
-    FoilKey* key)
+foil_key_aes_default_bytes(
+    FoilKeyAes* self)
 {
-    FoilKeyAes* self = FOIL_KEY_AES_(key);
     FoilKeyAesClass* klass = FOIL_KEY_AES_GET_CLASS(self);
     guint8* bytes = g_malloc(klass->size + FOIL_AES_BLOCK_SIZE);
     memcpy(bytes, self->key, klass->size);
     memcpy(bytes + klass->size, self->iv, FOIL_AES_BLOCK_SIZE);
     return g_bytes_new_take(bytes, klass->size + FOIL_AES_BLOCK_SIZE);
+}
+
+static
+GBytes*
+foil_key_aes_to_bytes(
+    FoilKey* key,
+    FoilKeyBinaryFormat format)
+{
+    switch (format) {
+    case FOIL_KEY_BINARY_FORMAT_DEFAULT:
+        return foil_key_aes_default_bytes(FOIL_KEY_AES_(key));
+    case FOIL_KEY_BINARY_FORMAT_RSA_SSH:
+    case FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1:
+        break;
+    }
+    /* Invalid/unsupported format */
+    return NULL;
 }
 
 static

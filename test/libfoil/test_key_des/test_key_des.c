@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Slava Monich
+ * Copyright (C) 2019-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -129,6 +129,11 @@ test_basic(
     GBytes* serialized = foil_key_to_bytes(key);
     FoilKey* deserialized = foil_key_new_from_bytes(FOIL_KEY_DES, serialized);
     GError* error = NULL;
+
+    /* Only default format is valid for DES keys */
+    g_assert(!foil_key_to_binary_format(key, FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1));
+    g_assert(!foil_key_to_binary_format(key, FOIL_KEY_BINARY_FORMAT_RSA_SSH));
+    g_assert(!foil_key_to_binary_format(key, (FoilKeyBinaryFormat)-1));
 
     /* If IV is already zero, foil_key_set_iv works like foil_key_ref */
     g_assert(foil_key_set_iv(key3, NULL, FOIL_DES_IV_SIZE) == key3);

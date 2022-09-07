@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@ struct foil_key_class {
         GHashTable* param, GError** error);
     FoilKey* (*fn_set_iv)(FoilKey* key1, const void* iv, gsize len);
     gboolean (*fn_equal)(FoilKey* key1, FoilKey* key2);
-    GBytes* (*fn_to_bytes)(FoilKey* key);
+    GBytes* (*fn_to_bytes)(FoilKey* key, FoilKeyBinaryFormat format);
     gboolean (*fn_export)(FoilKey* key, FoilOutput* out,
         FoilKeyExportFormat format, GHashTable* param, GError** error);
     GBytes* (*fn_fingerprint)(FoilKey* key);

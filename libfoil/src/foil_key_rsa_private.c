@@ -192,11 +192,27 @@ foil_key_rsa_private_data_to_bytes(
 
 static
 GBytes*
-foil_key_rsa_private_to_bytes(
-    FoilKey* key)
+foil_key_rsa_private_bytes_pkcs1(
+    FoilKeyRsaPrivate* self)
 {
-    FoilKeyRsaPrivate* self = FOIL_KEY_RSA_PRIVATE_(key);
     return foil_key_rsa_private_data_to_bytes(self->data);
+}
+
+static
+GBytes*
+foil_key_rsa_private_to_bytes(
+    FoilKey* key,
+    FoilKeyBinaryFormat format)
+{
+    switch (format) {
+    case FOIL_KEY_BINARY_FORMAT_DEFAULT:
+    case FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1:
+        return foil_key_rsa_private_bytes_pkcs1(FOIL_KEY_RSA_PRIVATE_(key));
+    case FOIL_KEY_BINARY_FORMAT_RSA_SSH:
+        break;
+    }
+    /* Invalid/unsupported format */
+    return NULL;
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -174,7 +174,7 @@ foil_key_rsa_public_append_bytes(
 
 static
 GBytes*
-foil_key_rsa_public_data_to_bytes(
+foil_key_rsa_public_data_ssh_rsa(
     const FoilKeyRsaPublicData* data)
 {
     GBytes* bytes = NULL;
@@ -189,15 +189,6 @@ foil_key_rsa_public_data_to_bytes(
         bytes = g_byte_array_free_to_bytes(buf);
     }
     return bytes;
-}
-
-static
-GBytes*
-foil_key_rsa_public_to_bytes(
-    FoilKey* key)
-{
-    FoilKeyRsaPublic* self = FOIL_KEY_RSA_PUBLIC_(key);
-    return foil_key_rsa_public_data_to_bytes(self->data);
 }
 
 static
@@ -261,7 +252,9 @@ foil_key_rsa_public_parse_ssh_rsa_text(
 }
 
 /*
- * Format defined in RFC 2313:
+ * PKCS #1
+ *
+ * https://www.ietf.org/rfc/rfc3447 (Appendix A)
  *
  * RSAPublicKey ::= SEQUENCE {
  *   modulus INTEGER, -- n
@@ -269,7 +262,7 @@ foil_key_rsa_public_parse_ssh_rsa_text(
  */
 static
 gboolean
-foil_key_rsa_public_parse_asn1(
+foil_key_rsa_public_parse_pkcs1(
     FoilKeyRsaPublicData* key,
     const FoilBytes* bytes)
 {
@@ -303,6 +296,24 @@ foil_key_rsa_public_data_to_asn1(
         foil_output_unref(out);
         return g_byte_array_free_to_bytes(buf);
     }
+    return NULL;
+}
+
+static
+GBytes*
+foil_key_rsa_public_to_bytes(
+    FoilKey* key,
+    FoilKeyBinaryFormat format)
+{
+    FoilKeyRsaPublic* self = FOIL_KEY_RSA_PUBLIC_(key);
+    switch (format) {
+    case FOIL_KEY_BINARY_FORMAT_DEFAULT: /* fallthrough */
+    case FOIL_KEY_BINARY_FORMAT_RSA_SSH:
+        return foil_key_rsa_public_data_ssh_rsa(self->data);
+    case FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1:
+        return foil_key_rsa_public_data_to_asn1(self->data);
+    }
+    /* Invalid/unsupported format */
     return NULL;
 }
 
@@ -345,7 +356,7 @@ foil_key_rsa_public_parse_rfc5208(
             if (foil_asn1_parse_object_id(&aid, &oid) &&
                 foil_bytes_equal(&oid, &oid_rsa) &&
                 foil_asn1_parse_bit_string(&pos, &bits, &unused) && !unused) {
-                return foil_key_rsa_public_parse_asn1(key, &bits);
+                return foil_key_rsa_public_parse_pkcs1(key, &bits);
             }
         }
     }
@@ -449,7 +460,8 @@ foil_key_rsa_public_from_data(
     if (foil_key_rsa_public_parse_ssh_rsa_text(&key, &data, &pool) ||
         foil_key_rsa_public_parse_pkcs8(&key, &data, &pool) ||
         foil_key_rsa_public_parse_rfc4716(&key, &data, &pool) ||
-        foil_key_rsa_public_parse_ssh_rsa_binary(&key, &data)) {
+        foil_key_rsa_public_parse_ssh_rsa_binary(&key, &data) ||
+        foil_key_rsa_public_parse_pkcs1(&key, &data)) {
         FoilKeyRsaPublic* pub = g_object_new(G_TYPE_FROM_CLASS(klass), NULL);
         foil_key_rsa_public_set_data(pub, &key);
         g_clear_error(error);
@@ -478,7 +490,7 @@ foil_key_rsa_public_export_ssh_rsa(
     gboolean ok = foil_output_write_all(out, ssh_rsa_text_prefix,
         sizeof(ssh_rsa_text_prefix)) && foil_output_write_all(out, &space, 1);
     if (ok) {
-        GBytes* bytes = foil_key_rsa_public_data_to_bytes(self->data);
+        GBytes* bytes = foil_key_rsa_public_data_ssh_rsa(self->data);
         FoilOutput* base64 = foil_output_base64_new(out);
         ok = foil_output_write_bytes_all(base64, bytes) &&
             foil_output_flush(base64);
@@ -517,7 +529,7 @@ foil_key_rsa_public_export_rfc4716(
             }
         }
         if (ok) {
-            GBytes* bytes = foil_key_rsa_public_data_to_bytes(self->data);
+            GBytes* bytes = foil_key_rsa_public_data_ssh_rsa(self->data);
             FoilOutput* base64 = foil_output_base64_new_full(out, 0, 70);
             ok = foil_output_write_bytes_all(base64, bytes) &&
                 foil_output_flush(base64);
@@ -641,7 +653,7 @@ GBytes*
 foil_key_rsa_public_data_fingerprint(
     const FoilKeyRsaPublicData* data)
 {
-    GBytes* bytes = foil_key_rsa_public_data_to_bytes(data);
+    GBytes* bytes = foil_key_rsa_public_data_ssh_rsa(data);
     GBytes* fingerprint = foil_digest_bytes(FOIL_DIGEST_MD5, bytes);
     g_bytes_unref(bytes);
     return fingerprint;

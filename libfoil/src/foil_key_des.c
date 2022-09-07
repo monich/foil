@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 by Slava Monich
+ * Copyright (C) 2019-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -269,10 +269,9 @@ foil_key_des_equal(
 
 static
 GBytes*
-foil_key_des_to_bytes(
-    FoilKey* key)
+foil_key_des_default_bytes(
+    FoilKeyDes* self)
 {
-    FoilKeyDes* self = FOIL_KEY_DES_(key);
     guint8* bytes;
     gsize size = FOIL_DES_IV_SIZE + FOIL_DES_KEY_SIZE;
     if (self->key2) {
@@ -293,6 +292,23 @@ foil_key_des_to_bytes(
         }
     }
     return g_bytes_new_take(bytes, size);
+}
+
+static
+GBytes*
+foil_key_des_to_bytes(
+    FoilKey* key,
+    FoilKeyBinaryFormat format)
+{
+    switch (format) {
+    case FOIL_KEY_BINARY_FORMAT_DEFAULT:
+        return foil_key_des_default_bytes(FOIL_KEY_DES_(key));
+    case FOIL_KEY_BINARY_FORMAT_RSA_SSH:
+    case FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1:
+        break;
+    }
+    /* Invalid/unsupported format */
+    return NULL;
 }
 
 static

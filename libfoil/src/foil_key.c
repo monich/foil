@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -121,10 +121,18 @@ GBytes*
 foil_key_to_bytes(
     FoilKey* self)
 {
+    return foil_key_to_binary_format(self, FOIL_KEY_BINARY_FORMAT_DEFAULT);
+}
+
+GBytes*
+foil_key_to_binary_format(
+    FoilKey* self,
+    FoilKeyBinaryFormat format) /* Since 1.0.26 */
+{
     GBytes* bytes = NULL;
     if (G_LIKELY(self)) {
         FoilKeyClass* klass = FOIL_KEY_GET_CLASS(self);
-        bytes = klass->fn_to_bytes(self);
+        bytes = klass->fn_to_bytes(self, format);
     }
     return bytes;
 }
@@ -496,7 +504,7 @@ foil_key_default_fingerprint(
     FoilKey* self)
 {
     FoilKeyClass* klass = FOIL_KEY_GET_CLASS(self);
-    GBytes* bytes = klass->fn_to_bytes(self);
+    GBytes* bytes = klass->fn_to_bytes(self, FOIL_KEY_BINARY_FORMAT_DEFAULT);
     GBytes* fingerprint = foil_digest_bytes(FOIL_DIGEST_MD5, bytes);
     GASSERT(!self->priv->fingerprint);
     g_bytes_unref(bytes);

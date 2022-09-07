@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -168,6 +168,12 @@ test_key_aes_generate2(
     FoilKey* key2 = foil_key_generate_new(type, FOIL_KEY_BITS_DEFAULT);
     GBytes* bytes = foil_key_to_bytes(key2);
     FoilKey* key3;
+
+    /* Only default format is valid for AES keys */
+    g_assert(!foil_key_to_binary_format(key1, FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1));
+    g_assert(!foil_key_to_binary_format(key1, FOIL_KEY_BINARY_FORMAT_RSA_SSH));
+    g_assert(!foil_key_to_binary_format(key1, (FoilKeyBinaryFormat)-1));
+
     g_assert(key1 && key2);
     key3 = foil_key_new_from_bytes(G_TYPE_FROM_INSTANCE(key2), bytes);
     g_assert(key3);

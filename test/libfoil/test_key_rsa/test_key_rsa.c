@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -418,12 +418,39 @@ test_key_rsa_bytes(
     TestKeyRsaKeys keys;
     GBytes* pub_data;
     GBytes* priv_data;
+    GBytes* bytes;
     FoilKey* pub2;
+    FoilKey* priv_key;
     FoilPrivateKey* priv2;
 
     test_key_rsa_keys_init(&keys, test);
+    priv_key = FOIL_KEY(keys.priv);
+
+    /* Invalid binary format produces NULL */
+    g_assert(!foil_key_to_binary_format(keys.pub, (FoilKeyBinaryFormat)-1));
+    g_assert(!foil_key_to_binary_format(priv_key, (FoilKeyBinaryFormat)-1));
+
+    /* No ssh-rsa format for RSA private key */
+    g_assert(!foil_key_to_binary_format(priv_key,
+        FOIL_KEY_BINARY_FORMAT_RSA_SSH));
+
+    /* Data in default format */
     pub_data = foil_key_to_bytes(keys.pub);
-    priv_data = foil_key_to_bytes(FOIL_KEY(keys.priv));
+    priv_data = foil_key_to_bytes(priv_key);
+
+    /* ssh-rsa format is the default public key format */
+    bytes = foil_key_to_binary_format(keys.pub,
+        FOIL_KEY_BINARY_FORMAT_RSA_SSH);
+    g_assert(g_bytes_equal(bytes, pub_data));
+    g_bytes_unref(bytes);
+
+    /* PKCS1 is the default RSA private key format */
+    bytes = foil_key_to_binary_format(priv_key,
+        FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1);
+    g_assert(g_bytes_equal(bytes, priv_data));
+    g_bytes_unref(bytes);
+
+    /* Reconstruct the keys from the data in default format */
     pub2 = foil_key_new_from_bytes(FOIL_KEY_RSA_PUBLIC, pub_data);
     priv2 = foil_private_key_new_from_bytes(FOIL_KEY_RSA_PRIVATE, priv_data);
     g_assert(pub2);
@@ -433,6 +460,17 @@ test_key_rsa_bytes(
 
     foil_key_unref(pub2);
     foil_private_key_unref(priv2);
+
+    /* Test non-default PKCS #1 RSA public key format */
+    g_bytes_unref(pub_data);
+    pub_data = foil_key_to_binary_format(keys.pub,
+        FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1);
+
+    pub2 = foil_key_new_from_bytes(FOIL_KEY_RSA_PUBLIC, pub_data);
+    g_assert(pub2);
+    g_assert(foil_key_equal(pub2, keys.pub));
+    foil_key_unref(pub2);
+
     g_bytes_unref(pub_data);
     g_bytes_unref(priv_data);
     test_key_rsa_keys_deinit(&keys);
