@@ -1,26 +1,31 @@
 /*
- * Copyright (C) 2016-2018 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -51,6 +56,7 @@ foil_digest_type_size(
 {
     gsize size = 0;
     FoilDigestClass* klass = foil_digest_class_ref(type);
+
     if (G_LIKELY(klass)) {
         size = klass->size;
         g_type_class_unref(klass);
@@ -64,6 +70,7 @@ foil_digest_type_block_size(
 {
     gsize size = 0;
     FoilDigestClass* klass = foil_digest_class_ref(type);
+
     if (G_LIKELY(klass)) {
         size = klass->block_size;
         g_type_class_unref(klass);
@@ -77,6 +84,7 @@ foil_digest_type_name(
 {
     const char* name = NULL;
     FoilDigestClass* klass = foil_digest_class_ref(type);
+
     if (G_LIKELY(klass)) {
         name = klass->name;
         g_type_class_unref(klass);
@@ -91,10 +99,13 @@ foil_digest_data(
     gsize size)
 {
     GBytes* result = NULL;
+
     if (G_LIKELY(data || !size)) {
         FoilDigestClass* klass = foil_digest_class_ref(type);
+
         if (G_LIKELY(klass)) {
             void* digest = klass->fn_digest_alloc();
+
             klass->fn_digest(data, size, digest);
             result = g_bytes_new_with_free_func(digest, klass->size,
                 klass->fn_digest_free, digest);
@@ -109,13 +120,14 @@ foil_digest_bytes(
     GType type,
     GBytes* bytes)
 {
-    GBytes* result = NULL;
     if (G_LIKELY(bytes)) {
         gsize size = 0;
         const void* data = g_bytes_get_data(bytes, &size);
-        result = foil_digest_data(type, data, size);
+
+        return foil_digest_data(type, data, size);
+    } else {
+        return NULL;
     }
-    return result;
 }
 
 gsize
@@ -145,6 +157,7 @@ foil_digest_new(
 {
     FoilDigest* digest = NULL;
     FoilDigestClass* klass = foil_digest_class_ref(type);
+
     if (G_LIKELY(klass)) {
         digest = g_object_new(type, NULL);
         g_type_class_unref(klass);
@@ -180,6 +193,7 @@ foil_digest_clone(
     if (G_LIKELY(self)) {
         GType type = G_TYPE_FROM_INSTANCE(self);
         FoilDigest* clone = foil_digest_new(type);
+
         if (foil_digest_copy(clone, self)) {
             return clone;
         }
@@ -200,6 +214,7 @@ foil_digest_copy(
         } else {
             /* Both must be of the same class */
             FoilDigestClass* klass = FOIL_DIGEST_GET_CLASS(self);
+
             if (klass == FOIL_DIGEST_GET_CLASS(source) && klass->fn_copy) {
                 klass->fn_copy(self, source);
                 if (self->result) {
@@ -216,27 +231,33 @@ foil_digest_copy(
     return FALSE;
 }
 
-void
+gboolean
 foil_digest_update(
     FoilDigest* self,
     const void* data,
-    gsize size)
+    gsize size) /* Has return value since 1.0.26 */
 {
-    if (G_LIKELY(self)) {
-        GASSERT(!self->result);
+    if (G_LIKELY(self) && G_LIKELY(!self->result)) {
         FOIL_DIGEST_GET_CLASS(self)->fn_update(self, data, size);
+        return TRUE;
+    } else {
+        return FALSE;
     }
 }
 
-void
+gboolean
 foil_digest_update_bytes(
     FoilDigest* self,
-    GBytes* bytes)
+    GBytes* bytes) /* Has return value since 1.0.26 */
 {
-    if (G_LIKELY(self) && G_LIKELY(bytes)) {
+    if (G_LIKELY(self) && G_LIKELY(bytes) && G_LIKELY(!self->result)) {
         gsize size = 0;
         const void* data = g_bytes_get_data(bytes, &size);
-        foil_digest_update(self, data, size);
+
+        FOIL_DIGEST_GET_CLASS(self)->fn_update(self, data, size);
+        return TRUE;
+    } else {
+        return FALSE;
     }
 }
 
@@ -248,6 +269,7 @@ foil_digest_finish(
         if (!self->result) {
             FoilDigestClass* klass = FOIL_DIGEST_GET_CLASS(self);
             void* data = klass->fn_digest_alloc();
+
             FOIL_DIGEST_GET_CLASS(self)->fn_finish(self, data);
             self->result = g_bytes_new_with_free_func(data, klass->size,
                 klass->fn_digest_free, data);
@@ -263,6 +285,7 @@ foil_digest_free_to_bytes(
 {
     if (G_LIKELY(self)) {
         GBytes* bytes = foil_digest_finish(self);
+
         g_bytes_ref(bytes);
         foil_digest_unref(self);
         return bytes;
@@ -276,6 +299,7 @@ foil_digest_finalize(
     GObject* object)
 {
     FoilDigest* self = FOIL_DIGEST(object);
+
     if (self->result) {
         g_bytes_unref(self->result);
     } else {
