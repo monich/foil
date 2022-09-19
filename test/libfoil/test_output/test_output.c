@@ -71,6 +71,7 @@ test_output_null(
     foil_output_close(NULL);
     foil_output_unref(NULL);
     g_assert(!foil_output_ref(NULL));
+    g_assert(!foil_output_cipher_mem_new(NULL, NULL, NULL));
     g_assert(!foil_output_cipher_new(NULL, cipher, NULL));
     g_assert(!foil_output_cipher_new(NULL, NULL, NULL));
     g_assert(!foil_output_digest_new(NULL, NULL));
@@ -144,34 +145,53 @@ void
 test_output_cipher_basic(
     void)
 {
-    static const guint8 test123[] = { '1', '2', '3', '4', '5', '6', '7', '8' };
+    static const char prefix[] = "This is a prefix";
+    static const char test_data[] = "This is a secret";
+    GByteArray* buf1 = g_byte_array_new();
+    GByteArray* buf2 = g_byte_array_new();
     FoilKey* key = foil_key_generate_new(FOIL_TYPE_KEY_AES, 128);
-    FoilCipher* cipher = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
-    FoilOutput* buf = foil_output_mem_new(NULL);
-    FoilOutput* out = foil_output_cipher_new(buf, cipher, NULL);
+    FoilCipher* cipher1 = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
+    FoilCipher* cipher2 = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
+    FoilOutput* buf = foil_output_mem_new(buf1);
+    FoilOutput* out = foil_output_cipher_new(buf, cipher1, NULL);
+    FoilOutput* out_mem;
 
-    foil_cipher_unref(cipher);
+    /* Add some data in front of the ciphered data */
+    g_byte_array_append(buf2, (const void*)prefix, sizeof(prefix));
+    out_mem = foil_output_cipher_mem_new(buf2, cipher2, NULL);
+
+    foil_cipher_unref(cipher1);
+    foil_cipher_unref(cipher2);
     g_assert(!foil_output_reset(out));
+    g_assert(!foil_output_reset(out_mem));
     g_assert(foil_output_flush(out));
-    g_assert(foil_output_write_all(out, test123, sizeof(test123)));
+    g_assert(foil_output_write_all(out, test_data, sizeof(test_data)));
+    g_assert(foil_output_write_all(out_mem, test_data, sizeof(test_data)));
+    TEST_DEBUG_HEXDUMP(buf1->data, buf1->len);
+    g_assert_cmpuint(buf1->len, > ,0);
+    g_assert_cmpuint(buf1->len, == ,buf2->len - sizeof(prefix));
+    g_assert(!memcmp(buf1->data, buf2->data + sizeof(prefix), buf1->len));
+    foil_output_unref(out_mem);
 
     /* Fail to write to a closed stream */
     foil_output_close(buf);
     foil_output_unref(buf);
-    g_assert(!foil_output_write_all(out, test123, sizeof(test123)));
+    g_assert(!foil_output_write_all(out, test_data, sizeof(test_data)));
     foil_output_unref(out);
 
     /* Another kind of failure due to a closed underlying stream */
-    cipher = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
+    cipher1 = foil_cipher_new(FOIL_CIPHER_AES_CBC_ENCRYPT, key);
     buf = foil_output_mem_new(NULL);
-    out = foil_output_cipher_new(buf, cipher, NULL);
-    foil_cipher_unref(cipher);
+    out = foil_output_cipher_new(buf, cipher1, NULL);
+    foil_cipher_unref(cipher1);
 
-    g_assert(foil_output_write_all(out, test123, sizeof(test123)));
+    g_assert(foil_output_write_all(out, test_data, sizeof(test_data)));
     foil_output_close(buf);
     foil_output_unref(buf);
     g_assert(!foil_output_free_to_bytes(out));
 
+    g_byte_array_unref(buf1);
+    g_byte_array_unref(buf2);
     foil_key_unref(key);
 }
 
@@ -180,37 +200,63 @@ void
 test_output_cipher(
     gconstpointer param)
 {
+    static const char prefix[] = "This is a prefix";
     const TestOutputCipher* test = param;
     const guint8* in = test->input;
     GType digest_type = FOIL_DIGEST_SHA1;
+    GByteArray* mem2 = g_byte_array_new_take(g_memdup(prefix, sizeof(prefix)),
+        sizeof(prefix)); /* Byte array with a prefix */
     GBytes* in_bytes = g_bytes_new_static(in, test->input_size);
     FoilKey* enc_key = foil_key_new_from_data(test->key_type(),
         test->key.bytes, test->key.size);
     FoilKey* dec_key = test->dec_key(enc_key);
     FoilDigest* digest = foil_digest_new(digest_type);
+    FoilDigest* digest2 = foil_digest_new(digest_type);
     FoilCipher* enc = foil_cipher_new(test->enc_type(), enc_key);
+    FoilCipher* enc2 = foil_cipher_new(test->enc_type(), enc_key);
+    FoilCipher* enc3 = foil_cipher_new(test->enc_type(), enc_key);
     FoilCipher* dec = foil_cipher_new(test->dec_type(), dec_key);
     FoilOutput* buf = foil_output_mem_new(NULL);
     FoilOutput* out = foil_output_cipher_new(buf, enc, digest);
+    FoilOutput* out2 = foil_output_cipher_mem_new(mem2, enc2, digest2);
+    FoilOutput* out3 = foil_output_cipher_mem_new(NULL, enc3, NULL);
     GByteArray* dec_bytes = g_byte_array_new();
+    GBytes* d;
     GBytes* d1;
     GBytes* d2;
     GBytes* enc_bytes;
+    GBytes* enc_bytes2;
+    GBytes* enc_bytes3;
     gsize i;
 
     foil_key_unref(enc_key);
     foil_key_unref(dec_key);
     foil_output_unref(buf);
     foil_cipher_unref(enc);
+    foil_cipher_unref(enc2);
+    foil_cipher_unref(enc3);
+    g_byte_array_unref(mem2);
 
     /* Cipher input byte by byte */
     for (i = 0; i < test->input_size; i++) {
         g_assert(foil_output_write_all(out, in + i, 1));
+        g_assert(foil_output_write_all(out2, in + i, 1));
+        g_assert(foil_output_write_all(out3, in + i, 1));
     }
     enc_bytes = foil_output_free_to_bytes(out);
+    enc_bytes2 = foil_output_free_to_bytes(out2);
+    enc_bytes3 = foil_output_free_to_bytes(out3);
+    g_assert(g_bytes_equal(enc_bytes, enc_bytes2));
+    g_assert(g_bytes_equal(enc_bytes, enc_bytes3));
+    g_bytes_unref(enc_bytes2);
+    g_bytes_unref(enc_bytes3);
+
+    d = foil_digest_bytes(digest_type, in_bytes);
     d1 = foil_digest_free_to_bytes(digest);
-    d2 = foil_digest_bytes(digest_type, in_bytes);
-    g_assert(g_bytes_equal(d1, d2));
+    d2 = foil_digest_free_to_bytes(digest2);
+    g_assert(g_bytes_equal(d, d1));
+    g_assert(g_bytes_equal(d, d2));
+    g_bytes_unref(d);
     g_bytes_unref(d1);
     g_bytes_unref(d2);
 

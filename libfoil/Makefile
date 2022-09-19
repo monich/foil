@@ -116,6 +116,7 @@ SRC = \
   foil_output.c \
   foil_output_base64.c \
   foil_output_cipher.c \
+  foil_output_cipher_mem.c \
   foil_output_digest.c \
   foil_output_file.c \
   foil_output_mem.c \
