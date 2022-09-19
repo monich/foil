@@ -84,6 +84,7 @@ foil_output_cipher_write(
             left -= self->in_block_size;
             ptr += self->in_block_size;
         }
+
         if (encrypted < 0 || !foil_output_write_all(self->out,
             self->out_block, encrypted)) {
             return -1;
@@ -167,14 +168,10 @@ foil_output_cipher_close(
 {
     FoilOutputCipher* self = G_CAST(out, FoilOutputCipher, parent);
 
+    foil_output_cipher_finish(self);
+    foil_output_close(self->out);
     foil_output_unref(self->out);
-    foil_cipher_unref(self->cipher);
-    g_free(self->in_block);
-    g_free(self->out_block);
-    self->in_block = NULL;
-    self->out_block = NULL;
     self->out = NULL;
-    self->cipher = NULL;
 }
 
 static
@@ -182,12 +179,7 @@ void
 foil_output_cipher_free(
     FoilOutput* out)
 {
-    FoilOutputCipher* self = G_CAST(out, FoilOutputCipher, parent);
-    GASSERT(!self->out);
-    GASSERT(!self->cipher);
-    GASSERT(!self->in_block);
-    GASSERT(!self->out_block);
-    gutil_slice_free(self);
+    g_slice_free(FoilOutputCipher, G_CAST(out, FoilOutputCipher, parent));
 }
 
 FoilOutput*
