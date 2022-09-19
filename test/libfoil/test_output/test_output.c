@@ -254,14 +254,16 @@ test_output_digest1(
     GBytes* d2;
 
     g_assert(foil_output_write_all(out_digest, test1234, sizeof(test1234)));
-    g_assert(buf->len == sizeof(test1234));
-    g_assert(foil_output_bytes_written(out) == sizeof(test1234));
-    g_assert(foil_output_bytes_written(out_digest) == sizeof(test1234));
+    g_assert_cmpuint(buf->len, == ,sizeof(test1234));
+    g_assert_cmpint(foil_output_bytes_written(out), == ,sizeof(test1234));
+    g_assert_cmpint(foil_output_bytes_written(out_digest),==,sizeof(test1234));
     g_assert(!memcmp(buf->data, test1234, sizeof(test1234)));
 
     /* Write has to fail if we close the underlying output stream */
     foil_output_close(out);
-    g_assert(foil_output_write(out_digest, test1234, 1) < 0);
+    g_assert_cmpint(foil_output_write(out_digest, test1234, 1), < ,0);
+    g_assert_cmpint(foil_output_write_bytes(out_digest, d1), < ,0);
+    g_assert(!foil_output_write_bytes_all(out_digest, d1));
 
     /* Reset always fails for the digest output */
     g_assert(!foil_output_reset(out_digest));
