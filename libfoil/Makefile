@@ -62,7 +62,7 @@ IMPL_COVERAGE_BUILD_DIR = $(COVERAGE_BUILD_DIR)/$(IMPL)
 #
 
 VERSION_FILE = $(INCLUDE_DIR)/foil_version.h
-get_version = $(shell grep -E "^ *\\\#define +FOIL_VERSION_$1 +[0-9]+$$" $(VERSION_FILE) | sed "s/  */ /g" | cut -d " " -f 3)
+get_version = $(shell grep -E '^ *\#define +FOIL_VERSION_$1 +[0-9]+$$' $(VERSION_FILE) | sed 's/  */ /g' | cut -d ' ' -f 3)
 
 VERSION_MAJOR = $(call get_version,MAJOR)
 VERSION_MINOR = $(call get_version,MINOR)
