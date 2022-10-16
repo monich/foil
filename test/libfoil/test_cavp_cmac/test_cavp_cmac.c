@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Slava Monich
+ * Copyright (C) 2019-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -265,7 +265,7 @@ test_parse_file(
             test.Key3 = test_bytes_truncate(test.Key3, FOIL_DES_KEY_SIZE);
             test.Msg = test_bytes_truncate(test.Msg, test.Mlen);
             test.Mac = test_bytes_truncate(test.Mac, test.Tlen);
-            tests = g_slist_append(tests, g_memdup(&test, sizeof(test)));
+            tests = g_slist_append(tests, gutil_memdup(&test, sizeof(test)));
             memset(&test, 0, sizeof(test));
             flags = 0;
         }

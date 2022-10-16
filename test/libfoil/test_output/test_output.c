@@ -40,6 +40,8 @@
 #include "foil_key.h"
 #include "foil_private_key.h"
 
+#include <gutil_misc.h>
+
 #include <glib/gstdio.h>
 
 #define TEST_(name) "/output/" name
@@ -204,8 +206,8 @@ test_output_cipher(
     const TestOutputCipher* test = param;
     const guint8* in = test->input;
     GType digest_type = FOIL_DIGEST_SHA1;
-    GByteArray* mem2 = g_byte_array_new_take(g_memdup(prefix, sizeof(prefix)),
-        sizeof(prefix)); /* Byte array with a prefix */
+    GByteArray* mem2 = g_byte_array_new_take(gutil_memdup(prefix,
+        sizeof(prefix)), sizeof(prefix)); /* Byte array with a prefix */
     GBytes* in_bytes = g_bytes_new_static(in, test->input_size);
     FoilKey* enc_key = foil_key_new_from_data(test->key_type(),
         test->key.bytes, test->key.size);
