@@ -1,3 +1,17 @@
+libfoil (1.0.26) unstable; urgency=low
+
+  * Added foil_output_cipher_new()
+  * Added foil_key_to_binary_format()
+  * Fixed foil_output_write_bytes() error handling
+  * Fixed a few unit test dependency issues
+  * Don't update finished digest
+  * Compatibility with GNU Make 4
+  * Compatibility with OpenSSL 3
+  * Bumped debhelper compat level to 7
+  * Housekeeping
+
+ -- Slava Monich <slava@monich.com>  Mon, 17 Oct 2022 21:44:29 +0300
+
 libfoil (1.0.25) unstable; urgency=low
 
   * Added foil_kdf_pbkdf2()
