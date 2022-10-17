@@ -39,8 +39,33 @@
 #include "foil_key_rsa_public.h"
 #include "foil_key_rsa_private.h"
 
+/*
+ * Accessors (if present at all) may have slightly different
+ * prototypes, with different const qualifiers.
+ */
+#define RSA_set0_key RSA_set0_key_
+#define RSA_set0_factors RSA_set0_factors_
+#define RSA_set0_crt_params RSA_set0_crt_params_
+#define RSA_get0_key RSA_get0_key_
+#define RSA_get0_factors RSA_get0_factors_
+#define RSA_get0_crt_params RSA_get0_crt_params_
+#define OPENSSL_SUPPRESS_DEPRECATED
+
 #include <openssl/rsa.h>
 #include <openssl/err.h>
+
+#undef RSA_set0_key
+#undef RSA_set0_factors
+#undef RSA_set0_crt_params
+#undef RSA_get0_key
+#undef RSA_get0_factors
+#undef RSA_get0_crt_params
+
+#if OPENSSL_API_LEVEL >= 30000
+#  define RSA_CONST_PTR_3 const RSA*
+#else
+#  define RSA_CONST_PTR_3 RSA*
+#endif
 
 typedef FoilCipherClass FoilOpensslCipherRsaClass;
 typedef struct foil_openssl_cipher_rsa {
@@ -48,9 +73,9 @@ typedef struct foil_openssl_cipher_rsa {
     int padding_size;
     int padding;
     RSA* rsa;
-    RSA* (*dup)(RSA *rsa);
-    int (*proc)(int flen, const unsigned char *from,
-        unsigned char *to, RSA *rsa, int padding);
+    RSA* (*dup)(RSA_CONST_PTR_3 rsa);
+    int (*proc)(int flen, const unsigned char* from,
+        unsigned char* to, RSA* rsa, int padding);
 } FoilOpensslCipherRsa;
 
 GType foil_openssl_cipher_rsa_get_type(void) FOIL_INTERNAL;
@@ -117,56 +142,28 @@ foil_openssl_rsa_get_iqmp(
 
 /* Setters for RSA fields */
 
-const BIGNUM*
-foil_openssl_rsa_set_n(
+void
+foil_openssl_rsa_set_key(
     RSA* rsa,
-    const FoilBytes* bytes)
+    const FoilBytes* n,
+    const FoilBytes* e,
+    const FoilBytes* d)
     FOIL_INTERNAL;
 
-const BIGNUM*
-foil_openssl_rsa_set_e(
+void
+foil_openssl_rsa_set_factors(
     RSA* rsa,
-    const FoilBytes* bytes)
+    const FoilBytes* p,
+    const FoilBytes* q)
     FOIL_INTERNAL;
 
-const BIGNUM*
-foil_openssl_rsa_set_d(
+void
+foil_openssl_rsa_set_params(
     RSA* rsa,
-    const FoilBytes* bytes)
+    const FoilBytes* dmp1,
+    const FoilBytes* dmq1,
+    const FoilBytes* iqmp)
     FOIL_INTERNAL;
-
-const BIGNUM*
-foil_openssl_rsa_set_p(
-    RSA* rsa,
-    const FoilBytes* bytes)
-    FOIL_INTERNAL;
-
-const BIGNUM*
-foil_openssl_rsa_set_q(
-    RSA* rsa,
-    const FoilBytes* bytes)
-    FOIL_INTERNAL;
-
-const BIGNUM*
-foil_openssl_rsa_set_dmp1(
-    RSA* rsa,
-    const FoilBytes* bytes)
-    FOIL_INTERNAL;
-
-const BIGNUM*
-foil_openssl_rsa_set_dmq1(
-    RSA* rsa,
-    const FoilBytes* bytes)
-    FOIL_INTERNAL;
-
-const BIGNUM*
-foil_openssl_rsa_set_iqmp(
-    RSA* rsa,
-    const FoilBytes* bytes)
-    FOIL_INTERNAL;
-
-#define FOIL_RSA_FIELD(rsa,x) foil_openssl_rsa_get_##x(rsa)
-#define FOIL_RSA_KEY_SET_BN(rsa,x,data) foil_openssl_rsa_set_##x(rsa, &(data)->x)
 
 #define FOIL_RSA_PKCS1_OAEP_PADDING_SIZE 42
 

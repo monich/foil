@@ -1,26 +1,31 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -30,16 +35,17 @@
 #include "foil_openssl_rsa.h"
 
 /*
- * Originally, struct rsa_st was public then it was made opaque then it
- * started to mutate. Binary compatibility - what's that? Never heard of it!
+ * In OpenSSL 1.0 struct rsa_st was public and there were no RSA_get0_xxx
+ * and RSA_set0_xxx accessors. We use the accessors when they are* available,
+ * and only if they are not there, access the fields directly (which hopefully
+ * means that we are linked against OpenSSL 1.0)
  */
 
-#if GLIB_SIZEOF_LONG != 4
-typedef struct rsa_st_v1 {
+typedef struct rsa_st_1_0 {
     int pad;
     long version;
-    const RSA_METHOD* meth;
-    ENGINE* engine;
+    void* meth;
+    void* engine;
     BIGNUM* n;
     BIGNUM* e;
     BIGNUM* d;
@@ -48,266 +54,227 @@ typedef struct rsa_st_v1 {
     BIGNUM* dmp1;
     BIGNUM* dmq1;
     BIGNUM* iqmp;
-} RSA_V1;
-#  define CHECK_RSA_V1
-#else
-#  undef CHECK_RSA_V1
-#endif
+} RSA_1_0;
 
-typedef struct rsa_st_v2 {
-    int pad;
-    guint32 version;
-    const RSA_METHOD* meth;
-    ENGINE* engine;
-    BIGNUM* n;
-    BIGNUM* e;
-    BIGNUM* d;
-    BIGNUM* p;
-    BIGNUM* q;
-    BIGNUM* dmp1;
-    BIGNUM* dmq1;
-    BIGNUM* iqmp;
-} RSA_V2;
+#define FOIL_WEAK_FN __attribute__((weak))
 
-#ifdef CHECK_RSA_V1
-static
-RSA_V1*
-foil_openssl_rsa_v1(
-    const RSA* rsa)
-{
-    RSA_V1* v1 = (void*)rsa;
-    return (!v1->version && v1->meth && !v1->engine) ? v1 : NULL;
-}
-#endif /* CHECK_RSA_V1 */
+void
+RSA_get0_key(
+    const RSA* r,
+    const BIGNUM** n,
+    const BIGNUM** e,
+    const BIGNUM** d)
+    FOIL_WEAK_FN;
 
-static
-RSA_V2*
-foil_openssl_rsa_v2(
-    const RSA* rsa)
-{
-    RSA_V2* v2 = (void*)rsa;
-    return (!v2->version && v2->meth && !v2->engine) ? v2 : NULL;
-}
+void
+RSA_get0_factors(
+    const RSA* r,
+    const BIGNUM** p,
+    const BIGNUM** q)
+    FOIL_WEAK_FN;
 
-#ifdef CHECK_RSA_V1
-#  define FOIL_RSA_GET_FIELD_PTR(rsa,x) \
-    RSA_V1* v1 = foil_openssl_rsa_v1(rsa); \
-    if (v1) { \
-        return &v1->x; \
-    } else { \
-        RSA_V2* v2 = foil_openssl_rsa_v2(rsa); \
-        if (v2) return &v2->x; \
-    } \
-    return NULL
-#else
-#  define FOIL_RSA_GET_FIELD_PTR(rsa,x) \
-    RSA_V2* v2 = foil_openssl_rsa_v2(rsa); \
-    return v2 ? &v2->x : NULL
-#endif
+void
+RSA_get0_crt_params(
+    const RSA* r,
+    const BIGNUM** dmp1,
+    const BIGNUM** dmq1,
+    const BIGNUM** iqmp)
+    FOIL_WEAK_FN;
 
-static
-BIGNUM**
-foil_openssl_rsa_get_n_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,n);
-}
+int
+RSA_set0_key(
+    RSA* r,
+    BIGNUM* n,
+    BIGNUM* e,
+    BIGNUM* d)
+    FOIL_WEAK_FN;
 
-static
-BIGNUM**
-foil_openssl_rsa_get_e_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,e);
-}
+int
+RSA_set0_factors(
+    RSA* r,
+    BIGNUM* p,
+    BIGNUM* q)
+    FOIL_WEAK_FN;
 
-static
-BIGNUM**
-foil_openssl_rsa_get_d_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,d);
-}
-
-static
-BIGNUM**
-foil_openssl_rsa_get_p_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,p);
-}
-
-static
-BIGNUM**
-foil_openssl_rsa_get_q_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,q);
-}
-
-static
-BIGNUM**
-foil_openssl_rsa_get_dmp1_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,dmp1);
-}
-
-static
-BIGNUM**
-foil_openssl_rsa_get_dmq1_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,dmq1);
-}
-
-static
-BIGNUM**
-foil_openssl_rsa_get_iqmp_ptr(
-    const RSA* rsa)
-{
-    FOIL_RSA_GET_FIELD_PTR(rsa,iqmp);
-}
+int
+RSA_set0_crt_params(
+    RSA* r,
+    BIGNUM* dmp1,
+    BIGNUM* dmq1,
+    BIGNUM* iqmp)
+    FOIL_WEAK_FN;
 
 /* Getters for RSA fields */
-
 
 const BIGNUM*
 foil_openssl_rsa_get_n(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_n_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_key) {
+        const BIGNUM* n = NULL;
+        RSA_get0_key(rsa, &n, NULL, NULL);
+        if (n) return n;
+    }
+    /* Risky path */
+    return ((const RSA_1_0*)rsa)->n;
 }
 
 const BIGNUM*
 foil_openssl_rsa_get_e(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_e_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_key) {
+        const BIGNUM* e = NULL;
+        RSA_get0_key(rsa, NULL, &e, NULL);
+        if (e) return e;
+    }
+    /* OpenSSL 1.0 path */
+    return ((const RSA_1_0*)rsa)->e;
 }
 
 const BIGNUM*
 foil_openssl_rsa_get_d(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_d_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_key) {
+        const BIGNUM* d = NULL;
+        RSA_get0_key(rsa, NULL, NULL, &d);
+        if (d) return d;
+    }
+    /* OpenSSL 1.0 path */
+    return ((const RSA_1_0*)rsa)->d;
 }
 
 const BIGNUM*
 foil_openssl_rsa_get_p(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_p_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_factors) {
+        const BIGNUM* p = NULL;
+        RSA_get0_factors(rsa, &p, NULL);
+        if (p) return p;
+    }
+    /* OpenSSL 1.0 path */
+    return ((const RSA_1_0*)rsa)->p;
 }
 
 const BIGNUM*
 foil_openssl_rsa_get_q(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_q_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_factors) {
+        const BIGNUM* q = NULL;
+        RSA_get0_factors(rsa, NULL, &q);
+        if (q) return q;
+    }
+    /* OpenSSL 1.0 path */
+    return ((const RSA_1_0*)rsa)->q;
 }
 
 const BIGNUM*
 foil_openssl_rsa_get_dmp1(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_dmp1_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_crt_params) {
+        const BIGNUM* dmp1 = NULL;
+        RSA_get0_crt_params(rsa, &dmp1, NULL, NULL);
+        if (dmp1) return dmp1;
+    }
+    /* OpenSSL 1.0 path */
+    return ((const RSA_1_0*)rsa)->dmp1;
 }
 
 const BIGNUM*
 foil_openssl_rsa_get_dmq1(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_dmq1_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_crt_params) {
+        const BIGNUM* dmq1 = NULL;
+        RSA_get0_crt_params(rsa, NULL, &dmq1, NULL);
+        if (dmq1) return dmq1;
+    }
+    /* OpenSSL 1.0 path */
+    return ((const RSA_1_0*)rsa)->dmq1;
 }
 
 const BIGNUM*
 foil_openssl_rsa_get_iqmp(
     const RSA* rsa)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_iqmp_ptr(rsa);
-    return bn ? *bn : NULL;
+    if (RSA_get0_crt_params) {
+        const BIGNUM* iqmp = NULL;
+        RSA_get0_crt_params(rsa, NULL, NULL, &iqmp);
+        if (iqmp) return iqmp;
+    }
+    /* OpenSSL 1.0 path */
+    return ((const RSA_1_0*)rsa)->iqmp;
 }
 
 /* Setters for RSA fields */
 
-const BIGNUM*
-foil_openssl_rsa_set_n(
+void
+foil_openssl_rsa_set_key(
     RSA* rsa,
-    const FoilBytes* bytes)
+    const FoilBytes* n_bytes,
+    const FoilBytes* e_bytes,
+    const FoilBytes* d_bytes)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_n_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
+    /* d is NULL for the public key */
+    BIGNUM* n = BN_bin2bn(n_bytes->val, n_bytes->len, NULL);
+    BIGNUM* e = BN_bin2bn(e_bytes->val, e_bytes->len, NULL);
+    BIGNUM* d = d_bytes ? BN_bin2bn(d_bytes->val, d_bytes->len, NULL) : NULL;
+    if (!RSA_set0_key || !RSA_set0_key(rsa, n, e, d)) {
+        /* OpenSSL 1.0 path */
+        RSA_1_0* r = (RSA_1_0*)rsa;
+        BN_free(r->n);
+        BN_free(r->e);
+        r->n = n;
+        r->e = e;
+        if (d) {
+            BN_clear_free(r->d);
+            r->d = d;
+        }
+    }
 }
 
-const BIGNUM*
-foil_openssl_rsa_set_e(
+void
+foil_openssl_rsa_set_factors(
     RSA* rsa,
-    const FoilBytes* bytes)
+    const FoilBytes* p_bytes,
+    const FoilBytes* q_bytes)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_e_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
+    BIGNUM* p = BN_bin2bn(p_bytes->val, p_bytes->len, NULL);
+    BIGNUM* q = BN_bin2bn(q_bytes->val, q_bytes->len, NULL);
+    if (!RSA_set0_factors || !RSA_set0_factors(rsa, p, q)) {
+        /* OpenSSL 1.0 path */
+        RSA_1_0* r = (RSA_1_0*)rsa;
+        BN_clear_free(r->p);
+        BN_clear_free(r->q);
+        r->p = p;
+        r->q = q;
+    }
 }
 
-const BIGNUM*
-foil_openssl_rsa_set_d(
+void
+foil_openssl_rsa_set_params(
     RSA* rsa,
-    const FoilBytes* bytes)
+    const FoilBytes* dmp1_bytes,
+    const FoilBytes* dmq1_bytes,
+    const FoilBytes* iqmp_bytes)
 {
-    BIGNUM** bn = foil_openssl_rsa_get_d_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
-}
-
-const BIGNUM*
-foil_openssl_rsa_set_p(
-    RSA* rsa,
-    const FoilBytes* bytes)
-{
-    BIGNUM** bn = foil_openssl_rsa_get_p_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
-}
-
-const BIGNUM*
-foil_openssl_rsa_set_q(
-    RSA* rsa,
-    const FoilBytes* bytes)
-{
-    BIGNUM** bn = foil_openssl_rsa_get_q_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
-}
-
-const BIGNUM*
-foil_openssl_rsa_set_dmp1(
-    RSA* rsa,
-    const FoilBytes* bytes)
-{
-    BIGNUM** bn = foil_openssl_rsa_get_dmp1_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
-}
-
-const BIGNUM*
-foil_openssl_rsa_set_dmq1(
-    RSA* rsa,
-    const FoilBytes* bytes)
-{
-    BIGNUM** bn = foil_openssl_rsa_get_dmq1_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
-}
-
-const BIGNUM*
-foil_openssl_rsa_set_iqmp(
-    RSA* rsa,
-    const FoilBytes* bytes)
-{
-    BIGNUM** bn = foil_openssl_rsa_get_iqmp_ptr(rsa);
-    return (bn ? (*bn = BN_bin2bn(bytes->val, bytes->len, *bn)) : NULL);
+    BIGNUM* dmp1 = BN_bin2bn(dmp1_bytes->val, dmp1_bytes->len, NULL);
+    BIGNUM* dmq1 = BN_bin2bn(dmq1_bytes->val, dmq1_bytes->len, NULL);
+    BIGNUM* iqmp = BN_bin2bn(iqmp_bytes->val, iqmp_bytes->len, NULL);
+    if (!RSA_set0_crt_params || !RSA_set0_crt_params(rsa, dmp1, dmq1, iqmp)) {
+        /* OpenSSL 1.0 path */
+        RSA_1_0* r = (RSA_1_0*)rsa;
+        BN_clear_free(r->dmp1);
+        BN_clear_free(r->dmq1);
+        BN_clear_free(r->iqmp);
+        r->dmp1 = dmp1;
+        r->dmq1 = dmq1;
+        r->iqmp = iqmp;
+    }
 }
 
 /*
