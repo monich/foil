@@ -153,11 +153,19 @@ foil_output_write_bytes_all(
  */
 guint
 foil_output_write_eol(
-    FoilOutput* out)
+    FoilOutput* out) /* Since 1.0.9 */
 {
     static const char eol = '\n';
     gssize written = foil_output_write(out, &eol, 1);
     return written > 0 ? 1 : 0;
+}
+
+gboolean
+foil_output_write_byte(
+    FoilOutput* out,
+    guint8 byte) /* Since 1.0.27 */
+{
+    return foil_output_write(out, &byte, 1) == 1;
 }
 
 gboolean

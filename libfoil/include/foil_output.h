@@ -71,6 +71,11 @@ guint
 foil_output_write_eol(
     FoilOutput* out); /* Since 1.0.9 */
 
+gboolean
+foil_output_write_byte(
+    FoilOutput* out,
+    guint8 byte); /* Since 1.0.27 */
+
 #define foil_output_write_all(out,buf,size) \
     (foil_output_write(out,buf,size) == (gssize)(size))
 

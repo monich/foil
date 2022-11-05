@@ -86,6 +86,8 @@ test_output_null(
     g_assert(!foil_output_write(out, NULL, 0));
     g_assert(!foil_output_write(out, buf, 0));
     g_assert(!foil_output_write(out, NULL, 1));
+    g_assert(!foil_output_write_eol(NULL));
+    g_assert(!foil_output_write_byte(NULL, 1));
     g_assert(foil_output_write_bytes(NULL, NULL) < 0);
     g_assert(!foil_output_write_bytes(out, NULL));
     g_assert(foil_output_write_bytes(out, empty) == 0);
@@ -138,6 +140,14 @@ test_output_basic(
     g_assert(foil_output_write_all(out, test123, sizeof(test123)));
     g_byte_array_append(buf, test123, sizeof(test123));
     g_assert(!foil_output_free_to_bytes(out));
+
+    /* Writing a single byte */
+    g_byte_array_set_size(buf, 0);
+    out = foil_output_mem_new(buf);
+    g_assert(foil_output_write_byte(out, 42));
+    g_assert_cmpuint(buf->len, == ,1);
+    g_assert_cmpuint(buf->data[0], == ,42);
+    foil_output_unref(out);
 
     g_byte_array_unref(buf);
 }
