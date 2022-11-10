@@ -188,7 +188,7 @@ foil_digest_unref(
 
 FoilDigest*
 foil_digest_clone(
-    FoilDigest* self)
+    FoilDigest* self) /* Since 1.0.8 */
 {
     if (G_LIKELY(self)) {
         GType type = G_TYPE_FROM_INSTANCE(self);
@@ -205,7 +205,7 @@ foil_digest_clone(
 gboolean
 foil_digest_copy(
     FoilDigest* self,
-    FoilDigest* source)
+    FoilDigest* source) /* Since 1.0.8 */
 {
     if (G_LIKELY(self) && G_LIKELY(source)) {
         if (self == source) {
@@ -226,6 +226,25 @@ foil_digest_copy(
                 }
                 return TRUE;
             }
+        }
+    }
+    return FALSE;
+}
+
+gboolean
+foil_digest_reset(
+    FoilDigest* self) /* Since 1.0.27 */
+{
+    if (G_LIKELY(self)) {
+        FoilDigestClass* klass = FOIL_DIGEST_GET_CLASS(self);
+
+        if (klass->fn_reset) {
+            klass->fn_reset(self);
+            if (self->result) {
+                g_bytes_unref(self->result);
+                self->result = NULL;
+            }
+            return TRUE;
         }
     }
     return FALSE;

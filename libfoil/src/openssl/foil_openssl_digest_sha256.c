@@ -46,17 +46,18 @@ typedef struct foil_openssl_digest_sha256 {
     SHA256_CTX ctx;
 } FoilOpensslDigestSHA256;
 
-GType foil_openssl_digest_sha256_get_type() FOIL_INTERNAL;
+#define THIS_TYPE foil_openssl_digest_sha256_get_type()
+#define THIS(obj) G_TYPE_CHECK_INSTANCE_CAST(obj, THIS_TYPE, \
+    FoilOpensslDigestSHA256)
 
+GType THIS_TYPE FOIL_INTERNAL;
 G_DEFINE_TYPE(FoilOpensslDigestSHA256, foil_openssl_digest_sha256, \
-        FOIL_TYPE_DIGEST_SHA256)
-#define FOIL_OPENSSL_DIGEST_SHA256(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
-        FOIL_DIGEST_SHA256, FoilOpensslDigestSHA256))
+    FOIL_TYPE_DIGEST_SHA256)
 
 GType
 foil_impl_digest_sha256_get_type()
 {
-    return foil_openssl_digest_sha256_get_type();
+    return THIS_TYPE;
 }
 
 static
@@ -65,9 +66,15 @@ foil_openssl_digest_sha256_copy(
     FoilDigest* digest,
     FoilDigest* source)
 {
-    FoilOpensslDigestSHA256* self = FOIL_OPENSSL_DIGEST_SHA256(digest);
-    FoilOpensslDigestSHA256* other = FOIL_OPENSSL_DIGEST_SHA256(source);
-    self->ctx = other->ctx;
+    THIS(digest)->ctx = THIS(source)->ctx;
+}
+
+static
+void
+foil_openssl_digest_sha256_reset(
+    FoilDigest* digest)
+{
+    SHA256_Init(&(THIS(digest)->ctx));
 }
 
 static
@@ -77,8 +84,7 @@ foil_openssl_digest_sha256_update(
     const void* data,
     size_t size)
 {
-    FoilOpensslDigestSHA256* self = FOIL_OPENSSL_DIGEST_SHA256(digest);
-    SHA256_Update(&self->ctx, data, size);
+    SHA256_Update(&(THIS(digest)->ctx), data, size);
 }
 
 static
@@ -87,7 +93,8 @@ foil_openssl_digest_sha256_finish(
     FoilDigest* digest,
     void* md)
 {
-    FoilOpensslDigestSHA256* self = FOIL_OPENSSL_DIGEST_SHA256(digest);
+    FoilOpensslDigestSHA256* self = THIS(digest);
+
     if (G_LIKELY(md)) {
         SHA256_Final(md, &self->ctx);
     } else {
@@ -120,6 +127,7 @@ foil_openssl_digest_sha256_class_init(
 {
     GASSERT(klass->size == SHA256_DIGEST_LENGTH);
     klass->fn_copy = foil_openssl_digest_sha256_copy;
+    klass->fn_reset = foil_openssl_digest_sha256_reset;
     klass->fn_digest = foil_openssl_digest_sha256_digest;
     klass->fn_update = foil_openssl_digest_sha256_update;
     klass->fn_finish = foil_openssl_digest_sha256_finish;

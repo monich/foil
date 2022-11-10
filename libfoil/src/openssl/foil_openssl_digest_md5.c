@@ -46,17 +46,18 @@ typedef struct foil_openssl_digest_md5 {
     MD5_CTX ctx;
 } FoilOpensslDigestMD5;
 
-GType foil_openssl_digest_md5_get_type() FOIL_INTERNAL;
+#define THIS_TYPE foil_openssl_digest_md5_get_type()
+#define THIS(obj) G_TYPE_CHECK_INSTANCE_CAST(obj, THIS_TYPE, \
+    FoilOpensslDigestMD5)
 
+GType THIS_TYPE FOIL_INTERNAL;
 G_DEFINE_TYPE(FoilOpensslDigestMD5, foil_openssl_digest_md5, \
-        FOIL_TYPE_DIGEST_MD5)
-#define FOIL_OPENSSL_DIGEST_MD5(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
-        FOIL_DIGEST_MD5, FoilOpensslDigestMD5))
+    FOIL_TYPE_DIGEST_MD5)
 
 GType
 foil_impl_digest_md5_get_type()
 {
-    return foil_openssl_digest_md5_get_type();
+    return THIS_TYPE;
 }
 
 static
@@ -65,9 +66,15 @@ foil_openssl_digest_md5_copy(
     FoilDigest* digest,
     FoilDigest* source)
 {
-    FoilOpensslDigestMD5* self = FOIL_OPENSSL_DIGEST_MD5(digest);
-    FoilOpensslDigestMD5* other = FOIL_OPENSSL_DIGEST_MD5(source);
-    self->ctx = other->ctx;
+    THIS(digest)->ctx = THIS(source)->ctx;
+}
+
+static
+void
+foil_openssl_digest_md5_reset(
+    FoilDigest* digest)
+{
+    MD5_Init(&(THIS(digest)->ctx));
 }
 
 static
@@ -77,8 +84,7 @@ foil_openssl_digest_md5_update(
     const void* data,
     size_t size)
 {
-    FoilOpensslDigestMD5* self = FOIL_OPENSSL_DIGEST_MD5(digest);
-    MD5_Update(&self->ctx, data, size);
+    MD5_Update(&(THIS(digest)->ctx), data, size);
 }
 
 static
@@ -87,7 +93,8 @@ foil_openssl_digest_md5_finish(
     FoilDigest* digest,
     void* md)
 {
-    FoilOpensslDigestMD5* self = FOIL_OPENSSL_DIGEST_MD5(digest);
+    FoilOpensslDigestMD5* self = THIS(digest);
+
     if (md) {
         MD5_Final(md, &self->ctx);
     } else {
@@ -120,6 +127,7 @@ foil_openssl_digest_md5_class_init(
 {
     GASSERT(klass->size == MD5_DIGEST_LENGTH);
     klass->fn_copy = foil_openssl_digest_md5_copy;
+    klass->fn_reset = foil_openssl_digest_md5_reset;
     klass->fn_digest = foil_openssl_digest_md5_digest;
     klass->fn_update = foil_openssl_digest_md5_update;
     klass->fn_finish = foil_openssl_digest_md5_finish;

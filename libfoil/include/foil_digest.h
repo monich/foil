@@ -85,12 +85,16 @@ foil_digest_name(
 
 FoilDigest*
 foil_digest_clone(
-    FoilDigest* digest);        /* Since 1.0.8 */
+    FoilDigest* digest); /* Since 1.0.8 */
 
 gboolean
 foil_digest_copy(
     FoilDigest* digest,
-    FoilDigest* source);        /* Since 1.0.8 */
+    FoilDigest* source); /* Since 1.0.8 */
+
+gboolean
+foil_digest_reset(
+    FoilDigest* digest); /* Since 1.0.27 */
 
 gboolean
 foil_digest_update(

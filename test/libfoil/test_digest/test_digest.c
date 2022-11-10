@@ -228,6 +228,7 @@ test_basic(
     g_assert(!foil_digest_type_name(0));
     g_assert(!foil_digest_new(0));
     g_assert(!foil_digest_clone(NULL));
+    g_assert(!foil_digest_reset(NULL));
     g_assert(!foil_digest_ref(NULL));
     g_assert(!foil_digest_size(NULL));
     g_assert(!foil_digest_block_size(NULL));
@@ -253,6 +254,7 @@ test_basic(
     foil_digest_update_bytes(NULL, bytes);
     foil_digest_unref(NULL);
     g_bytes_unref(bytes);
+    foil_digest_reset(md5);
     foil_digest_unref(md5);
 }
 
@@ -383,6 +385,39 @@ test_copy(
 
 static
 void
+test_reset(
+    gconstpointer param)
+{
+    const TestDigest* test = param;
+    const size_t input_len = strlen(test->input);
+    GType type = test->digest_type();
+    FoilDigest* digest = foil_digest_new(type);
+    GBytes* b1;
+    GBytes* b2;
+    int i;
+
+    for (i = 0; i < test->repeat_count; i++) {
+        foil_digest_update(digest, test->input, input_len);
+    }
+    b1 = g_bytes_ref(foil_digest_finish(digest));
+
+    g_assert(foil_digest_reset(digest));
+
+    for (i = 0; i < test->repeat_count; i++) {
+        foil_digest_update(digest, test->input, input_len);
+    }
+    b2 = foil_digest_finish(digest);
+
+    /* Results must be different but identical */
+    g_assert(b1 != b2);
+    g_assert(g_bytes_equal(b1, b2));
+
+    g_bytes_unref(b1);
+    foil_digest_unref(digest);
+}
+
+static
+void
 test_digest(
     gconstpointer param)
 {
@@ -430,6 +465,7 @@ test_digest(
 
 #define TEST_NAME(name) "/digest/" name
 #define TEST_DATA(d) d, sizeof(d)
+
 #define TEST_(ALG,alg,i,n) { \
     TEST_NAME(#ALG "_TEST" #i), test_digest, \
     foil_impl_digest_##alg##_get_type, \
@@ -439,10 +475,19 @@ test_digest(
 #define TEST_SHA256(i,n) TEST_(SHA256,sha256,i,n)
 #define TEST_SHA512(i,n) TEST_(SHA512,sha512,i,n)
 
+#define TEST_RESET(ALG,alg,i,n) { \
+    TEST_NAME("reset/" #ALG), test_reset, \
+    foil_impl_digest_##alg##_get_type, \
+    ALG##_TEST##i, n, TEST_DATA(test_##alg##_data##i) }
+
 static const TestDigest tests[] = {
     { TEST_NAME("Basic"), test_basic },
     { TEST_NAME("Clone"), test_clone },
     { TEST_NAME("Copy"), test_copy },
+    TEST_RESET(MD5,md5,2,1),
+    TEST_RESET(SHA1,sha1,2,1),
+    TEST_RESET(SHA256,sha256,2,1),
+    TEST_RESET(SHA512,sha512,2,1),
     /* MD5 */
     TEST_MD5(1,1),
     TEST_MD5(2,1),

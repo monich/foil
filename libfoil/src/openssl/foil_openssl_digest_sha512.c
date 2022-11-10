@@ -44,17 +44,18 @@ typedef struct foil_openssl_digest_sha512 {
     SHA512_CTX ctx;
 } FoilOpensslDigestSHA512;
 
-GType foil_openssl_digest_sha512_get_type() FOIL_INTERNAL;
+#define THIS_TYPE foil_openssl_digest_sha512_get_type()
+#define THIS(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, THIS_TYPE, \
+    FoilOpensslDigestSHA512))
 
+GType THIS_TYPE FOIL_INTERNAL;
 G_DEFINE_TYPE(FoilOpensslDigestSHA512, foil_openssl_digest_sha512, \
-        FOIL_TYPE_DIGEST_SHA512)
-#define FOIL_OPENSSL_DIGEST_SHA512(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
-        FOIL_DIGEST_SHA512, FoilOpensslDigestSHA512))
+    FOIL_TYPE_DIGEST_SHA512)
 
 GType
 foil_impl_digest_sha512_get_type()
 {
-    return foil_openssl_digest_sha512_get_type();
+    return THIS_TYPE;
 }
 
 static
@@ -63,9 +64,15 @@ foil_openssl_digest_sha512_copy(
     FoilDigest* digest,
     FoilDigest* source)
 {
-    FoilOpensslDigestSHA512* self = FOIL_OPENSSL_DIGEST_SHA512(digest);
-    FoilOpensslDigestSHA512* other = FOIL_OPENSSL_DIGEST_SHA512(source);
-    self->ctx = other->ctx;
+    THIS(digest)->ctx = THIS(source)->ctx;
+}
+
+static
+void
+foil_openssl_digest_sha512_reset(
+    FoilDigest* digest)
+{
+    SHA512_Init(&(THIS(digest)->ctx));
 }
 
 static
@@ -75,8 +82,7 @@ foil_openssl_digest_sha512_update(
     const void* data,
     size_t size)
 {
-    FoilOpensslDigestSHA512* self = FOIL_OPENSSL_DIGEST_SHA512(digest);
-    SHA512_Update(&self->ctx, data, size);
+    SHA512_Update(&(THIS(digest)->ctx), data, size);
 }
 
 static
@@ -85,7 +91,8 @@ foil_openssl_digest_sha512_finish(
     FoilDigest* digest,
     void* md)
 {
-    FoilOpensslDigestSHA512* self = FOIL_OPENSSL_DIGEST_SHA512(digest);
+    FoilOpensslDigestSHA512* self = THIS(digest);
+
     if (G_LIKELY(md)) {
         SHA512_Final(md, &self->ctx);
     } else {
@@ -118,6 +125,7 @@ foil_openssl_digest_sha512_class_init(
 {
     GASSERT(klass->size == SHA512_DIGEST_LENGTH);
     klass->fn_copy = foil_openssl_digest_sha512_copy;
+    klass->fn_reset = foil_openssl_digest_sha512_reset;
     klass->fn_digest = foil_openssl_digest_sha512_digest;
     klass->fn_update = foil_openssl_digest_sha512_update;
     klass->fn_finish = foil_openssl_digest_sha512_finish;

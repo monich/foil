@@ -52,6 +52,7 @@ typedef struct foil_digest_class {
     void* (*fn_digest_alloc)(void);
     void (*fn_digest_free)(void* md);
     void (*fn_digest)(const void* in, gsize n, void* md);
+    void (*fn_reset)(FoilDigest* digest);
     void (*fn_copy)(FoilDigest* digest, FoilDigest* source);
     void (*fn_update)(FoilDigest* digest, const void* data, gsize size);
     void (*fn_finish)(FoilDigest* digest, void* md);
