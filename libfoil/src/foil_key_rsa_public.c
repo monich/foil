@@ -472,7 +472,7 @@ foil_key_rsa_public_from_data(
                 FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT,
                 "Unrecognized RSA public key format"));
         }
-        GWARN("Unsupported RSA public key format");
+        GDEBUG("Unsupported RSA public key format");
     }
     foil_pool_drain(&pool);
     return result;
