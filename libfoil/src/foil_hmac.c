@@ -1,26 +1,31 @@
 /*
- * Copyright (C) 2018 by Slava Monich
+ * Copyright (C) 2018-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
+ *   1. Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *   3. Neither the names of the copyright holders nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
- * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -42,30 +47,64 @@
  * ipad is the byte 0x36 repeated 64 times
  * opad is the byte 0x5c repeated 64 times
  * and text is the data being protected
+ *
+ * Since 1.0.8
  */
 
 struct foil_hmac {
     gint ref_count;
     FoilDigest* digest;
+    void* key;
+    gsize keylen;
     guint8* k_opad;
     GBytes* result;
 };
 
 static
 void
+foil_hmac_init(
+    FoilHmac* self)
+{
+    const gsize keylen = self->keylen;
+    const gsize blocksize = foil_digest_block_size(self->digest);
+    guint8* k_ipad = g_slice_alloc(blocksize);
+    gsize i;
+
+    /* XOR key with ipad and opad values */
+    if (keylen) {
+        memcpy(k_ipad, self->key, keylen);
+        memcpy(self->k_opad, self->key, keylen);
+    }
+    if (blocksize > keylen) {
+        memset(k_ipad + keylen, 0, blocksize - keylen);
+        memset(self->k_opad + keylen, 0, blocksize - keylen);
+    }
+    for (i = 0; i < blocksize; i++) {
+        k_ipad[i] ^= 0x36;
+        self->k_opad[i] ^= 0x5c;
+    }
+
+    /* Perform inner digest */
+    foil_digest_update(self->digest, k_ipad, blocksize);
+    memset(k_ipad, 0, blocksize);
+    g_slice_free1(blocksize, k_ipad);
+}
+
+static
+void
 foil_hmac_finalize(
     FoilHmac* self)
 {
+    const gsize blocksize = foil_digest_block_size(self->digest);
+
     if (self->result) {
         g_bytes_unref(self->result);
-        GASSERT(!self->digest);
-        GASSERT(!self->k_opad);
-    } else {
-        const gsize blocksize = foil_digest_block_size(self->digest);
-        memset(self->k_opad, 0, blocksize);
-        g_slice_free1(blocksize, self->k_opad);
-        foil_digest_unref(self->digest);
     }
+    memset(self->key, 0, self->keylen);
+    memset(self->k_opad, 0, blocksize);
+    g_slice_free1(self->keylen, self->key);
+    g_slice_free1(blocksize, self->k_opad);
+    foil_digest_unref(self->digest);
 }
 
 FoilHmac*
@@ -99,12 +138,10 @@ foil_hmac_new(
     gsize keylen)
 {
     FoilDigest* digest = foil_digest_new(digest_type);
-    if (digest) {
+
+    if (G_LIKELY(digest)) {
         FoilHmac* hmac = g_slice_new0(FoilHmac);
         const gsize blocksize = foil_digest_block_size(digest);
-        guint8* k_ipad = g_slice_alloc0(blocksize);
-        GBytes* tmp_key = NULL;
-        gsize i;
 
         g_atomic_int_set(&hmac->ref_count, 1);
         hmac->digest = digest;
@@ -112,25 +149,16 @@ foil_hmac_new(
 
         /* If key is longer than digest block size, reset it to H(key) */
         if (keylen > blocksize) {
-            tmp_key = foil_digest_data(digest_type, key, keylen);
-            key = g_bytes_get_data(tmp_key, &keylen);
+            hmac->keylen = blocksize;
+            hmac->key = g_slice_alloc0(blocksize);
+            foil_digest_data_buf(digest_type, key, keylen, hmac->key);
+        } else if (keylen > 0) {
+            hmac->keylen = keylen;
+            hmac->key = g_slice_alloc(keylen);
+            memcpy(hmac->key, key, keylen);
         }
 
-        /* XOR key with ipad and opad values */
-        memcpy(k_ipad, key, keylen);
-        memcpy(hmac->k_opad, key, keylen);
-        for (i = 0; i < blocksize; i++) {
-            k_ipad[i] ^= 0x36;
-            hmac->k_opad[i] ^= 0x5c;
-        }
-
-        /* Perform inner digest */
-        foil_digest_update(digest, k_ipad, blocksize);
-        memset(k_ipad, 0, blocksize);
-        g_slice_free1(blocksize, k_ipad);
-        if (tmp_key) {
-            g_bytes_unref(tmp_key);
-        }
+        foil_hmac_init(hmac);
         return hmac;
     }
     return NULL;
@@ -142,6 +170,7 @@ foil_hmac_clone(
 {
     if (G_LIKELY(self)) {
         FoilHmac* hmac = g_slice_new0(FoilHmac);
+
         g_atomic_int_set(&hmac->ref_count, 1);
         if (self->result) {
             hmac->result = g_bytes_ref(self->result);
@@ -212,6 +241,20 @@ foil_hmac_update(
     }
 }
 
+void
+foil_hmac_reset(
+    FoilHmac* self) /* Since 1.0.27 */
+{
+    if (G_LIKELY(self)) {
+        if (self->result) {
+            g_bytes_unref(self->result);
+            self->result = NULL;
+        }
+        foil_digest_reset(self->digest);
+        foil_hmac_init(self);
+    }
+}
+
 GBytes*
 foil_hmac_finish(
     FoilHmac* self)
@@ -221,17 +264,11 @@ foil_hmac_finish(
             const gsize blocksize = foil_digest_block_size(self->digest);
             GType type = G_TYPE_FROM_INSTANCE(self->digest);
             FoilDigest* md = foil_digest_new(type);
-            GBytes* d = foil_digest_free_to_bytes(self->digest);
+            GBytes* d = foil_digest_finish(self->digest);
 
             foil_digest_update(md, self->k_opad, blocksize);
             foil_digest_update_bytes(md, d);
             self->result = foil_digest_free_to_bytes(md);
-
-            g_bytes_unref(d);
-            memset(self->k_opad, 0, blocksize);
-            g_slice_free1(blocksize, self->k_opad);
-            self->k_opad = NULL;
-            self->digest = NULL;
         }
         return self->result;
     }
@@ -244,6 +281,7 @@ foil_hmac_free_to_bytes(
 {
     if (G_LIKELY(self)) {
         GBytes* bytes = foil_hmac_finish(self);
+
         g_bytes_ref(bytes);
         foil_hmac_unref(self);
         return bytes;
