@@ -36,6 +36,8 @@
 
 #include "foil_digest_p.h"
 
+#include <gutil_misc.h>
+
 typedef struct test_digest {
     const char* name;
     GTestDataFunc fn;
@@ -45,6 +47,30 @@ typedef struct test_digest {
     const guint8* output;
     guint output_size;
 } TestDigest;
+
+/* Empty digests */
+#define empty_md5_data test_md5_data1
+static const guint8 empty_sha1_data[] = {
+    0xda,0x39,0xa3,0xee,0x5e,0x6b,0x4b,0x0d,
+    0x32,0x55,0xbf,0xef,0x95,0x60,0x18,0x90,
+    0xaf,0xd8,0x07,0x09
+};
+static const guint8 empty_sha256_data[] = {
+    0xe3,0xb0,0xc4,0x42,0x98,0xfc,0x1c,0x14,
+    0x9a,0xfb,0xf4,0xc8,0x99,0x6f,0xb9,0x24,
+    0x27,0xae,0x41,0xe4,0x64,0x9b,0x93,0x4c,
+    0xa4,0x95,0x99,0x1b,0x78,0x52,0xb8,0x55
+};
+static const guint8 empty_sha512_data[] = {
+    0xcf,0x83,0xe1,0x35,0x7e,0xef,0xb8,0xbd,
+    0xf1,0x54,0x28,0x50,0xd6,0x6d,0x80,0x07,
+    0xd6,0x20,0xe4,0x05,0x0b,0x57,0x15,0xdc,
+    0x83,0xf4,0xa9,0x21,0xd3,0x6c,0xe9,0xce,
+    0x47,0xd0,0xd1,0x3c,0x5d,0x85,0xf2,0xb0,
+    0xff,0x83,0x18,0xd2,0x87,0x7e,0xec,0x2f,
+    0x63,0xb9,0x31,0xbd,0x47,0x41,0x7a,0x81,
+    0xa5,0x38,0x32,0x7a,0xf9,0x27,0xda,0x3e
+};
 
 /* MD5 examples from http://www.ietf.org/rfc/rfc1321 */
 
@@ -222,6 +248,7 @@ test_basic(
     static const guchar data[1] = { 1 };
     GBytes* bytes = g_bytes_new_static(data, sizeof(data));
     FoilDigest* md5 = foil_digest_new_md5();
+    int tmp;
 
     g_assert(!foil_digest_type_size(0));
     g_assert(!foil_digest_type_block_size(0));
@@ -240,6 +267,9 @@ test_basic(
     g_assert(!foil_digest_data(0, NULL, sizeof(data)));
     g_assert(!foil_digest_data(0, data, sizeof(data)));
     g_assert(!foil_digest_data(0, data, 0));
+    g_assert(!foil_digest_data_buf(G_TYPE_OBJECT, NULL, 0, NULL));
+    g_assert(!foil_digest_data_buf(G_TYPE_OBJECT, NULL, 0, &tmp));
+    g_assert(!foil_digest_data_buf(FOIL_DIGEST_MD5, NULL, 0, NULL));
     g_assert(!foil_digest_bytes(0, NULL));
     g_assert(!foil_digest_bytes(0, bytes));
     g_assert(!foil_digest_type_block_size(FOIL_TYPE_DIGEST));
@@ -427,7 +457,7 @@ test_digest(
     FoilDigest* digest = foil_digest_new(type);
     FoilDigest* unfinished = foil_digest_new(type);
     const char* name = foil_digest_type_name(type);
-    const size_t input_len = strlen(test->input);
+    const size_t input_len = gutil_strlen0(test->input);
     GBytes* result;
     gsize size = 0;
     gconstpointer data;
@@ -451,9 +481,14 @@ test_digest(
     if (test->repeat_count == 1) {
         GBytes* in = g_bytes_new(test->input, input_len);
         GBytes* out = foil_digest_bytes(type, in);
+        void* buf = g_malloc0(size);
+
+        g_assert(foil_digest_data_buf(type, test->input, input_len, buf));
+        g_assert(!memcmp(buf, test->output, size));
         g_assert(g_bytes_equal(result, out));
         g_bytes_unref(in);
         g_bytes_unref(out);
+        g_free(buf);
     }
 
     foil_digest_unref(foil_digest_ref(digest));
@@ -475,6 +510,11 @@ test_digest(
 #define TEST_SHA256(i,n) TEST_(SHA256,sha256,i,n)
 #define TEST_SHA512(i,n) TEST_(SHA512,sha512,i,n)
 
+#define TEST_EMPTY(ALG,alg) {              \
+    TEST_NAME(#ALG "_EMPTY"), test_digest, \
+    foil_impl_digest_##alg##_get_type, \
+    NULL, 1, TEST_DATA(empty_##alg##_data) }
+
 #define TEST_RESET(ALG,alg,i,n) { \
     TEST_NAME("reset/" #ALG), test_reset, \
     foil_impl_digest_##alg##_get_type, \
@@ -484,6 +524,10 @@ static const TestDigest tests[] = {
     { TEST_NAME("Basic"), test_basic },
     { TEST_NAME("Clone"), test_clone },
     { TEST_NAME("Copy"), test_copy },
+    TEST_EMPTY(MD5,md5),
+    TEST_EMPTY(SHA1,sha1),
+    TEST_EMPTY(SHA256,sha256),
+    TEST_EMPTY(SHA512,sha512),
     TEST_RESET(MD5,md5,2,1),
     TEST_RESET(SHA1,sha1,2,1),
     TEST_RESET(SHA256,sha256,2,1),

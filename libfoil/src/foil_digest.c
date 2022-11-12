@@ -115,6 +115,26 @@ foil_digest_data(
     return result;
 }
 
+gboolean
+foil_digest_data_buf(
+    GType type,
+    const void* data,
+    gsize size,
+    void* digest) /* Since 1.0.27 */
+{
+    /* The output buffer is supposed to be large enough */
+    if (G_LIKELY(data || !size) && G_LIKELY(digest)) {
+        FoilDigestClass* klass = foil_digest_class_ref(type);
+
+        if (G_LIKELY(klass)) {
+            klass->fn_digest(data, size, digest);
+            g_type_class_unref(klass);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 GBytes*
 foil_digest_bytes(
     GType type,

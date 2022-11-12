@@ -56,6 +56,13 @@ foil_digest_data(
     const void* data,
     gsize size);
 
+gboolean
+foil_digest_data_buf(
+    GType type,
+    const void* data,
+    gsize size,
+    void* digest); /* Since 1.0.27 */
+
 GBytes*
 foil_digest_bytes(
     GType type,
