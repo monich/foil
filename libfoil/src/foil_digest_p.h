@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich
+ * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,6 +93,44 @@ foil_digest_type_block_size(
 gsize
 foil_digest_block_size(
     FoilDigest* digest)
+    FOIL_INTERNAL;
+
+/* Callbacks for generic FoilDigest/FoilHmac actions (all ignore NULL) */
+
+typedef
+void
+(*FoilDigestGenericUpdateFunc)(
+    void* digest,
+    const void* data,
+    gsize size);
+
+void
+foil_digest_update_digest(
+    void* digest, /* FoilDigest */
+    const void* data,
+    gsize size)
+    FOIL_INTERNAL;
+
+void
+foil_digest_update_hmac(
+    void* digest, /* FoilHmac */
+    const void* data,
+    gsize size)
+    FOIL_INTERNAL;
+
+typedef
+void
+(*FoilDigestGenericUnrefFunc)(
+    void* digest);
+
+void
+foil_digest_unref_digest(
+    void* digest) /* FoilDigest */
+    FOIL_INTERNAL;
+
+void
+foil_digest_unref_hmac(
+    void* digest) /* FoilHmac */
     FOIL_INTERNAL;
 
 #endif /* FOIL_DIGEST_P_H */

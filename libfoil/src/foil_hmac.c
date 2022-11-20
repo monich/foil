@@ -289,6 +289,24 @@ foil_hmac_free_to_bytes(
     return NULL;
 }
 
+/* Callbacks for generic FoilDigest/FoilHmac actions */
+
+void
+foil_digest_update_hmac(
+    void* digest,
+    const void* data,
+    gsize size)
+{
+    foil_hmac_update(digest, data, size);
+}
+
+void
+foil_digest_unref_hmac(
+    void* digest)
+{
+    foil_hmac_unref(digest);
+}
+
 /*
  * Local Variables:
  * mode: C

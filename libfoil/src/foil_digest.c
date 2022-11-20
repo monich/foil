@@ -363,6 +363,24 @@ foil_digest_class_init(
     G_OBJECT_CLASS(klass)->finalize = foil_digest_finalize;
 }
 
+/* Callbacks for generic FoilDigest/FoilHmac actions */
+
+void
+foil_digest_update_digest(
+    void* digest,
+    const void* data,
+    gsize size)
+{
+    foil_digest_update(digest, data, size);
+}
+
+void
+foil_digest_unref_digest(
+    void* digest)
+{
+    foil_digest_unref(digest);
+}
+
 /*
  * Local Variables:
  * mode: C

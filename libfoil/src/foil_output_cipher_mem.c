@@ -32,9 +32,10 @@
  * any official policies, either expressed or implied.
  */
 
-#include "foil_output_p.h"
 #include "foil_cipher.h"
-#include "foil_digest.h"
+#include "foil_digest_p.h"
+#include "foil_hmac.h"
+#include "foil_output_p.h"
 
 #include <gutil_macros.h>
 
@@ -45,13 +46,15 @@
 typedef struct foil_output_cipher_mem {
     FoilOutput parent;
     FoilCipher* cipher;
-    FoilDigest* digest;
     GByteArray* buf;
     gsize offset;
     gsize out_block_size;
     gsize in_block_size;
     gsize in_block_used;
     guint8* in_block;
+    void* digest;
+    FoilDigestGenericUpdateFunc digest_update;
+    FoilDigestGenericUnrefFunc digest_unref;
 } FoilOutputCipherMem;
 
 static
@@ -105,7 +108,7 @@ foil_output_cipher_mem_write(
         self->in_block_used += left;
     }
 
-    foil_digest_update(self->digest, data, size);
+    self->digest_update(self->digest, data, size);
     return size;
 }
 
@@ -129,7 +132,7 @@ foil_output_cipher_mem_finish(
     }
 
     /* Leave self->buf to the caller */
-    foil_digest_unref(self->digest);
+    self->digest_unref(self->digest);
     foil_cipher_unref(self->cipher);
     g_free(self->in_block);
     self->in_block_used = 0;
@@ -204,11 +207,16 @@ foil_output_cipher_mem_free(
     g_slice_free(FoilOutputCipherMem,G_CAST(out, FoilOutputCipherMem, parent));
 }
 
+static
 FoilOutput*
-foil_output_cipher_mem_new(
+foil_output_cipher_mem_internal_new(
     GByteArray* buf,
     FoilCipher* cipher,
-    FoilDigest* digest) /* Since 1.0.26 */
+    gsize in_size,
+    gsize out_size,
+    void* digest_ref,
+    FoilDigestGenericUpdateFunc digest_update,
+    FoilDigestGenericUnrefFunc digest_unref)
 {
     static const FoilOutputFunc foil_output_cipher_fn = {
         foil_output_cipher_mem_write,       /* fn_write */
@@ -219,23 +227,53 @@ foil_output_cipher_mem_new(
         foil_output_cipher_mem_free         /* fn_free */
     };
 
+    FoilOutputCipherMem* self = g_slice_new0(FoilOutputCipherMem);
+
+    if (buf) {
+        self->buf = g_byte_array_ref(buf);
+        self->offset = buf->len;
+    } else {
+        self->buf = g_byte_array_new();
+    }
+    self->cipher = foil_cipher_ref(cipher);
+    self->in_block_size = in_size;
+    self->out_block_size = out_size;
+    self->digest = digest_ref;
+    self->digest_update = digest_update;
+    self->digest_unref = digest_unref;
+    return foil_output_init(&self->parent, &foil_output_cipher_fn);
+}
+
+FoilOutput*
+foil_output_cipher_mem_new(
+    GByteArray* buf,
+    FoilCipher* cipher,
+    FoilDigest* digest) /* Since 1.0.26 */
+{
     const int in_size = foil_cipher_input_block_size(cipher);
     const int out_size = foil_cipher_output_block_size(cipher);
 
     if (G_LIKELY(in_size > 0) && G_LIKELY(out_size > 0)) {
-        FoilOutputCipherMem* self = g_slice_new0(FoilOutputCipherMem);
+        return foil_output_cipher_mem_internal_new(buf, cipher,
+            in_size, out_size, foil_digest_ref(digest),
+            foil_digest_update_digest, foil_digest_unref_digest);
+    }
+    return NULL;
+}
 
-        if (buf) {
-            self->buf = g_byte_array_ref(buf);
-            self->offset = buf->len;
-        } else {
-            self->buf = g_byte_array_new();
-        }
-        self->cipher = foil_cipher_ref(cipher);
-        self->digest = foil_digest_ref(digest);
-        self->in_block_size = in_size;
-        self->out_block_size = out_size;
-        return foil_output_init(&self->parent, &foil_output_cipher_fn);
+FoilOutput*
+foil_output_cipher_mem_new2(
+    GByteArray* buf,
+    FoilCipher* cipher,
+    FoilHmac* hmac) /* Since 1.0.27 */
+{
+    const int in_size = foil_cipher_input_block_size(cipher);
+    const int out_size = foil_cipher_output_block_size(cipher);
+
+    if (G_LIKELY(in_size > 0) && G_LIKELY(out_size > 0)) {
+        return foil_output_cipher_mem_internal_new(buf, cipher,
+            in_size, out_size, foil_hmac_ref(hmac),
+            foil_digest_update_hmac, foil_digest_unref_hmac);
     }
     return NULL;
 }

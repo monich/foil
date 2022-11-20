@@ -108,10 +108,22 @@ foil_output_cipher_new(
     FoilDigest* digest); /* Since 1.0.26 */
 
 FoilOutput*
+foil_output_cipher_new2(
+    FoilOutput* out,
+    FoilCipher* cipher,
+    FoilHmac* hmac); /* Since 1.0.27 */
+
+FoilOutput*
 foil_output_cipher_mem_new(
     GByteArray* buf,
     FoilCipher* cipher,
     FoilDigest* digest); /* Since 1.0.26 */
+
+FoilOutput*
+foil_output_cipher_mem_new2(
+    GByteArray* buf,
+    FoilCipher* cipher,
+    FoilHmac* hmac); /* Since 1.0.27 */
 
 FoilOutput*
 foil_output_digest_new(
