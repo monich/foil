@@ -545,17 +545,38 @@ test_clone(
     g_bytes_unref(b1);
     g_bytes_unref(b2);
 
+    /* Reset cloned HMAC */
+    h1 = foil_hmac_new(FOIL_DIGEST_MD5, key.val, key.len);
+    foil_hmac_update(h1, data.val, data.len);
+    h2 = foil_hmac_clone(h1);
+    foil_hmac_reset(h1);
+    foil_hmac_reset(h2);
+    foil_hmac_update(h1, data.val, data.len);
+    foil_hmac_update(h2, data.val, data.len);
+    b1 = foil_hmac_free_to_bytes(h1);
+    b2 = foil_hmac_free_to_bytes(h2);
+    g_assert(test_bytes_equal(b1, output.val, output.len));
+    g_assert(test_bytes_equal(b2, output.val, output.len));
+
+    g_bytes_unref(b1);
+    g_bytes_unref(b2);
+
     /* Clone finished HMAC */
     h1 = foil_hmac_new(FOIL_DIGEST_MD5, key.val, key.len);
     foil_hmac_update(h1, data.val, data.len);
     b1 = foil_hmac_finish(h1);
     h2 = foil_hmac_clone(h1);
-    b2 = foil_hmac_free_to_bytes(h2);
+    b2 = foil_hmac_finish(h2);
     g_assert(test_bytes_equal(b1, output.val, output.len));
     g_assert(test_bytes_equal(b2, output.val, output.len));
 
+    /* Update finished HMAC */
+    foil_hmac_update(h1, data.val, data.len);
+    foil_hmac_update(h2, data.val, data.len);
+    g_assert(g_bytes_equal(b1, b2));
+
     foil_hmac_unref(h1);
-    g_bytes_unref(b2);
+    foil_hmac_unref(h2);
 }
 
 static

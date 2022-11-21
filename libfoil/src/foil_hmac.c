@@ -170,17 +170,17 @@ foil_hmac_clone(
 {
     if (G_LIKELY(self)) {
         FoilHmac* hmac = g_slice_new0(FoilHmac);
+        const gsize blocksize = foil_digest_block_size(self->digest);
 
         g_atomic_int_set(&hmac->ref_count, 1);
+        hmac->digest = foil_digest_clone(self->digest);
+        hmac->keylen = self->keylen;
+        hmac->key = g_slice_alloc(self->keylen);
+        hmac->k_opad = g_slice_alloc(blocksize);
+        memcpy(hmac->key, self->key, self->keylen);
+        memcpy(hmac->k_opad, self->k_opad, blocksize);
         if (self->result) {
             hmac->result = g_bytes_ref(self->result);
-            GASSERT(!self->digest);
-            GASSERT(!self->k_opad);
-        } else {
-            const gsize blocksize = foil_digest_block_size(self->digest);
-            hmac->digest = foil_digest_clone(self->digest);
-            hmac->k_opad = g_slice_alloc0(blocksize);
-            memcpy(hmac->k_opad, self->k_opad, blocksize);
         }
         return hmac;
     }
@@ -196,6 +196,7 @@ foil_hmac_copy(
         /* Clean up the old state but don't deallocate k_opad just yet */
         FoilDigest* prev_digest = self->digest;
         guint8* prev_k_opad = self->k_opad;
+
         self->k_opad = NULL;
         self->digest = NULL;
         if (self->result) {
@@ -206,6 +207,7 @@ foil_hmac_copy(
             self->result = g_bytes_ref(source->result);
         } else {
             const gsize blocksize = foil_digest_block_size(source->digest);
+
             if (blocksize == foil_digest_block_size(prev_digest)) {
                 /* No need to reallocate k_opad */
                 self->k_opad = prev_k_opad;
@@ -223,6 +225,7 @@ foil_hmac_copy(
         }
         if (prev_k_opad) {
             const gsize blocksize = foil_digest_block_size(prev_digest);
+
             memset(prev_k_opad, 0, blocksize);
             g_slice_free1(blocksize, prev_k_opad);
         }
