@@ -1,3 +1,15 @@
+libfoil (1.0.27) unstable; urgency=low
+
+  * Reduced log level for non-critical warnings
+  * Guard foil_log declaration with extern "C"
+  * Added foil_output_cipher variants with HMAC
+  * Added foil_output_write_byte()
+  * Added foil_hmac_reset()
+  * Added foil_digest_reset()
+  * Added foil_digest_data_buf()
+
+ -- Slava Monich <slava@monich.com>  Wed, 23 Nov 2022 04:01:29 +0200
+
 libfoil (1.0.26) unstable; urgency=low
 
   * Added foil_output_cipher_new()
