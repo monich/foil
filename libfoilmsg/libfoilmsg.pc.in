@@ -1,0 +1,10 @@
+name=foilmsg
+libdir=@libdir@
+includedir=/usr/include
+
+Name: lib${name}
+Description: Library for encrypting and decrypting individual messages
+Version: @version@
+Requires.private: libfoil libglibutil glib-2.0
+Libs: -L${libdir} -l${name}
+Cflags: -I${includedir}/${name}

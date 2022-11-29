@@ -22,6 +22,10 @@ debian/libfoil.postinst.debhelper
 debian/libfoil.postrm.debhelper
 debian/libfoil.substvars
 debian/libfoil
+debian/libfoilmsg-dev.debhelper.log
+debian/libfoilmsg-dev.install
+debian/libfoilmsg-dev.substvars
+debian/libfoilmsg-dev
 debian/tmp
 debian/.debhelper
 documentation.list

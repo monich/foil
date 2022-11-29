@@ -17,6 +17,12 @@ Architecture: any
 Depends: libfoil (= ${binary:Version}), ${misc:Depends}, libglibutil-dev (>= 1.0.54)
 Description: Development files for libfoil
 
+Package: libfoilmsg-dev
+Section: libdevel
+Architecture: any
+Depends: libfoil-dev, libglibutil-dev (>= 1.0.54)
+Description: Development files for libfoilmsg
+
 Package: foil-tools
 Section: misc
 Architecture: any

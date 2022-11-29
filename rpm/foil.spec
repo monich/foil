@@ -29,16 +29,25 @@ Provides glib based cryptography API.
 
 %package devel
 Summary: Development library for %{name}
+Group: Development/Libraries
 Requires: %{name} = %{version}
 Requires: pkgconfig(libglibutil) >= %{libglibutil_build_version}
 
 %description devel
 This package contains the development library for %{name}.
 
+%package -n libfoilmsg-devel
+Summary: Library for encrypting and decrypting messages
+Group: Development/Libraries
+Requires: pkgconfig(libfoil)
+
+%description -n libfoilmsg-devel
+This package contains the development library for libfoilmsg.
+
 %package -n foil-tools
 Summary: Encryption/decryption utilities
 Group: Applications/File
-Requires: libfoil >= 1.0.13
+Requires: libfoil >= %{version}
 
 %description -n foil-tools
 Command line encryption/decryption utilities.
@@ -48,11 +57,12 @@ Command line encryption/decryption utilities.
 
 %build
 make -C libfoil %{_smp_mflags} LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release pkgconfig
+make -C libfoilmsg %{_smp_mflags} LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release pkgconfig
 make -C tools %{_smp_mflags} LIBDIR=%{_libdir} KEEP_SYMBOLS=1 release
 
 %install
-rm -rf %{buildroot}
 make -C libfoil DESTDIR=%{buildroot} LIBDIR=%{_libdir} install-dev
+make -C libfoilmsg DESTDIR=%{buildroot} LIBDIR=%{_libdir} install-dev
 make -C tools DESTDIR=%{buildroot} install
 
 %check
@@ -68,9 +78,17 @@ make check
 
 %files devel
 %defattr(-,root,root,-)
-%{_libdir}/pkgconfig/*.pc
+%dir %{_includedir}/foil
+%{_libdir}/pkgconfig/libfoil.pc
 %{_libdir}/%{name}.so
 %{_includedir}/foil/*.h
+
+%files -n libfoilmsg-devel
+%defattr(-,root,root,-)
+%dir %{_includedir}/foilmsg
+%{_libdir}/pkgconfig/libfoilmsg.pc
+%{_libdir}/libfoilmsg.a
+%{_includedir}/foilmsg/*.h
 
 %files -n foil-tools
 %defattr(-,root,root,-)

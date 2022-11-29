@@ -1,0 +1,3 @@
+debian/tmp/@LIBDIR@/libfoilmsg.a @LIBDIR@
+debian/tmp/@LIBDIR@/pkgconfig/libfoilmsg.pc @LIBDIR@/pkgconfig
+debian/tmp/usr/include/foilmsg usr/include/
