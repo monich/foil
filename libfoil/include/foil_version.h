@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2022-2023 by Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,8 +40,7 @@
  * in the code which is supposed to be compilable against earlier versions
  * of libfoil should look like this:
  *
- * #if defined(FOIL_CORE_VERSION) && \
- *             FOIL_CORE_VERSION > FOIL_VERSION_WORD(1,0,24)
+ * #if defined(FOIL_VERSION) && FOIL_VERSION > FOIL_VERSION_WORD(1,0,24)
  * ...
  * #endif
  *
@@ -73,7 +72,7 @@
 
 /*
  * Function for run-time version detection in case if you're linking
- * against a dynamic library.
+ * against the dynamic library.
  */
 unsigned int
 foil_version(
