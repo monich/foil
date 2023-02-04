@@ -35,6 +35,10 @@
 #ifndef FOIL_VERSION_H
 #define FOIL_VERSION_H
 
+#include <glib.h>
+
+G_BEGIN_DECLS
+
 /*
  * This header first appeared in version 1.0.24 therefore version checks
  * in the code which is supposed to be compilable against earlier versions
@@ -87,6 +91,8 @@ foil_version(
 #define FOIL_VERSION_1_0_25 FOIL_VERSION_WORD(1,0,25)
 #define FOIL_VERSION_1_0_26 FOIL_VERSION_WORD(1,0,26)
 #define FOIL_VERSION_1_0_27 FOIL_VERSION_WORD(1,0,27)
+
+G_END_DECLS
 
 #endif /* FOIL_VERSION_H */
 
