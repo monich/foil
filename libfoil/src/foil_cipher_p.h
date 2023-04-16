@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich
+ * Copyright (C) 2016-2023 by Slava Monich
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@ struct foil_cipher {
     int output_block_size;
 };
 
-GType foil_cipher_get_type(void);
+GType foil_cipher_get_type(void) FOIL_INTERNAL;
 #define FOIL_TYPE_CIPHER (foil_cipher_get_type())
 #define FOIL_CIPHER(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
         FOIL_TYPE_CIPHER, FoilCipher))
