@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -446,7 +446,7 @@ test_key_rsa_bytes(
 
     /* PKCS1 is the default RSA private key format */
     bytes = foil_key_to_binary_format(priv_key,
-        FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1);
+        FOIL_KEY_BINARY_FORMAT_RSA_PKCS1);
     g_assert(g_bytes_equal(bytes, priv_data));
     g_bytes_unref(bytes);
 
@@ -464,7 +464,7 @@ test_key_rsa_bytes(
     /* Test non-default PKCS #1 RSA public key format */
     g_bytes_unref(pub_data);
     pub_data = foil_key_to_binary_format(keys.pub,
-        FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1);
+        FOIL_KEY_BINARY_FORMAT_RSA_PKCS1);
 
     pub2 = foil_key_new_from_bytes(FOIL_KEY_RSA_PUBLIC, pub_data);
     g_assert(pub2);

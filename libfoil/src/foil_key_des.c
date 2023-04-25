@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2019-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -304,7 +304,7 @@ foil_key_des_to_bytes(
     case FOIL_KEY_BINARY_FORMAT_DEFAULT:
         return foil_key_des_default_bytes(FOIL_KEY_DES_(key));
     case FOIL_KEY_BINARY_FORMAT_RSA_SSH:
-    case FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1:
+    case FOIL_KEY_BINARY_FORMAT_RSA_PKCS1:
         break;
     }
     /* Invalid/unsupported format */

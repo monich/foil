@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2019-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -131,7 +131,7 @@ test_basic(
     GError* error = NULL;
 
     /* Only default format is valid for DES keys */
-    g_assert(!foil_key_to_binary_format(key, FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1));
+    g_assert(!foil_key_to_binary_format(key, FOIL_KEY_BINARY_FORMAT_RSA_PKCS1));
     g_assert(!foil_key_to_binary_format(key, FOIL_KEY_BINARY_FORMAT_RSA_SSH));
     g_assert(!foil_key_to_binary_format(key, (FoilKeyBinaryFormat)-1));
 

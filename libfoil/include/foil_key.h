@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,9 +67,12 @@ typedef enum foil_key_export_format {
 /* Format of binary key data */
 typedef enum foil_key_binary_format { /* Since 1.0.26 */
     FOIL_KEY_BINARY_FORMAT_DEFAULT,   /* Valid for all key formats */
-    FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1, /* RFC 3447 (Appendix A) */
+    FOIL_KEY_BINARY_FORMAT_RSA_PKCS1, /* RFC 3447 (Appendix A) */
     FOIL_KEY_BINARY_FORMAT_RSA_SSH    /* RFC 4253 (ssh-rsa format) */
 } FoilKeyBinaryFormat;
+
+/* Source-level compatibility with libfoil <= 1.0.27 */
+#define FOIL_KEY_EXPORT_FORMAT_RSA_PKCS1 FOIL_KEY_BINARY_FORMAT_RSA_PKCS1
 
 FoilKey*
 foil_key_new_from_data(
