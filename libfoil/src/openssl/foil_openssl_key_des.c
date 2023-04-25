@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Slava Monich
+ * Copyright (C) 2019-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +29,9 @@
  * are those of the authors and should not be interpreted as representing
  * any official policies, either expressed or implied.
  */
+
+/* Yes we know that this API is deprecated (as well as DES in general) */
+#define OPENSSL_SUPPRESS_DEPRECATED
 
 #include "foil_openssl_des.h"
 

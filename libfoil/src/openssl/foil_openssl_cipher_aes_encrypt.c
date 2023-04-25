@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +31,9 @@
  */
 
 #include "foil_cipher_aes.h"
+
+/* Yes we know that this API is deprecated */
+#define OPENSSL_SUPPRESS_DEPRECATED
 
 #include <openssl/aes.h>
 
