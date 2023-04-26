@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -227,6 +227,8 @@ GType foil_impl_cipher_aes_cbc_encrypt_get_type(void);
 GType foil_impl_cipher_aes_cbc_decrypt_get_type(void);
 GType foil_impl_cipher_aes_cfb_encrypt_get_type(void); /* Since 1.0.18 */
 GType foil_impl_cipher_aes_cfb_decrypt_get_type(void); /* Since 1.0.18 */
+GType foil_impl_cipher_aes_ctr_encrypt_get_type(void); /* Since 1.0.28 */
+GType foil_impl_cipher_aes_ctr_decrypt_get_type(void); /* Since 1.0.28 */
 GType foil_impl_cipher_aes_ecb_encrypt_get_type(void); /* Since 1.0.17 */
 GType foil_impl_cipher_aes_ecb_decrypt_get_type(void); /* Since 1.0.17 */
 GType foil_impl_cipher_des_cbc_encrypt_get_type(void); /* Since 1.0.16 */
@@ -238,6 +240,8 @@ GType foil_impl_cipher_des_cbc_decrypt_get_type(void); /* Since 1.0.16 */
 #define FOIL_CIPHER_AES_CBC_DECRYPT foil_impl_cipher_aes_cbc_decrypt_get_type()
 #define FOIL_CIPHER_AES_CFB_ENCRYPT foil_impl_cipher_aes_cfb_encrypt_get_type()
 #define FOIL_CIPHER_AES_CFB_DECRYPT foil_impl_cipher_aes_cfb_decrypt_get_type()
+#define FOIL_CIPHER_AES_CTR_ENCRYPT foil_impl_cipher_aes_ctr_encrypt_get_type()
+#define FOIL_CIPHER_AES_CTR_DECRYPT foil_impl_cipher_aes_ctr_decrypt_get_type()
 #define FOIL_CIPHER_AES_ECB_ENCRYPT foil_impl_cipher_aes_ecb_encrypt_get_type()
 #define FOIL_CIPHER_AES_ECB_DECRYPT foil_impl_cipher_aes_ecb_decrypt_get_type()
 #define FOIL_CIPHER_DES_CBC_ENCRYPT foil_impl_cipher_des_cbc_encrypt_get_type()

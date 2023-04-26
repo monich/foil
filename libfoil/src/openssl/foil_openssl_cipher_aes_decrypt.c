@@ -36,19 +36,27 @@
 #define OPENSSL_SUPPRESS_DEPRECATED
 
 #include <openssl/aes.h>
+#include <openssl/modes.h>
 
-typedef struct foil_openssl_cipher_decrypt_class {
-    FoilCipherAesClass aes;
-    int (*fn_set_key)(const unsigned char* data, const int bits, AES_KEY *key);
-} FoilOpensslCipherAesDecryptClass;
-
-typedef struct foil_openssl_cipher_decrypt {
-    FoilCipherAes cipher_aes;
+typedef struct foil_openssl_cipher_aes_decrypt {
+    FoilCipherAes parent;
     AES_KEY aes;
 } FoilOpensslCipherAesDecrypt;
 
+typedef struct foil_openssl_cipher_aes_decrypt_class {
+    FoilCipherAesClass parent;
+    int (*fn_set_key)(const unsigned char* data, const int bits, AES_KEY *key);
+    void (*fn_reset)(FoilOpensslCipherAesDecrypt* self);
+} FoilOpensslCipherAesDecryptClass;
+
+typedef struct foil_openssl_cipher_aes_ctr_decrypt {
+    FoilOpensslCipherAesDecrypt parent;
+    guint8 iv[FOIL_AES_BLOCK_SIZE];
+} FoilOpensslCipherAesCtrDecrypt;
+
 typedef FoilOpensslCipherAesDecryptClass FoilOpensslCipherAesCbcDecryptClass;
 typedef FoilOpensslCipherAesDecryptClass FoilOpensslCipherAesCfbDecryptClass;
+typedef FoilOpensslCipherAesDecryptClass FoilOpensslCipherAesCtrDecryptClass;
 typedef FoilOpensslCipherAesDecryptClass FoilOpensslCipherAesEcbDecryptClass;
 typedef FoilOpensslCipherAesDecrypt FoilOpensslCipherAesCbcDecrypt;
 typedef FoilOpensslCipherAesDecrypt FoilOpensslCipherAesCfbDecrypt;
@@ -57,6 +65,7 @@ typedef FoilOpensslCipherAesDecrypt FoilOpensslCipherAesEcbDecrypt;
 GType foil_openssl_cipher_aes_decrypt_get_type() FOIL_INTERNAL;
 GType foil_openssl_cipher_aes_cbc_decrypt_get_type() FOIL_INTERNAL;
 GType foil_openssl_cipher_aes_cfb_decrypt_get_type() FOIL_INTERNAL;
+GType foil_openssl_cipher_aes_ctr_decrypt_get_type() FOIL_INTERNAL;
 GType foil_openssl_cipher_aes_ecb_decrypt_get_type() FOIL_INTERNAL;
 
 G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherAesDecrypt,
@@ -66,14 +75,32 @@ G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherAesDecrypt,
     foil_openssl_cipher_aes_decrypt_get_type()
 #define FOIL_OPENSSL_CIPHER_AES_DECRYPT(obj) G_TYPE_CHECK_INSTANCE_CAST(obj, \
     FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT, FoilOpensslCipherAesDecrypt)
+#define FOIL_OPENSSL_CIPHER_AES_DECRYPT_CLASS(klass) \
+    G_TYPE_CHECK_CLASS_CAST(klass, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT, \
+    FoilOpensslCipherAesDecryptClass)
 #define FOIL_OPENSSL_CIPHER_AES_DECRYPT_GET_CLASS(obj) \
     G_TYPE_INSTANCE_GET_CLASS(obj, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT, \
     FoilOpensslCipherAesDecryptClass)
+
+#define FOIL_TYPE_OPENSSL_CIPHER_AES_CTR_DECRYPT \
+    foil_openssl_cipher_aes_ctr_decrypt_get_type()
+#define FOIL_OPENSSL_CIPHER_AES_CTR_DECRYPT(obj) \
+    G_TYPE_CHECK_INSTANCE_CAST(obj, FOIL_TYPE_OPENSSL_CIPHER_AES_CTR_DECRYPT, \
+    FoilOpensslCipherAesCtrDecrypt)
+
+#define foil_openssl_cipher_aes_cbc_decrypt_init \
+    foil_openssl_cipher_aes_decrypt_init
+#define foil_openssl_cipher_aes_cfb_decrypt_init \
+    foil_openssl_cipher_aes_decrypt_init
+#define foil_openssl_cipher_aes_ecb_decrypt_init \
+    foil_openssl_cipher_aes_decrypt_init
 
 G_DEFINE_TYPE(FoilOpensslCipherAesCbcDecrypt,
     foil_openssl_cipher_aes_cbc_decrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT)
 G_DEFINE_TYPE(FoilOpensslCipherAesCfbDecrypt,
     foil_openssl_cipher_aes_cfb_decrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT)
+G_DEFINE_TYPE(FoilOpensslCipherAesCtrDecrypt,
+    foil_openssl_cipher_aes_ctr_decrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT)
 G_DEFINE_TYPE(FoilOpensslCipherAesEcbDecrypt,
     foil_openssl_cipher_aes_ecb_decrypt, FOIL_TYPE_OPENSSL_CIPHER_AES_DECRYPT)
 
@@ -87,6 +114,11 @@ GType foil_impl_cipher_aes_cfb_decrypt_get_type()
     return foil_openssl_cipher_aes_cfb_decrypt_get_type();
 }
 
+GType foil_impl_cipher_aes_ctr_decrypt_get_type()
+{
+    return foil_openssl_cipher_aes_ctr_decrypt_get_type();
+}
+
 GType foil_impl_cipher_aes_ecb_decrypt_get_type()
 {
     return foil_openssl_cipher_aes_ecb_decrypt_get_type();
@@ -96,12 +128,12 @@ static
 int
 foil_openssl_cipher_aes_cbc_decrypt_step(
     FoilCipher* cipher,
-    const void* from,
-    void* to)
+    const void* in,
+    void* out)
 {
     FoilOpensslCipherAesDecrypt* self = FOIL_OPENSSL_CIPHER_AES_DECRYPT(cipher);
-    AES_cbc_encrypt(from, to, FOIL_AES_BLOCK_SIZE, &self->aes,
-        self->cipher_aes.block, AES_DECRYPT);
+    AES_cbc_encrypt(in, out, FOIL_AES_BLOCK_SIZE, &self->aes,
+        self->parent.block, AES_DECRYPT);
     return FOIL_AES_BLOCK_SIZE;
 }
 
@@ -109,13 +141,28 @@ static
 int
 foil_openssl_cipher_aes_cfb_decrypt_step(
     FoilCipher* cipher,
-    const void* from,
-    void* to)
+    const void* in,
+    void* out)
 {
     int num = 0;
     FoilOpensslCipherAesDecrypt* self = FOIL_OPENSSL_CIPHER_AES_DECRYPT(cipher);
-    AES_cfb128_encrypt(from, to, FOIL_AES_BLOCK_SIZE, &self->aes,
-        self->cipher_aes.block, &num, AES_DECRYPT);
+    AES_cfb128_encrypt(in, out, FOIL_AES_BLOCK_SIZE, &self->aes,
+        self->parent.block, &num, AES_DECRYPT);
+    return FOIL_AES_BLOCK_SIZE;
+}
+
+static
+int
+foil_openssl_cipher_aes_ctr_decrypt_step(
+    FoilCipher* cipher,
+    const void* in,
+    void* out)
+{
+    unsigned int num = 0;
+    FoilOpensslCipherAesCtrDecrypt* self =
+        FOIL_OPENSSL_CIPHER_AES_CTR_DECRYPT(cipher);
+    CRYPTO_ctr128_encrypt(in, out, FOIL_AES_BLOCK_SIZE, &self->parent.aes,
+        self->iv, self->parent.parent.block, &num, (block128_f) AES_encrypt);
     return FOIL_AES_BLOCK_SIZE;
 }
 
@@ -123,11 +170,11 @@ static
 int
 foil_openssl_cipher_aes_ecb_decrypt_step(
     FoilCipher* cipher,
-    const void* from,
-    void* to)
+    const void* in,
+    void* out)
 {
     FoilOpensslCipherAesDecrypt* self = FOIL_OPENSSL_CIPHER_AES_DECRYPT(cipher);
-    AES_ecb_encrypt(from, to, &self->aes, AES_DECRYPT);
+    AES_ecb_encrypt(in, out, &self->aes, AES_DECRYPT);
     return FOIL_AES_BLOCK_SIZE;
 }
 
@@ -144,13 +191,27 @@ foil_openssl_cipher_aes_decrypt_reset(
 
 static
 void
+foil_openssl_cipher_aes_ctr_decrypt_reset(
+    FoilOpensslCipherAesDecrypt* aes)
+{
+    FoilKey* key = FOIL_CIPHER(aes)->key;
+    FoilOpensslCipherAesCtrDecrypt* self =
+        FOIL_OPENSSL_CIPHER_AES_CTR_DECRYPT(aes);
+    FOIL_OPENSSL_CIPHER_AES_DECRYPT_CLASS
+        (foil_openssl_cipher_aes_ctr_decrypt_parent_class)->
+            fn_reset(&self->parent);
+    memcpy(self->iv, FOIL_KEY_AES_(key)->iv, FOIL_AES_BLOCK_SIZE);
+}
+
+static
+void
 foil_openssl_cipher_aes_decrypt_init_with_key(
     FoilCipher* cipher,
     FoilKey* key)
 {
     FOIL_CIPHER_CLASS(foil_openssl_cipher_aes_decrypt_parent_class)->
         fn_init_with_key(cipher, key);
-    foil_openssl_cipher_aes_decrypt_reset
+    FOIL_OPENSSL_CIPHER_AES_DECRYPT_GET_CLASS(cipher)->fn_reset
         (FOIL_OPENSSL_CIPHER_AES_DECRYPT(cipher));
 }
 
@@ -162,7 +223,7 @@ foil_openssl_cipher_aes_decrypt_copy(
 {
     FOIL_CIPHER_CLASS(foil_openssl_cipher_aes_decrypt_parent_class)->
         fn_copy(dest, src);
-    foil_openssl_cipher_aes_decrypt_reset
+    FOIL_OPENSSL_CIPHER_AES_DECRYPT_GET_CLASS(dest)->fn_reset
         (FOIL_OPENSSL_CIPHER_AES_DECRYPT(dest));
 }
 
@@ -170,6 +231,13 @@ static
 void
 foil_openssl_cipher_aes_decrypt_init(
     FoilOpensslCipherAesDecrypt* self)
+{
+}
+
+static
+void
+foil_openssl_cipher_aes_ctr_decrypt_init(
+    FoilOpensslCipherAesCtrDecrypt* self)
 {
 }
 
@@ -184,13 +252,7 @@ foil_openssl_cipher_aes_decrypt_class_init(
     cipher->fn_init_with_key = foil_openssl_cipher_aes_decrypt_init_with_key;
     cipher->fn_copy = foil_openssl_cipher_aes_decrypt_copy;
     klass->fn_set_key = AES_set_decrypt_key;
-}
-
-static
-void
-foil_openssl_cipher_aes_cbc_decrypt_init(
-    FoilOpensslCipherAesCbcDecrypt* self)
-{
+    klass->fn_reset = foil_openssl_cipher_aes_decrypt_reset;
 }
 
 static
@@ -201,13 +263,6 @@ foil_openssl_cipher_aes_cbc_decrypt_class_init(
     FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
     cipher->name = "AESCBC(Decrypt)";
     cipher->fn_step = foil_openssl_cipher_aes_cbc_decrypt_step;
-}
-
-static
-void
-foil_openssl_cipher_aes_cfb_decrypt_init(
-    FoilOpensslCipherAesCfbDecrypt* self)
-{
 }
 
 static
@@ -223,9 +278,14 @@ foil_openssl_cipher_aes_cfb_decrypt_class_init(
 
 static
 void
-foil_openssl_cipher_aes_ecb_decrypt_init(
-    FoilOpensslCipherAesEcbDecrypt* self)
+foil_openssl_cipher_aes_ctr_decrypt_class_init(
+    FoilOpensslCipherAesCfbDecryptClass* klass)
 {
+    FoilCipherClass* cipher = FOIL_CIPHER_CLASS(klass);
+    cipher->name = "AESCTR(Decrypt)";
+    cipher->fn_step = foil_openssl_cipher_aes_ctr_decrypt_step;
+    klass->fn_set_key = AES_set_encrypt_key;
+    klass->fn_reset = foil_openssl_cipher_aes_ctr_decrypt_reset;
 }
 
 static

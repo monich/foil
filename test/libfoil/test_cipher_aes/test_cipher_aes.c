@@ -1,31 +1,29 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1. Redistributions of source code must retain the above copyright
- *      notice, this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright
- *      notice, this list of conditions and the following disclaimer
- *      in the documentation and/or other materials provided with the
- *      distribution.
- *   3. Neither the names of the copyright holders nor the names of its
- *      contributors may be used to endorse or promote products derived
- *      from this software without specific prior written permission.
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer
+ *     in the documentation and/or other materials provided with the
+ *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
+ * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -276,8 +274,8 @@ test_cipher_aes_clone(
     GBytes* out2 = test_cipher_bytes(enc2, in);
     FoilCipher* dec1 = foil_cipher_new(test->dec_type(), key);
     FoilCipher* dec2 = foil_cipher_clone(dec1);
-    GBytes* res1 = test_cipher_bytes(dec1, in);
-    GBytes* res2 = test_cipher_bytes(dec2, in);
+    GBytes* res1 = test_cipher_bytes(dec1, out1);
+    GBytes* res2 = test_cipher_bytes(dec2, out2);
     GDEBUG("Plain text:");
     TEST_DEBUG_HEXDUMP_BYTES(in);
     GDEBUG("Encrypted (%u bytes):", (guint)g_bytes_get_size(out1));
@@ -416,11 +414,11 @@ test_cipher_aes_vector(
     g_assert(key_bytes);
     TEST_DEBUG_HEXDUMP_BYTES(key_bytes);
 
-    GDEBUG("Plaintext:");
+    GDEBUG("In:");
     g_assert(in_bytes);
     TEST_DEBUG_HEXDUMP_BYTES(in_bytes);
 
-    GDEBUG("Ciphertext:");
+    GDEBUG("Out:");
     g_assert(out);
     TEST_DEBUG_HEXDUMP_BYTES(out);
 
@@ -479,6 +477,8 @@ static const char input_long[] =
       input_##name, sizeof(input_##name) }
 #define TEST_CLONE(bits,name) \
     TEST_CLONE_(bits,cbc,name), \
+    TEST_CLONE_(bits,cfb,name), \
+    TEST_CLONE_(bits,ctr,name), \
     TEST_CLONE_(bits,ecb,name)
 #define TEST_SYNC_(bits,mode,name) \
     { TEST_("sync" #bits "-" #mode "-" #name), \
@@ -488,6 +488,8 @@ static const char input_long[] =
       input_##name, sizeof(input_##name) }
 #define TEST_SYNC(bits,name) \
     TEST_SYNC_(bits,cbc,name), \
+    TEST_SYNC_(bits,cfb,name), \
+    TEST_SYNC_(bits,ctr,name), \
     TEST_SYNC_(bits,ecb,name)
 #define TEST_ASYNC_(bits,mode,name) \
     { TEST_("async" #bits "-" #mode "-" #name), \
@@ -497,12 +499,20 @@ static const char input_long[] =
       input_##name, sizeof(input_##name) }
 #define TEST_ASYNC(bits,name) \
     TEST_ASYNC_(bits,cbc,name), \
+    TEST_ASYNC_(bits,cfb,name), \
+    TEST_ASYNC_(bits,ctr,name), \
     TEST_ASYNC_(bits,ecb,name)
 
 static const TestCipherAes tests[] = {
     { TEST_("basic-cbc"), test_cipher_aes_basic, "aes128", NULL,
       foil_impl_cipher_aes_cbc_encrypt_get_type,
       foil_impl_cipher_aes_cbc_decrypt_get_type},
+    { TEST_("basic-cfb"), test_cipher_aes_basic, "aes128", NULL,
+      foil_impl_cipher_aes_cfb_encrypt_get_type,
+      foil_impl_cipher_aes_cfb_decrypt_get_type},
+    { TEST_("basic-ctr"), test_cipher_aes_basic, "aes128", NULL,
+      foil_impl_cipher_aes_ctr_encrypt_get_type,
+      foil_impl_cipher_aes_ctr_decrypt_get_type},
     { TEST_("basic-ecb"), test_cipher_aes_basic, "aes128", NULL,
       foil_impl_cipher_aes_cbc_encrypt_get_type,
       foil_impl_cipher_aes_cbc_decrypt_get_type},
@@ -632,6 +642,36 @@ c05f9f9ca9834fa042ae8fba584b09ff),
 39ffed143b28b1c832113c6331e5407b\
 df10132415e54b92a13ed0a8267ae2f9\
 75a385741ab9cef82031623d55b1e471),
+
+    /* F.5.1 CTR-AES128.Encrypt */
+    /* F.5.2 CTR-AES128.Decrypt */
+    TEST_VECTOR_ENCRYPT_DECRYPT(CTR,ctr,128,
+    2b7e151628aed2a6abf7158809cf4f3c\
+f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff,
+    874d6191b620e3261bef6864990db6ce\
+9806f66b7970fdff8617187bb9fffdff\
+5ae4df3edbd5d35e5b4f09020db03eab\
+1e031dda2fbe03d1792170a0f3009cee),
+
+    /* F.5.3 CTR-AES192.Encrypt */
+    /* F.5.4 CTR-AES192.Decrypt */
+    TEST_VECTOR_ENCRYPT_DECRYPT(CTR,ctr,192,\
+    8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b\
+f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff,\
+    1abc932417521ca24f2b0459fe7e6e0b\
+090339ec0aa6faefd5ccc2c6f4ce8e94\
+1e36b26bd1ebc670d1bd1d665620abf7\
+4f78a7f6d29809585a97daec58c6b050),
+
+    /* F.5.5 CTR-AES256.Encrypt */
+    /* F.5.6 CTR-AES256.Decrypt */
+    TEST_VECTOR_ENCRYPT_DECRYPT(CTR,ctr,256,\
+    603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4\
+f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff,\
+    601ec313775789a5b7a7f504bbf3d228\
+f443e3ca4d62b59aca84e990cacaf5c5\
+2b0930daa23de94ce87017ba2d84988d\
+dfc9c58db67aada613c2dd08457941a6),
 };
 
 int main(int argc, char* argv[])
