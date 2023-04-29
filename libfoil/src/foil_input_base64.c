@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -45,43 +48,47 @@ typedef struct foil_input_base64 {
     GByteArray* skip_buf;
 } FoilInputBase64;
 
-/* We allow any encoding scheme but not a mix of those */
-static const guint8 foil_input_base64_default_map[128] = {
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0x3E, 0xFF, 0xFF, 0xFF, 0x3F,
+/*
+ * We allow any encoding scheme but not a mix of those. They are referred to
+ * by RFC 4648 as "base64" and "base64url", respectively,
+ */
+#define NONE 0xff
+static const guint8 foil_input_base64_table[128] = {
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, 0x3E, NONE, NONE, NONE, 0x3F,
     0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
-    0x3C, 0x3D, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF,
-    0xFF, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+    0x3C, 0x3D, NONE, NONE, NONE, 0x00, NONE, NONE,
+    NONE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
     0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
     0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
-    0x17, 0x18, 0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
+    0x17, 0x18, 0x19, NONE, NONE, NONE, NONE, NONE,
+    NONE, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
     0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
     0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
-    0x31, 0x32, 0x33, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+    0x31, 0x32, 0x33, NONE, NONE, NONE, NONE, NONE
 };
 
-static const guint8 foil_input_base64_filename_map[128] = {
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3E, 0xFF, 0xFF,
+static const guint8 foil_input_base64url_table[128] = {
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    NONE, NONE, NONE, NONE, NONE, 0x3E, NONE, NONE,
     0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
-    0x3C, 0x3D, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF,
-    0xFF, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+    0x3C, 0x3D, NONE, NONE, NONE, 0x00, NONE, NONE,
+    NONE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
     0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
     0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
-    0x17, 0x18, 0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0x3F,
-    0xFF, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
+    0x17, 0x18, 0x19, NONE, NONE, NONE, NONE, 0x3F,
+    NONE, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
     0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
     0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
-    0x31, 0x32, 0x33, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+    0x31, 0x32, 0x33, NONE, NONE, NONE, NONE, NONE
 };
 
 static
@@ -110,28 +117,28 @@ foil_input_base64_map(
 {
     const guint8 c = *ptr;
     if ((c & 0x7f) == c) {
-        guint8 mapped = 0xff;
+        guint8 mapped = NONE;
         if (self->map) {
             /* Have already chosen the map */
             mapped = self->map[c];
         } else {
-            const guint8* map = foil_input_base64_default_map;
-            if (map[c] == 0xff) {
-                map = foil_input_base64_filename_map;
-                if (map[c] != 0xff) {
+            const guint8* map = foil_input_base64_table;
+            if (map[c] == NONE) {
+                map = foil_input_base64url_table;
+                if (map[c] != NONE) {
                     /* Stick with the filename safe map */
                     mapped = map[c];
                     self->map = map;
                 }
             } else {
-                if (foil_input_base64_filename_map[c] == 0xff) {
+                if (foil_input_base64url_table[c] == NONE) {
                     /* Stick with the standard map */
                     self->map = map;
                 }
                 mapped = map[c];
             }
         }
-        if (mapped != 0xff) {
+        if (mapped != NONE) {
             *ptr = mapped;
             return TRUE;
         }
@@ -254,7 +261,7 @@ foil_input_base64_read(
     int k = 0;
 
     /* Copy already decoded bytes */
-    if (self->buffered && remain) {
+    if (self->buffered) {
         gsize n = MIN(remain, self->buffered);
         if (ptr) {
             gsize off = BASE64_DECODE_OUTPUT_CHUNK - self->buffered;
@@ -285,6 +292,7 @@ foil_input_base64_read(
         case 2:
             self->buffered++;
             self->buf[--off] = ((chunk[0]<<2)&0xFC) | ((chunk[1]>>4)&0x03);
+            break;
         }
         n = MIN(remain, self->buffered);
         remain -= n;
@@ -345,7 +353,15 @@ foil_input_base64_new_full(
     if (G_LIKELY(in)) {
         FoilInputBase64* self = g_slice_new0(FoilInputBase64);
         self->in = foil_input_ref(in);
-        self->flags = flags;
+        switch ((self->flags = flags) &
+            (FOIL_INPUT_BASE64_STANDARD | FOIL_INPUT_BASE64_FILESAFE)) {
+        case FOIL_INPUT_BASE64_STANDARD:
+            self->map = foil_input_base64_table;
+            break;
+        case FOIL_INPUT_BASE64_FILESAFE:
+            self->map = foil_input_base64url_table;
+            break;
+        }
         return foil_input_init(&self->parent, &foil_input_base64_fn);
     }
     return NULL;

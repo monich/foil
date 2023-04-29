@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2016-2017 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -122,8 +125,17 @@ foil_input_base64_new_full(
     FoilInput* in,
     guint flags);
 
+/*
+ * FOIL_INPUT_BASE64_STANDARD and FOIL_INPUT_BASE64_FILESAFE flags can
+ * be used to force the use of a specific dictionary table (referred to
+ * by RFC 4648 as "base64" and "base64url", respectively). If none or
+ * both of those flags are specified, the table is picked automatically
+ * based on the input, if only one flag is given, only that table is used.
+ */
 #define FOIL_INPUT_BASE64_IGNORE_SPACES (0x01)
 #define FOIL_INPUT_BASE64_VALIDATE      (0x02)  /* Since 1.0.1 */
+#define FOIL_INPUT_BASE64_STANDARD      (0x04)  /* Since 1.0.28 */
+#define FOIL_INPUT_BASE64_FILESAFE      (0x08)  /* Since 1.0.28 */
 
 FoilInput*
 foil_input_cipher_new(
