@@ -1,13 +1,13 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
@@ -359,6 +359,10 @@ foilmsg_encrypt_cipher(
     case FOILMSG_CIPHER_AES_CFB:
         type = FOIL_CIPHER_AES_CFB_ENCRYPT;
         *tag = FOILMSG_ENCRYPT_FORMAT_AES_CFB;
+        break;
+    case FOILMSG_CIPHER_AES_CTR:
+        type = FOIL_CIPHER_AES_CTR_ENCRYPT;
+        *tag = FOILMSG_ENCRYPT_FORMAT_AES_CTR;
         break;
     }
     return foil_cipher_new(type, key);

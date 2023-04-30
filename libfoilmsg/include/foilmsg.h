@@ -1,13 +1,13 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
@@ -56,6 +56,7 @@ typedef struct foilmsg_encrypt_key {
 
 #define FOILMSG_ENCRYPT_FORMAT_AES_CBC    (1)
 #define FOILMSG_ENCRYPT_FORMAT_AES_CFB    (2)
+#define FOILMSG_ENCRYPT_FORMAT_AES_CTR    (3) /* Since 1.0.28 */
 
 #define FOILMSG_SIGNATURE_FORMAT_MD5_RSA    (1)
 #define FOILMSG_SIGNATURE_FORMAT_SHA1_RSA   (2)
@@ -103,7 +104,8 @@ typedef enum foilmsg_key_type {
 
 typedef enum foilmsg_cipher {
     FOILMSG_CIPHER_AES_CBC,
-    FOILMSG_CIPHER_AES_CFB
+    FOILMSG_CIPHER_AES_CFB,
+    FOILMSG_CIPHER_AES_CTR  /* Since 1.0.28 */
 } FOILMSG_CIPHER;
 
 typedef enum foilmsg_signature {

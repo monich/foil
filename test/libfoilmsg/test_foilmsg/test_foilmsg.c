@@ -550,6 +550,11 @@ static const FoilMsgEncryptOptions options_aes_128_cfb_self = {
     FOILMSG_CIPHER_AES_CFB, FOILMSG_SIGNATURE_DEFAULT
 };
 
+static const FoilMsgEncryptOptions options_aes_128_ctr_self = {
+    FOILMSG_KEY_AES_128, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CTR, FOILMSG_SIGNATURE_DEFAULT
+};
+
 static const FoilMsgEncryptOptions options_aes_192_self = {
     FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
     FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
@@ -557,7 +562,12 @@ static const FoilMsgEncryptOptions options_aes_192_self = {
 
 static const FoilMsgEncryptOptions options_aes_192_cfb_self = {
     FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
+    FOILMSG_CIPHER_AES_CFB, FOILMSG_SIGNATURE_DEFAULT
+};
+
+static const FoilMsgEncryptOptions options_aes_192_ctr_self = {
+    FOILMSG_KEY_AES_192, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CTR, FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_256_self = {
@@ -567,7 +577,12 @@ static const FoilMsgEncryptOptions options_aes_256_self = {
 
 static const FoilMsgEncryptOptions options_aes_256_cfb_self = {
     FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
-    FOILMSG_CIPHER_AES_CBC, FOILMSG_SIGNATURE_DEFAULT
+    FOILMSG_CIPHER_AES_CFB, FOILMSG_SIGNATURE_DEFAULT
+};
+
+static const FoilMsgEncryptOptions options_aes_256_ctr_self = {
+    FOILMSG_KEY_AES_256, FOILMSG_FLAG_ENCRYPT_FOR_SELF,
+    FOILMSG_CIPHER_AES_CTR, FOILMSG_SIGNATURE_DEFAULT
 };
 
 static const FoilMsgEncryptOptions options_aes_256_sha1_rsa = {
@@ -622,6 +637,11 @@ static const TestFoilMsg foilmsg_tests[] = {
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_aes_128_cfb_self
     },{
+        TEST_("AESCTR/128bit"), test_foilmsg_text,
+         "Test of 128-bit encryption (CTR mode)",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_128_ctr_self
+    },{
         TEST_("AESCBC/192bit"), test_foilmsg_text,
          "Test of 192-bit encryption",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
@@ -632,6 +652,11 @@ static const TestFoilMsg foilmsg_tests[] = {
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_aes_192_cfb_self
     },{
+        TEST_("AESCTR/192bit"), test_foilmsg_text,
+         "Test of 192-bit encryption (CTR mode)",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_192_ctr_self
+    },{
         TEST_("AESCBC/256bit"), test_foilmsg_text,
          "Test of 256-bit encryption",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
@@ -641,6 +666,11 @@ static const TestFoilMsg foilmsg_tests[] = {
          "Test of 256-bit encryption (CFB mode)",
         { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
         &options_aes_256_cfb_self
+    },{
+        TEST_("AESCTR/256bit"), test_foilmsg_text,
+         "Test of 256-bit encryption (CTR mode)",
+        { "rsa-768", "rsa-768.pub", "rsa-1024", "rsa-1024.pub" },
+        &options_aes_256_ctr_self
     },{
         TEST_("SelfDecrypt"), test_foilmsg_text,
         "Sender should be able to decrypt this",
