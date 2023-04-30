@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
+ * Copyright (C) 2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,61 +30,20 @@
  * any official policies, either expressed or implied.
  */
 
-#ifndef FOIL_KEY_RSA_PUBLIC_H
-#define FOIL_KEY_RSA_PUBLIC_H
+#ifndef FOIL_BCRYPT_H
+#define FOIL_BCRYPT_H
 
-#include "foil_key_p.h"
-#include "foil_key_rsa.h"
-
-typedef struct foil_key_rsa_public {
-    FoilKey key;
-    FoilKeyRsaPublicData* data;
-} FoilKeyRsaPublic;
-
-typedef struct foil_key_rsa_public_class {
-    FoilKeyClass key;
-} FoilKeyRsaPublicClass;
-
-#define FOIL_KEY_RSA_PUBLIC_(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
-        FOIL_TYPE_KEY_RSA_PUBLIC, FoilKeyRsaPublic))
-#define FOIL_KEY_RSA_PUBLIC_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), \
-        FOIL_TYPE_KEY_RSA_PUBLIC, FoilKeyRsaPublicClass))
-#define FOIL_KEY_RSA_PUBLIC_GET_CLASS(obj) G_TYPE_INSTANCE_GET_CLASS(obj,\
-        FOIL_TYPE_KEY_RSA_PUBLIC, FoilKeyRsaPublicClass)
-#define FOIL_IS_RSA_PUBLIC_KEY(obj) G_TYPE_CHECK_INSTANCE_TYPE(obj, \
-        FOIL_TYPE_KEY_RSA_PUBLIC)
-
-extern const FoilBytes foil_rsa_public_binary_prefix FOIL_INTERNAL;
-
-void
-foil_key_rsa_public_set_data(
-    FoilKeyRsaPublic* pub,
-    const FoilKeyRsaPublicData* data)
-    FOIL_INTERNAL;
-
-gboolean
-foil_key_rsa_public_data_write_ssh_rsa(
-    FoilOutput* out,
-    const FoilKeyRsaPublicData* data)
-    FOIL_INTERNAL;
+#include "foil_types_p.h"
 
 GBytes*
-foil_key_rsa_public_data_ssh_rsa_bytes(
-    const FoilKeyRsaPublicData* data)
+foil_bcrypt_pbkdf(
+    const char* pass,
+    const FoilBytes* salt,
+    gsize keylen,
+    guint rounds)
     FOIL_INTERNAL;
 
-gboolean
-foil_key_rsa_public_parse_ssh_rsa_binary(
-    FoilKeyRsaPublicData* key,
-    const FoilBytes* data)
-    FOIL_INTERNAL;
-
-GBytes*
-foil_key_rsa_public_data_fingerprint(
-    const FoilKeyRsaPublicData* data)
-    FOIL_INTERNAL;
-
-#endif /* FOIL_KEY_PUBLIC_H */
+#endif /* FOIL_BCRYPT_H */
 
 /*
  * Local Variables:

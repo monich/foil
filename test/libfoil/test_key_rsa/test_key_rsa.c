@@ -283,7 +283,9 @@ test_key_rsa_invalid_params(
     g_assert(pub);
     g_assert(priv);
     g_assert(!foil_key_equal(pub, bad_pub));
+    g_assert(!foil_key_equal(bad_pub, pub));
     g_assert(!foil_private_key_equal(priv, bad_priv));
+    g_assert(!foil_private_key_equal(bad_priv, priv ));
 
     /* Missing destination */
     g_assert(!foil_private_key_encrypt(priv, NULL, 0, NULL, NULL, NULL));
@@ -634,6 +636,91 @@ test_key_rsa_convert(
     test_key_rsa_keys_deinit(&keys);
 }
 
+static
+void
+test_key_rsa_private_export(
+    gconstpointer param)
+{
+    const TestKeyRsa* test = param;
+    TestKeyRsaKeys keys;
+    char* exported;
+    FoilPrivateKey* imported;
+
+    test_key_rsa_keys_init(&keys, test);
+    exported = foil_private_key_to_string(keys.priv, test->param, "Test");
+    GDEBUG("%s", exported);
+    imported = foil_private_key_new_from_string(FOIL_KEY_RSA_PRIVATE,
+        exported);
+    g_assert(imported);
+    g_assert(foil_private_key_equal(keys.priv, imported));
+    foil_private_key_unref(imported);
+    test_key_rsa_keys_deinit(&keys);
+    g_free(exported);
+}
+
+static
+void
+test_key_rsa_private_bytes(
+    gconstpointer param)
+{
+    const TestKeyRsa* test = param;
+    TestKeyRsaKeys keys;
+    FoilPrivateKey* key;
+    GBytes* binary;
+
+    test_key_rsa_keys_init(&keys, test);
+    binary = foil_key_to_binary_format(FOIL_KEY(keys.priv), test->param);
+    GDEBUG("Binary form (%u bytes):", (guint)g_bytes_get_size(binary));
+    TEST_DEBUG_HEXDUMP_BYTES(binary);
+    g_assert_cmpuint(g_bytes_get_size(binary), > ,0);
+
+    key = foil_private_key_new_from_bytes(FOIL_KEY_RSA_PRIVATE, binary);
+    g_assert(foil_private_key_equal(keys.priv, key));
+
+    g_bytes_unref(binary);
+    foil_private_key_unref(key);
+    test_key_rsa_keys_deinit(&keys);
+}
+
+static
+void
+test_key_rsa_private_encrypt(
+    gconstpointer param)
+{
+    const TestKeyRsa* test = param;
+    const char* password = test->data;
+    TestKeyRsaKeys keys;
+    char* encrypted;
+    FoilPrivateKey* decrypted;
+    GError* error = NULL;
+
+    test_key_rsa_keys_init(&keys, test);
+    encrypted = foil_private_key_encrypt_to_string(keys.priv, test->param,
+        password, "Test");
+    GDEBUG("%s", encrypted);
+
+    /* Password is required */
+    decrypted = foil_private_key_decrypt_from_string(FOIL_KEY_RSA_PRIVATE,
+        encrypted, NULL, &error);
+    g_assert(!decrypted);
+    g_assert(error->domain == FOIL_ERROR);
+    g_assert(error->code == FOIL_ERROR_KEY_ENCRYPTED);
+
+    decrypted = foil_private_key_decrypt_from_string(FOIL_KEY_RSA_PRIVATE,
+        encrypted, "", &error);
+    g_assert(!decrypted);
+    g_assert(error->domain == FOIL_ERROR);
+    g_assert(error->code == FOIL_ERROR_KEY_ENCRYPTED);
+
+    decrypted = foil_private_key_decrypt_from_string(FOIL_KEY_RSA_PRIVATE,
+        encrypted, password, &error);
+    g_assert(decrypted);
+
+    g_assert(foil_private_key_equal(keys.priv, decrypted));
+    foil_private_key_unref(decrypted);
+    test_key_rsa_keys_deinit(&keys);
+    g_free(encrypted);
+}
 
 static
 void
@@ -880,11 +967,14 @@ test_key_rsa_fingerprint_value(
 }
 
 #define TEST_(name) "/key_rsa/" name
-#define TEST_READ_OK(type,name) TEST_READ_OK2(type,name,"")
+#define TEST_READ_OK(type,name) TEST_READ_OK3(type,name,"")
 #define TEST_READ_OK1(type,name) \
     { TEST_("read-" name), test_key_rsa_##type##_read_ok, \
       name }
 #define TEST_READ_OK2(type,name,suffix) \
+    { TEST_("read-" name suffix), test_key_rsa_##type##_read_ok, \
+      name, name ".bin" }
+#define TEST_READ_OK3(type,name,suffix) \
     { TEST_("read-" name suffix), test_key_rsa_##type##_read_ok, \
       name suffix, name ".bin" }
 #define TEST_ENCRYPT(name, password, comment) \
@@ -896,6 +986,9 @@ test_key_rsa_fingerprint_value(
 #define TEST_READ_PASSPHRASE_ERR(name,enc,passphrase,err) \
     { TEST_("read-" name "-" enc), test_key_rsa_passphrase_read_err, \
       name "." enc, NULL, passphrase, FOIL_ERROR_##err }
+#define TEST_READ_PASSPHRASE_ERR1(name,enc,suffix,passphrase,err) \
+    { TEST_("read-" name "-" enc suffix), test_key_rsa_passphrase_read_err, \
+      name "." enc, NULL, passphrase, FOIL_ERROR_##err }
 #define TEST_READ_RFC4716_OK(type,name) \
     { TEST_("read-" name ".RFC4716"), test_key_rsa_##type##_read_ok,  \
       name ".RFC4716", name ".bin" }
@@ -904,6 +997,9 @@ test_key_rsa_fingerprint_value(
       name ".PKCS8", name ".bin" }
 #define TEST_READ_ERR(type,name) \
     { TEST_("read-" name), test_key_rsa_##type##_read_err, \
+      name }
+#define TEST_READ_ERR1(type,name,suffix) \
+    { TEST_("read-" name suffix), test_key_rsa_##type##_read_err, \
       name }
 #define TEST_FINGERPRINT(name) \
     { TEST_("fingerprint-" name), test_key_rsa_fingerprint, \
@@ -914,6 +1010,16 @@ test_key_rsa_fingerprint_value(
 #define TEST_CONVERT(name) \
     { TEST_("convert-" name), test_key_rsa_convert, \
       name, name ".pub" }
+#define TEST_PRIVATE_EXPORT(name,suffix,format) \
+    { TEST_("private-export-" name "-" suffix), test_key_rsa_private_export, \
+      name, name ".pub", NULL, FOIL_KEY_EXPORT_FORMAT_##format }
+#define TEST_PRIVATE_BYTES(name,suffix,format) \
+    { TEST_("private-bytes-" name "-" suffix), test_key_rsa_private_bytes, \
+      name, name ".pub", NULL, FOIL_KEY_BINARY_FORMAT_##format }
+#define TEST_PRIVATE_ENCRYPT(name, suffix, format) \
+    { TEST_("private-export-encrypted-" name "-" suffix), \
+      test_key_rsa_private_encrypt, name, name ".pub", "password", \
+      FOIL_KEY_EXPORT_FORMAT_##format }
 #define TEST_BYTES(name) \
     { TEST_("bytes-" name), test_key_rsa_bytes, \
       name, name ".pub" }
@@ -944,11 +1050,19 @@ static const TestKeyRsa tests[] = {
     TEST_READ_OK(private,  "rsa-1024" ),
     TEST_READ_OK(private,  "rsa-1500" ),
     TEST_READ_OK(private,  "rsa-2048" ),
+    TEST_READ_OK3(private, "rsa-768", ".1" ),
+    TEST_READ_OK(private,  "openssh-1024" ),
+    TEST_READ_OK(private,  "openssh-1500" ),
+    TEST_READ_OK(private,  "openssh-2048" ),
+    TEST_READ_OK(private,  "openssh-3072" ),
     TEST_READ_OK(public,   "rsa-768.pub"  ),
     TEST_READ_OK(public,   "rsa-1024.pub" ),
     TEST_READ_OK(public,   "rsa-1500.pub" ),
     TEST_READ_OK(public,   "rsa-2048.pub" ),
-    TEST_READ_OK2(private, "rsa-768", ".1" ),
+    TEST_READ_OK2(public,  "openssh-1024", "-public" ),
+    TEST_READ_OK2(public,  "openssh-1500", "-public" ),
+    TEST_READ_OK2(public,  "openssh-2048", "-public" ),
+    TEST_READ_OK2(public,  "openssh-3072", "-public" ),
     TEST_ENCRYPT("rsa-768", NULL, NULL),
     TEST_ENCRYPT("rsa-1024", "passphrase1", "Encrypted key"),
     TEST_ENCRYPT("rsa-1500", "passphrase2", ""),
@@ -974,6 +1088,24 @@ static const TestKeyRsa tests[] = {
     TEST_READ_PASSPHRASE_OK("rsa-768-passphrase", "pkcs8.aes256", "passwd"),
     TEST_READ_PASSPHRASE_OK("rsa-1024-passphrase", "aes192", "passphrase"),
     TEST_READ_PASSPHRASE_OK("rsa-1500-passphrase", "aes256", "passphrase"),
+    TEST_READ_PASSPHRASE_OK("openssh-1024-passphrase", "aes128cbc", "passwd"),
+    TEST_READ_PASSPHRASE_OK("openssh-1024-passphrase", "aes192cbc", "passwd"),
+    TEST_READ_PASSPHRASE_OK("openssh-1024-passphrase", "aes256cbc", "passwd"),
+    TEST_READ_PASSPHRASE_OK("openssh-1024-passphrase", "aes128ctr", "passwd"),
+    TEST_READ_PASSPHRASE_OK("openssh-1024-passphrase", "aes192ctr", "passwd"),
+    TEST_READ_PASSPHRASE_OK("openssh-1024-passphrase", "aes256ctr", "passwd"),
+    TEST_READ_PASSPHRASE_ERR1("openssh-1024-passphrase", "aes128cbc",
+        ".no-password", NULL, KEY_ENCRYPTED),
+    TEST_READ_PASSPHRASE_ERR1("openssh-1024-passphrase", "aes128cbc",
+        ".empty-password", "", KEY_ENCRYPTED),
+    TEST_READ_PASSPHRASE_ERR1("openssh-1024-passphrase", "aes128cbc",
+        ".wrong-password", "wrong", KEY_DECRYPTION_FAILED),
+    TEST_READ_PASSPHRASE_ERR("openssh-1024-passphrase", "bad-cipher1", "passwd",
+        KEY_UNKNOWN_ENCRYPTION),
+    TEST_READ_PASSPHRASE_ERR("openssh-1024-passphrase", "bad-cipher2", "passwd",
+        KEY_UNKNOWN_ENCRYPTION),
+    TEST_READ_PASSPHRASE_ERR("openssh-1024-passphrase", "bad-crypt", "passwd",
+        KEY_UNKNOWN_ENCRYPTION),
     TEST_READ_PASSPHRASE_ERR("rsa-2048-passphrase", "camellia256", NULL,
         KEY_UNKNOWN_ENCRYPTION),  /* Unknown algorithm */
     TEST_READ_PASSPHRASE_ERR("rsa-2048-passphrase", "des3", "passphrase",
@@ -1001,10 +1133,46 @@ static const TestKeyRsa tests[] = {
     TEST_FPVAL("rsa-1024", "9b:f5:c4:eb:c2:f0:a0:2b:de:f6:37:63:f6:0c:30:2c"),
     TEST_FPVAL("rsa-1500", "a7:fc:53:56:e3:d2:7e:f1:02:14:5c:69:ad:aa:6b:43"),
     TEST_FPVAL("rsa-2048", "93:2f:fe:5d:87:0e:d6:fd:1f:aa:f9:41:af:e0:26:3f"),
+    TEST_FPVAL("openssh-1024",
+        "be:e9:dc:ae:f9:0a:81:f0:1c:e4:21:40:eb:d5:9c:43"),
+    TEST_FPVAL("openssh-1500",
+        "ea:b6:b8:1f:34:ba:ac:3b:4b:36:a1:29:40:8a:f9:69"),
+    TEST_FPVAL("openssh-2048",
+        "5d:fd:46:3f:06:86:9d:d7:77:ca:ec:73:fb:96:24:b3"),
+    TEST_FPVAL("openssh-3072",
+        "4f:b2:e8:6b:09:fb:5a:6c:f1:11:7f:17:16:91:7d:ca"),
     TEST_CONVERT("rsa-768"  ),
     TEST_CONVERT("rsa-1024" ),
     TEST_CONVERT("rsa-1500" ),
     TEST_CONVERT("rsa-2048" ),
+    TEST_PRIVATE_EXPORT("rsa-768", "pkcs1", DEFAULT ),
+    TEST_PRIVATE_EXPORT("rsa-1024", "pkcs1", DEFAULT ),
+    TEST_PRIVATE_EXPORT("rsa-1500", "pkcs1", DEFAULT ),
+    TEST_PRIVATE_EXPORT("rsa-2048", "pkcs1", DEFAULT ),
+    TEST_PRIVATE_EXPORT("openssh-1024", "openssh", OPENSSH ),
+    TEST_PRIVATE_EXPORT("openssh-1500", "openssh", OPENSSH ),
+    TEST_PRIVATE_EXPORT("openssh-2048", "openssh", OPENSSH ),
+    TEST_PRIVATE_EXPORT("openssh-3072", "openssh", OPENSSH ),
+    TEST_PRIVATE_BYTES("rsa-768", "pkcs1", RSA_PKCS1 ),
+    TEST_PRIVATE_BYTES("rsa-1024", "pkcs1", RSA_PKCS1 ),
+    TEST_PRIVATE_BYTES("rsa-1500", "pkcs1", RSA_PKCS1 ),
+    TEST_PRIVATE_BYTES("rsa-2048", "pkcs1", RSA_PKCS1 ),
+    TEST_PRIVATE_BYTES("rsa-768", "default", DEFAULT ),
+    TEST_PRIVATE_BYTES("rsa-1024", "default", DEFAULT ),
+    TEST_PRIVATE_BYTES("rsa-1500", "default", DEFAULT ),
+    TEST_PRIVATE_BYTES("rsa-2048", "default", DEFAULT ),
+    TEST_PRIVATE_BYTES("openssh-1024", "openssh", OPENSSH ),
+    TEST_PRIVATE_BYTES("openssh-1500", "openssh", OPENSSH ),
+    TEST_PRIVATE_BYTES("openssh-2048", "openssh", OPENSSH ),
+    TEST_PRIVATE_BYTES("openssh-3072", "openssh", OPENSSH ),
+    TEST_PRIVATE_ENCRYPT("openssh-1024", "openssh", OPENSSH ),
+    TEST_PRIVATE_ENCRYPT("openssh-1500", "openssh", OPENSSH ),
+    TEST_PRIVATE_ENCRYPT("openssh-2048", "openssh", OPENSSH ),
+    TEST_PRIVATE_ENCRYPT("openssh-3072", "openssh", OPENSSH ),
+    TEST_PRIVATE_ENCRYPT("rsa-768", "pkcs1", DEFAULT ),
+    TEST_PRIVATE_ENCRYPT("rsa-1024", "pkcs1", DEFAULT ),
+    TEST_PRIVATE_ENCRYPT("rsa-1500", "pkcs1", DEFAULT ),
+    TEST_PRIVATE_ENCRYPT("rsa-2048", "pkcs1", DEFAULT ),
     TEST_BYTES("rsa-768"  ),
     TEST_BYTES("rsa-1024" ),
     TEST_BYTES("rsa-1500" ),
@@ -1181,6 +1349,7 @@ static const TestKeyRsa tests[] = {
     TEST_READ_ERR(public,  "bad.pub.006"),
     TEST_READ_ERR(public,  "bad.pub.007"),
     TEST_READ_ERR(public,  "bad.pub.008"),
+    TEST_READ_ERR1(public,  "bad.020", ".1"),
     TEST_READ_OK1(private, "zero_e" ),
     TEST_READ_ERR(private, "bad.001"),
     TEST_READ_ERR(private, "bad.002"),
@@ -1201,6 +1370,27 @@ static const TestKeyRsa tests[] = {
     TEST_READ_ERR(private, "bad.017"),
     TEST_READ_ERR(private, "bad.018"),
     TEST_READ_ERR(private, "bad.019"),
+    TEST_READ_ERR(private, "bad.020"),
+    TEST_READ_ERR(private, "bad.021"),
+    TEST_READ_ERR(private, "bad.022"),
+    TEST_READ_ERR(private, "bad.023"),
+    TEST_READ_ERR(private, "bad.024"),
+    TEST_READ_ERR(private, "bad.025"),
+    TEST_READ_ERR(private, "bad.026"), /* openssh: truncated ciphername */
+    TEST_READ_ERR(private, "bad.027"), /* openssh: cut at kdfname length */
+    TEST_READ_ERR(private, "bad.028"), /* openssh: truncated kdfname */
+    TEST_READ_ERR(private, "bad.029"), /* openssh: truncated kdf */
+    TEST_READ_ERR(private, "bad.030"), /* openssh: truncated nkeys */
+    TEST_READ_ERR(private, "bad.031"), /* openssh: zero nkeys */
+    TEST_READ_ERR(private, "bad.032"), /* openssh: cut at public part length */
+    TEST_READ_ERR(private, "bad.033"), /* openssh: bad public part length */
+    TEST_READ_ERR(private, "bad.034"), /* openssh: truncated public part */
+    TEST_READ_ERR(private, "bad.035"), /* openssh: truncated private part */
+    TEST_READ_ERR(private, "bad.036"), /* openssh: truncated private part */
+    TEST_READ_ERR(private, "bad.037"), /* openssh: extra 0xff at the end */
+    TEST_READ_ERR(private, "bad.038"), /* openssh: bad cipername */
+    TEST_READ_ERR(private, "bad.039"), /* openssh: broken private part mark */
+    TEST_READ_ERR(private, "bad.040"), /* openssh: broken padding */
     TEST_READ_ERR(private, "missing")
 };
 

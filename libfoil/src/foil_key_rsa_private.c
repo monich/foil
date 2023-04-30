@@ -44,6 +44,7 @@
 #include "foil_util_p.h"
 #include "foil_asn1.h"
 #include "foil_oid.h"
+#include "foil_bcrypt.h"
 
 #include <gutil_strv.h>
 #include <gutil_misc.h>
@@ -52,6 +53,15 @@
 #define GLOG_MODULE_NAME foil_log_key
 #include "foil_log_p.h"
 
+typedef struct foil_key_rsa_openssh_cipher {
+    const char* name;
+    guint blocklen;
+    guint keysize; /* key_len + iv */
+    GType (*key)(void);
+    GType (*encrypt)(void);
+    GType (*decrypt)(void);
+} FoilKeyRsaOpensshCipher;
+
 G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPrivate, foil_key_rsa_private,
         FOIL_TYPE_PRIVATE_KEY);
 #define FOIL_KEY_RSA_PRIVATE_CAST_TO_KEY(obj) &((obj)->super.super)
@@ -59,43 +69,75 @@ G_DEFINE_ABSTRACT_TYPE(FoilKeyRsaPrivate, foil_key_rsa_private,
 #define FOIL_KEY_RSA_PRIVATE_CLEAR_BYTES(bytes) \
     memset((void*)((bytes)->val), 0, (bytes)->len);
 
-#define FOIL_PKCS5_SALT_LEN (8)
-G_STATIC_ASSERT(FOIL_AES_BLOCK_SIZE >= FOIL_PKCS5_SALT_LEN);
+#define foil_key_rsa_private_write_data(out,data) \
+    foil_output_write(out, (data)->val, (data)->len)
+#define foil_key_rsa_private_write_all(out,data) \
+    foil_output_write_all(out, (data)->val, (data)->len)
 
-static const guint8 rsa_private_key_pkcs5_prefix[] = {
+#define OPENSSH_PLAINTEXT_ALIGN (8)
+#define OPENSSH_SALT_LEN (16)
+#define	OPENSSH_ROUNDS (8)
+
+#define FOIL_PKCS1_SALT_LEN (8)
+G_STATIC_ASSERT(FOIL_AES_BLOCK_SIZE >= FOIL_PKCS1_SALT_LEN);
+
+static const guint8 rsa_private_key_pkcs1_prefix_data[] = {
     '-','-','-','-','-','B','E','G','I','N',' ','R','S','A',' ','P',
     'R','I','V','A','T','E',' ','K','E','Y','-','-','-','-','-'
 };
-static const guint8 rsa_private_key_pkcs5_suffix[] = {
+static const guint8 rsa_private_key_pkcs1_suffix_data[] = {
     '-','-','-','-','-','E','N','D',' ','R','S','A',' ','P','R','I',
     'V','A','T','E',' ','K','E','Y','-','-','-','-','-'
 };
-static const FoilBytes rsa_private_key_pkcs5_prefix_bytes = {
-    rsa_private_key_pkcs5_prefix,
-    G_N_ELEMENTS(rsa_private_key_pkcs5_prefix)
+static const FoilBytes rsa_private_key_pkcs1_prefix = {
+    FOIL_ARRAY_AND_SIZE(rsa_private_key_pkcs1_prefix_data)
 };
-static const FoilBytes rsa_private_key_pkcs5_suffix_bytes = {
-    rsa_private_key_pkcs5_suffix,
-    G_N_ELEMENTS(rsa_private_key_pkcs5_suffix)
+static const FoilBytes rsa_private_key_pkcs1_suffix = {
+    FOIL_ARRAY_AND_SIZE(rsa_private_key_pkcs1_suffix_data)
 };
 
-static const guint8 rsa_private_key_pkcs8_prefix[] = {
+static const guint8 rsa_private_key_pkcs8_prefix_data[] = {
     '-','-','-','-','-','B','E','G','I','N',' ','E','N','C','R','Y',
     'P','T','E','D',' ','P','R','I','V','A','T','E',' ','K','E','Y',
     '-','-','-','-','-'
 };
-static const guint8 rsa_private_key_pkcs8_suffix[] = {
+static const guint8 rsa_private_key_pkcs8_suffix_data[] = {
     '-','-','-','-','-','E','N','D',' ','E','N','C','R','Y','P','T',
     'E','D',' ','P','R','I','V','A','T','E',' ','K','E','Y','-','-',
     '-','-','-'
 };
-static const FoilBytes rsa_private_key_pkcs8_prefix_bytes = {
-    rsa_private_key_pkcs8_prefix,
-    G_N_ELEMENTS(rsa_private_key_pkcs8_prefix)
+
+static const FoilBytes rsa_private_key_pkcs8_prefix = {
+    FOIL_ARRAY_AND_SIZE(rsa_private_key_pkcs8_prefix_data)
 };
-static const FoilBytes rsa_private_key_pkcs8_suffix_bytes = {
-    rsa_private_key_pkcs8_suffix,
-    G_N_ELEMENTS(rsa_private_key_pkcs8_suffix)
+static const FoilBytes rsa_private_key_pkcs8_suffix = {
+    FOIL_ARRAY_AND_SIZE(rsa_private_key_pkcs8_suffix_data)
+};
+
+static const guint8 openssh_bcrypt_data[] = { 'b','c','r','y','p','t' };
+static const FoilBytes openssh_bcrypt = {
+    FOIL_ARRAY_AND_SIZE(openssh_bcrypt_data)
+};
+
+static const guint8 openssh_none_data[] = {'n','o','n','e' };
+static const FoilBytes openssh_none = {
+    FOIL_ARRAY_AND_SIZE(openssh_none_data)
+};
+
+#define OPENSSH_DEFAULT_CIPHER (openssh_ciphers + 5) /* aes256-ctr */
+static const FoilKeyRsaOpensshCipher openssh_ciphers[] = {
+    #define OPENSSH_CIPHER_AES(bits,mode) { \
+        "aes" #bits "-" #mode, FOIL_AES_BLOCK_SIZE, \
+        (bits)/8 + FOIL_AES_BLOCK_SIZE, foil_key_aes##bits##_get_type, \
+        foil_impl_cipher_aes_##mode##_encrypt_get_type, \
+        foil_impl_cipher_aes_##mode##_decrypt_get_type }
+    OPENSSH_CIPHER_AES(128,cbc),
+    OPENSSH_CIPHER_AES(192,cbc),
+    OPENSSH_CIPHER_AES(256,cbc),
+    OPENSSH_CIPHER_AES(128,ctr),
+    OPENSSH_CIPHER_AES(192,ctr),
+    OPENSSH_CIPHER_AES(256,ctr)
+    #undef OPENSSH_CIPHER_AES
 };
 
 void
@@ -113,10 +155,10 @@ foil_key_rsa_private_data_copy(
     const FoilKeyRsaPrivateData* data)
 {
     const gsize total = FOIL_ALIGN(sizeof(*data)) +
-            FOIL_ALIGN(data->n.len) + FOIL_ALIGN(data->e.len) +
-            FOIL_ALIGN(data->d.len) + FOIL_ALIGN(data->p.len) +
-            FOIL_ALIGN(data->q.len) + FOIL_ALIGN(data->dmp1.len) +
-            FOIL_ALIGN(data->dmq1.len) + FOIL_ALIGN(data->iqmp.len);
+        FOIL_ALIGN(data->n.len) + FOIL_ALIGN(data->e.len) +
+        FOIL_ALIGN(data->d.len) + FOIL_ALIGN(data->p.len) +
+        FOIL_ALIGN(data->q.len) + FOIL_ALIGN(data->dmp1.len) +
+        FOIL_ALIGN(data->dmq1.len) + FOIL_ALIGN(data->iqmp.len);
     FoilKeyRsaPrivateData* copy = g_malloc(total);
     guint8* ptr = ((guint8*)copy) + FOIL_ALIGN(sizeof(*copy));
     ptr = foil_bytes_copy(&copy->n, &data->n, ptr);
@@ -190,10 +232,126 @@ foil_key_rsa_private_data_to_bytes(
 
 static
 GBytes*
-foil_key_rsa_private_bytes_pkcs1(
-    FoilKeyRsaPrivate* self)
+foil_key_rsa_private_data_to_openssh_private(
+    const FoilKeyRsaPrivateData* priv,
+    guint align,
+    const char* comment)
 {
-    return foil_key_rsa_private_data_to_bytes(self->data);
+    FoilOutput* out = foil_output_mem_new(NULL);
+    FoilBytes c;
+    guint32 check;
+    guint8 pad;
+
+    c.val = (void*) comment;
+    c.len =  comment ? strlen(comment) : 0;
+    foil_random(&check, sizeof(check));
+
+    /* Memory-backed I/O never fails in a meaningful way */
+    foil_key_rsa_write_n(out, check); /* check1 */
+    foil_key_rsa_write_n(out, check); /* check2 */
+    foil_key_rsa_write_n_bytes(out, &foil_ssh_rsa_mark); /* keytype */
+    foil_key_rsa_write_n_bytes(out, &priv->n);
+    foil_key_rsa_write_n_bytes(out, &priv->e);
+    foil_key_rsa_write_n_bytes(out, &priv->d);
+    foil_key_rsa_write_n_bytes(out, &priv->iqmp);
+    foil_key_rsa_write_n_bytes(out, &priv->p);
+    foil_key_rsa_write_n_bytes(out, &priv->q);
+    foil_key_rsa_write_n_bytes(out, &c);  /* comment */
+    for (pad = 1; foil_output_bytes_written(out) % align; pad++) {
+        foil_output_write(out, &pad, 1);
+    }
+    return foil_output_free_to_bytes(out);
+}
+
+static
+GBytes*
+foil_key_rsa_private_data_to_openssh_bytes(
+    const FoilKeyRsaPrivateData* priv,
+    const char* comment)
+{
+    FoilOutput* out = foil_output_mem_new(NULL);
+    FoilKeyRsaPublicData pub;
+    GBytes* data;
+    FoilBytes b;
+
+    /* Memory-backed I/O never fails in a meaningful way */
+    foil_key_rsa_private_write_data(out, &foil_key_openssh_auth_magic);
+    foil_key_rsa_write_n_bytes(out, &openssh_none); /* ciphername */
+    foil_key_rsa_write_n_bytes(out, &openssh_none); /* kdfname */
+    foil_key_rsa_write_n(out, 0); /* kdf */
+    foil_key_rsa_write_n(out, 1); /* nkeys */
+
+    /* pubkey */
+    pub.n = priv->n;
+    pub.e = priv->e;
+    data = foil_key_rsa_public_data_ssh_rsa_bytes(&pub);
+    foil_key_rsa_write_n_bytes(out, foil_bytes_from_data(&b, data));
+    g_bytes_unref(data);
+
+    /* private part */
+    data = foil_key_rsa_private_data_to_openssh_private(priv,
+        OPENSSH_PLAINTEXT_ALIGN, comment);
+    foil_key_rsa_write_n_bytes(out, foil_bytes_from_data(&b, data));
+    g_bytes_unref(data);
+    return foil_output_free_to_bytes(out);
+}
+
+static
+GBytes*
+foil_key_rsa_private_data_to_openssh_encrypted_bytes(
+    const FoilKeyRsaPrivateData* priv,
+    const FoilKeyRsaOpensshCipher* cipher,
+    guint rounds,
+    const char* pass,
+    const char* comment)
+{
+    FoilOutput* out = foil_output_mem_new(NULL);
+    FoilKeyRsaPublicData pub;
+    FoilKey* key;
+    FoilBytes b;
+    guint8 salt[OPENSSH_SALT_LEN];
+    GBytes* data;
+    GBytes* encrypted;
+
+    /* Generate salted key */
+    foil_random(&salt, sizeof(salt));
+    b.val = salt;
+    b.len = sizeof(salt);
+    data = foil_bcrypt_pbkdf(pass, &b, cipher->keysize, rounds);
+    key = foil_key_new_from_bytes(cipher->key(), data);
+    g_bytes_unref(data);
+
+    /* Memory-backed I/O never fails in a meaningful way */
+    foil_key_rsa_private_write_data(out, &foil_key_openssh_auth_magic);
+    foil_key_rsa_write_n_bytes(out, foil_bytes_from_string(&b, cipher->name));
+    foil_key_rsa_write_n_bytes(out, &openssh_bcrypt); /* kdfname */
+    foil_key_rsa_write_n(out, OPENSSH_SALT_LEN + 8); /* kdf block */
+    foil_key_rsa_write_n(out, sizeof(salt));
+    foil_output_write(out, salt, sizeof(salt));
+    foil_key_rsa_write_n(out, rounds);
+    foil_key_rsa_write_n(out, 1); /* nkeys */
+
+    /* pubkey */
+    pub.n = priv->n;
+    pub.e = priv->e;
+    data = foil_key_rsa_public_data_ssh_rsa_bytes(&pub);
+    foil_key_rsa_write_n_bytes(out, foil_bytes_from_data(&b, data));
+    g_bytes_unref(data);
+
+    /* Encrypt private part */
+    data = foil_key_rsa_private_data_to_openssh_private(priv,
+        cipher->blocklen, comment);
+    encrypted = foil_cipher_bytes(cipher->encrypt(), key, data);
+    g_bytes_unref(data);
+    foil_key_unref(key);
+    if (encrypted) {
+        foil_key_rsa_write_n_bytes(out, foil_bytes_from_data(&b, encrypted));
+        g_bytes_unref(encrypted);
+        return foil_output_free_to_bytes(out);
+    } else {
+        foil_output_unref(out);
+        return NULL;
+    }
 }
 
 static
@@ -202,10 +360,13 @@ foil_key_rsa_private_to_bytes(
     FoilKey* key,
     FoilKeyBinaryFormat format)
 {
+    FoilKeyRsaPrivate* self = FOIL_KEY_RSA_PRIVATE_(key);
     switch (format) {
     case FOIL_KEY_BINARY_FORMAT_DEFAULT:
     case FOIL_KEY_BINARY_FORMAT_RSA_PKCS1:
-        return foil_key_rsa_private_bytes_pkcs1(FOIL_KEY_RSA_PRIVATE_(key));
+        return foil_key_rsa_private_data_to_bytes(self->data);
+    case FOIL_KEY_BINARY_FORMAT_OPENSSH:
+        return foil_key_rsa_private_data_to_openssh_bytes(self->data, NULL);
     case FOIL_KEY_BINARY_FORMAT_RSA_SSH:
         break;
     }
@@ -354,7 +515,7 @@ foil_key_rsa_private_pass_key(
             g_bytes_unref(last_md);
         }
         foil_digest_update(md, pass, pass_len);
-        foil_digest_update(md, iv, FOIL_PKCS5_SALT_LEN);
+        foil_digest_update(md, iv, FOIL_PKCS1_SALT_LEN);
         last_md = foil_digest_free_to_bytes(md);
         md_bytes = g_bytes_get_data(last_md, &md_size);
         n = MIN(remain, md_size);
@@ -370,7 +531,7 @@ foil_key_rsa_private_pass_key(
 
 static
 GBytes*
-foil_key_rsa_private_decrypt_pkcs5(
+foil_key_rsa_private_decrypt_pkcs1(
     GHashTable* headers,
     GBytes* bytes,
     const char* pass,
@@ -614,11 +775,9 @@ foil_key_rsa_private_decrypt_pkcs8(
 
     /* ASN.1 encoding of OID 1.2.840.113549.1.5.13 (id-PBES2) */
     static const guint8 OID_PBES2[] = {
-        0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,0x05,0x0D
+        0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x05, 0x0d
     };
-    static const FoilBytes oid_pbes2 = {
-        OID_PBES2, sizeof(OID_PBES2)
-    };
+    static const FoilBytes oid_pbes2 = { FOIL_ARRAY_AND_SIZE(OID_PBES2) };
     guint32 len;
     GUtilRange pos;
     foil_parse_init_bytes(&pos, bytes);
@@ -672,7 +831,8 @@ foil_key_rsa_private_parse_text(
         headers = foil_parse_headers(&pos, NULL);
 
         /* Collect BASE64 encoded data */
-        decoded = foil_parse_base64(&pos, FOIL_INPUT_BASE64_IGNORE_SPACES);
+        decoded = foil_parse_base64(&pos, FOIL_INPUT_BASE64_IGNORE_SPACES |
+            FOIL_INPUT_BASE64_STANDARD);
         if (decoded) {
             const guint bytes_left = pos.end - pos.ptr;
             if (bytes_left >= suffix->len &&
@@ -686,8 +846,9 @@ foil_key_rsa_private_parse_text(
                 }
                 if (decrypted) {
                     ok = parse_asn1(key, foil_bytes_from_data(&b, decrypted));
+                    /* Preserve GBytes in the pool to keep pointers valid */
                     foil_pool_add_bytes(pool, decrypted);
-                    if (!ok) {
+                    if (!ok && error) {
                         g_propagate_error(error, g_error_new_literal(
                             FOIL_ERROR, (pass && pass[0]) ?
                             FOIL_ERROR_KEY_DECRYPTION_FAILED :
@@ -696,6 +857,7 @@ foil_key_rsa_private_parse_text(
                     }
                 } else if (!error || !*error) {
                     ok = parse_asn1(key, foil_bytes_from_data(&b, decoded));
+                    /* Preserve GBytes in the pool to keep pointers valid */
                     foil_pool_add_bytes_ref(pool, decoded);
                 }
             }
@@ -710,7 +872,7 @@ foil_key_rsa_private_parse_text(
 
 static
 gboolean
-foil_key_rsa_private_parse_text_pkcs5(
+foil_key_rsa_private_parse_text_pkcs1(
     FoilKeyRsaPrivateData* key,
     const FoilBytes* data,
     const char* pass,
@@ -718,9 +880,8 @@ foil_key_rsa_private_parse_text_pkcs5(
     GError** error)
 {
     return foil_key_rsa_private_parse_text(key, data, pass, pool, error,
-        &rsa_private_key_pkcs5_prefix_bytes,
-        &rsa_private_key_pkcs5_suffix_bytes,
-        foil_key_rsa_private_decrypt_pkcs5,
+        &rsa_private_key_pkcs1_prefix, &rsa_private_key_pkcs1_suffix,
+        foil_key_rsa_private_decrypt_pkcs1,
         foil_key_rsa_private_parse_pkcs1);
 }
 
@@ -734,10 +895,201 @@ foil_key_rsa_private_parse_text_pkcs8(
     GError** error)
 {
     return foil_key_rsa_private_parse_text(key, data, pass, pool, error,
-        &rsa_private_key_pkcs8_prefix_bytes,
-        &rsa_private_key_pkcs8_suffix_bytes,
+        &rsa_private_key_pkcs8_prefix, &rsa_private_key_pkcs8_suffix,
         foil_key_rsa_private_decrypt_pkcs8,
         foil_key_rsa_private_parse_pkcs8);
+}
+
+static
+gboolean
+foil_key_rsa_private_check_openssh_padding(
+    GUtilRange* pos)
+{
+    guint8 counter = 1;
+    while (pos->ptr < pos->end) {
+        if (*pos->ptr++ != counter++) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+static
+const FoilKeyRsaOpensshCipher*
+foil_key_rsa_private_openssh_cipher_by_name(
+    const FoilBytes* name)
+{
+    gsize i;
+    for (i = 0; i < G_N_ELEMENTS(openssh_ciphers); i++) {
+        const FoilKeyRsaOpensshCipher* cipher = openssh_ciphers + i;
+        if (!strncmp((char*)name->val, cipher->name, name->len) &&
+            !cipher->name[name->len]) {
+            return cipher;
+        }
+    }
+    return NULL;
+}
+
+static
+gboolean
+foil_key_rsa_private_decode_openssh_plaintext(
+    FoilKeyRsaPrivateData* key,
+    const FoilKeyRsaPublicData* pub,
+    const FoilBytes* data,
+    FoilBytes* comment)
+{
+    guint32 check1, check2;
+    FoilBytes keytype;
+    GUtilRange pos;
+    foil_parse_init_data(&pos, data);
+    if (foil_key_rsa_parse_n(&pos, &check1) &&
+        foil_key_rsa_parse_n(&pos, &check2) &&
+        check1 == check2 &&
+        foil_key_rsa_parse_n_bytes(&pos, &keytype)) {
+        if (foil_bytes_equal(&keytype, &foil_ssh_rsa_mark)) {
+            if (foil_key_rsa_parse_n_bytes(&pos, &key->n) &&
+                foil_key_rsa_parse_n_bytes(&pos, &key->e) &&
+                foil_key_rsa_parse_n_bytes(&pos, &key->d) &&
+                foil_key_rsa_parse_n_bytes(&pos, &key->iqmp) &&
+                foil_key_rsa_parse_n_bytes(&pos, &key->p) &&
+                foil_key_rsa_parse_n_bytes(&pos, &key->q) &&
+                foil_key_rsa_parse_n_bytes(&pos, comment) &&
+                foil_key_rsa_private_check_openssh_padding(&pos) &&
+                foil_bytes_equal(&key->n, &pub->n) &&
+                foil_bytes_equal(&key->e, &pub->e)) {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
+static
+gboolean
+foil_key_rsa_private_decode_openssh_bcrypt(
+    FoilKeyRsaPrivateData* priv,
+    const FoilKeyRsaPublicData* pub,
+    const FoilKeyRsaOpensshCipher* cipher,
+    const FoilBytes* kdf,
+    const FoilBytes* encrypted,
+    const char* pass,
+    FoilPool* pool,
+    FoilBytes* comment)
+{
+    GUtilRange pos;
+    FoilBytes salt;
+    guint32 n;
+    foil_parse_init_data(&pos, kdf);
+    if (foil_key_rsa_parse_n_bytes(&pos, &salt) &&
+        foil_key_rsa_parse_n(&pos, &n) &&
+        pos.ptr == pos.end) {
+        GBytes* keydata = foil_bcrypt_pbkdf(pass, &salt, cipher->keysize, n);
+        if (keydata) {
+            FoilKey* key = foil_key_new_from_bytes(cipher->key(), keydata);
+            g_bytes_unref(keydata);
+            if (key) {
+                GBytes* decrypted = foil_cipher_data(cipher->decrypt(), key,
+                    encrypted->val, encrypted->len);
+                foil_key_unref(key);
+                if (decrypted) {
+                    FoilBytes data;
+                    if (foil_key_rsa_private_decode_openssh_plaintext(priv,
+                        pub, foil_bytes_from_data(&data, decrypted), comment)) {
+                        /* Preserve GBytes reference in the pool */
+                        foil_pool_add_bytes(pool, decrypted);
+                        return TRUE;
+                    }
+                    g_bytes_unref(decrypted);
+                }
+            }
+        }
+    }
+    return FALSE;
+}
+
+static
+gboolean
+foil_key_rsa_private_decode_openssh(
+    FoilKeyRsaPrivateData* key,
+    const FoilKeyRsaPublicData* pub,
+    const FoilKeyRsaOpensshPrivData* priv,
+    const char* pass,
+    FoilPool* pool,
+    GError** error)
+{
+    if (foil_bytes_equal(&priv->kdfname, &openssh_none)) {
+        /* Private part is not encrypted */
+        FoilBytes comment;
+        if (foil_bytes_equal(&priv->ciphername, &openssh_none) &&
+            foil_key_rsa_private_decode_openssh_plaintext(key, pub,
+            &priv->data, &comment)) {
+            return TRUE;
+        } else if (error && !*error) {
+            *error = g_error_new_literal(FOIL_ERROR,
+                FOIL_ERROR_KEY_UNRECOGNIZED_FORMAT,
+                "Unrecognized OpenSSH key format");
+        }
+    } else if (!pass || !pass[0]) {
+        /* Private part is encrypted but there's no password */
+        if (error && !*error) {
+            *error = g_error_new_literal(FOIL_ERROR,
+                FOIL_ERROR_KEY_ENCRYPTED,
+                "Key is encrypted");
+        }
+    } else {
+        const FoilKeyRsaOpensshCipher* cipher =
+            foil_key_rsa_private_openssh_cipher_by_name(&priv->ciphername);
+        if (cipher && foil_bytes_equal(&priv->kdfname, &openssh_bcrypt)) {
+            FoilBytes comment;
+            if (foil_key_rsa_private_decode_openssh_bcrypt(key, pub,
+                cipher, &priv->kdf, &priv->data, pass, pool, &comment)) {
+                return TRUE;
+            } else if (error && !*error) {
+                *error = g_error_new_literal(FOIL_ERROR,
+                    FOIL_ERROR_KEY_DECRYPTION_FAILED,
+                    "OpenSSH key decryption failed");
+            }
+        } else if (error && !*error) {
+            *error = g_error_new_literal(FOIL_ERROR,
+                FOIL_ERROR_KEY_UNKNOWN_ENCRYPTION,
+                "Unknown OpenSSH key cipher");
+        }
+    }
+    return FALSE;
+}
+
+static
+gboolean
+foil_key_rsa_private_parse_openssh(
+    FoilKeyRsaPrivateData* key,
+    const FoilBytes* data,
+    const char* pass,
+    FoilPool* pool,
+    GError** error)
+{
+    FoilKeyRsaPublicData pub;
+    FoilKeyRsaOpensshPrivData priv;
+
+    return foil_key_rsa_parse_openssh_binary(data, &pub, &priv) &&
+        foil_key_rsa_private_decode_openssh(key, &pub, &priv, pass, pool,
+        error);
+}
+
+static
+gboolean
+foil_key_rsa_private_parse_text_openssh(
+    FoilKeyRsaPrivateData* key,
+    const FoilBytes* data,
+    const char* pass,
+    FoilPool* pool,
+    GError** error)
+{
+    FoilKeyRsaPublicData pub;
+    FoilKeyRsaOpensshPrivData priv;
+
+    return foil_key_rsa_parse_openssh_text(data, &pub, &priv, pool) &&
+        foil_key_rsa_private_decode_openssh(key, &pub, &priv, pass, pool,
+        error);
 }
 
 static
@@ -753,22 +1105,24 @@ foil_key_rsa_private_from_data(
     FoilKeyRsaPrivateData key;
     FoilBytes data;
     FoilPool pool;
-    const char* pass = NULL;
+    const char* pw = NULL;
     if (param) {
         /* Extract the passphrase */
         GVariant* var = g_hash_table_lookup(param, FOIL_KEY_PARAM_PASSPHRASE);
         if (g_variant_is_of_type(var, G_VARIANT_TYPE_STRING)) {
-            pass = g_variant_get_string(var, NULL);
+            pw = g_variant_get_string(var, NULL);
         }
     }
     foil_pool_init(&pool);
     memset(&key, 0, sizeof(key));
     data.val = bytes;
     data.len = size;
-    if (foil_key_rsa_private_parse_text_pkcs8(&key, &data, pass, &pool, err) ||
-        foil_key_rsa_private_parse_text_pkcs5(&key, &data, pass, &pool, err) ||
+    if (foil_key_rsa_private_parse_text_pkcs8(&key, &data, pw, &pool, err) ||
+        foil_key_rsa_private_parse_text_pkcs1(&key, &data, pw, &pool, err) ||
+        foil_key_rsa_private_parse_text_openssh(&key, &data, pw, &pool, err) ||
         foil_key_rsa_private_parse_pkcs1(&key, &data) ||
-        foil_key_rsa_private_parse_pkcs8(&key, &data)) {
+        foil_key_rsa_private_parse_pkcs8(&key, &data) ||
+        foil_key_rsa_private_parse_openssh(&key, &data, pw, &pool, err)) {
         FoilKeyRsaPrivate* priv = g_object_new(G_TYPE_FROM_CLASS(klass), NULL);
         priv->data = foil_key_rsa_private_data_copy(&key);
         g_clear_error(err);
@@ -829,15 +1183,16 @@ foil_key_rsa_private_encrypt(
 
 static
 gboolean
-foil_key_rsa_private_export_default(
+foil_key_rsa_private_export_pkcs1(
     FoilKeyRsaPrivate* self,
     FoilOutput* out,
     const char* comment,
     const char* pass,
     GError** error)
 {
-    gboolean ok = foil_output_write_all(out, rsa_private_key_pkcs5_prefix,
-        sizeof(rsa_private_key_pkcs5_prefix)) && foil_output_write_eol(out);
+    gboolean ok = foil_key_rsa_private_write_all(out,
+        &rsa_private_key_pkcs1_prefix) &&
+        foil_output_write_eol(out);
     if (ok && comment) {
         char* header = foil_format_header("Comment", comment);
         if (header) {
@@ -890,18 +1245,59 @@ foil_key_rsa_private_export_default(
             FoilOutput* base64 = foil_output_base64_new_full(out, 0, 64);
             ok = foil_output_write_bytes_all(base64, bytes) &&
                 foil_output_flush(base64) &&
-                foil_output_write_all(out, rsa_private_key_pkcs5_suffix,
-                sizeof(rsa_private_key_pkcs5_suffix)) &&
+                foil_key_rsa_private_write_all(out,
+                &rsa_private_key_pkcs1_suffix) &&
                 foil_output_write_eol(out);
             foil_output_unref(base64);
             g_bytes_unref(bytes);
         }
     }
     if (!ok && error && !*error) {
-        g_propagate_error(error, g_error_new_literal(FOIL_ERROR,
-            FOIL_ERROR_KEY_WRITE, "Output error"));
+        *error =  g_error_new_literal(FOIL_ERROR, FOIL_ERROR_KEY_WRITE,
+            "Output error");
     }
     return ok;
+}
+
+static
+gboolean
+foil_key_rsa_private_export_openssh(
+    FoilKeyRsaPrivate* self,
+    FoilOutput* out,
+    const char* comment,
+    const char* pass,
+    GError** error)
+{
+    GBytes* bytes = (pass && pass[0]) ?
+        foil_key_rsa_private_data_to_openssh_encrypted_bytes(self->data,
+            OPENSSH_DEFAULT_CIPHER, OPENSSH_ROUNDS, pass, comment) :
+        foil_key_rsa_private_data_to_openssh_bytes(self->data, comment);
+    if (bytes) {
+        gboolean ok = FALSE;
+        if (foil_key_rsa_private_write_all(out,
+            &foil_key_openssh_text_prefix) &&
+            foil_output_write_eol(out)) {
+            FoilOutput* base64 = foil_output_base64_new_full(out, 0, 70);
+
+            ok = foil_output_write_bytes_all(base64, bytes) &&
+                foil_output_flush(base64) &&
+                foil_key_rsa_private_write_all(out,
+                &foil_key_openssh_text_suffix) &&
+                foil_output_write_eol(out);
+            foil_output_unref(base64);
+        }
+        g_bytes_unref(bytes);
+        if (ok) {
+            return TRUE;
+        } else if (error && !*error) {
+            *error =  g_error_new_literal(FOIL_ERROR, FOIL_ERROR_KEY_WRITE,
+                "Output error");
+        }
+    } else if (error && !*error) {
+        *error = g_error_new_literal(FOIL_ERROR, FOIL_ERROR_UNSPECIFIED,
+            "Key export error");
+    }
+    return FALSE;
 }
 
 static
@@ -930,7 +1326,11 @@ foil_key_rsa_private_export(
         }
         switch (format) {
         case FOIL_KEY_EXPORT_FORMAT_DEFAULT:
-            ok = foil_key_rsa_private_export_default(self, out, comment,
+            ok = foil_key_rsa_private_export_pkcs1(self, out, comment,
+                passphrase, error);
+            break;
+        case FOIL_KEY_EXPORT_FORMAT_OPENSSH:
+            ok = foil_key_rsa_private_export_openssh(self, out, comment,
                 passphrase, error);
             break;
         default:

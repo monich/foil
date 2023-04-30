@@ -61,14 +61,16 @@ G_BEGIN_DECLS
 typedef enum foil_key_export_format {
     FOIL_KEY_EXPORT_FORMAT_DEFAULT,
     FOIL_KEY_EXPORT_FORMAT_RFC4716,
-    FOIL_KEY_EXPORT_FORMAT_PKCS8    /* Since 1.0.7 */
+    FOIL_KEY_EXPORT_FORMAT_PKCS8,     /* Since 1.0.7 */
+    FOIL_KEY_EXPORT_FORMAT_OPENSSH    /* Since 1.0.28 */
 } FoilKeyExportFormat;
 
 /* Format of binary key data */
 typedef enum foil_key_binary_format { /* Since 1.0.26 */
-    FOIL_KEY_BINARY_FORMAT_DEFAULT,   /* Valid for all key formats */
+    FOIL_KEY_BINARY_FORMAT_DEFAULT,   /* Valid for all key types */
     FOIL_KEY_BINARY_FORMAT_RSA_PKCS1, /* RFC 3447 (Appendix A) */
-    FOIL_KEY_BINARY_FORMAT_RSA_SSH    /* RFC 4253 (ssh-rsa format) */
+    FOIL_KEY_BINARY_FORMAT_RSA_SSH,   /* RFC 4253 (ssh-rsa format) */
+    FOIL_KEY_BINARY_FORMAT_OPENSSH    /* Since 1.0.28 */
 } FoilKeyBinaryFormat;
 
 /* Source-level compatibility with libfoil <= 1.0.27 */

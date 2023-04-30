@@ -90,6 +90,7 @@ LIB_SO = $(LIB_SONAME).$(VERSION_MINOR).$(VERSION_RELEASE)
 
 SRC = \
   foil_asn1.c \
+  foil_bcrypt.c \
   foil_cipher.c \
   foil_cipher_aes.c \
   foil_cipher_sync.c \
@@ -111,6 +112,7 @@ SRC = \
   foil_key.c \
   foil_key_aes.c \
   foil_key_des.c \
+  foil_key_rsa.c \
   foil_key_rsa_private.c \
   foil_key_rsa_public.c \
   foil_output.c \

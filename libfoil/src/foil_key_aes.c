@@ -228,6 +228,7 @@ foil_key_aes_to_bytes(
         return foil_key_aes_default_bytes(FOIL_KEY_AES_(key));
     case FOIL_KEY_BINARY_FORMAT_RSA_SSH:
     case FOIL_KEY_BINARY_FORMAT_RSA_PKCS1:
+    case FOIL_KEY_BINARY_FORMAT_OPENSSH:
         break;
     }
     /* Invalid/unsupported format */
