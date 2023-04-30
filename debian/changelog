@@ -1,3 +1,12 @@
+libfoil (1.0.28) unstable; urgency=low
+
+  * Implemented support for AES CTR mode
+  * Support OpenSSH format of RSA private keys
+  * Added libfoilmsg development package
+  * Allow to choose the dictionary for Base64 input
+
+ -- Slava Monich <slava@monich.com>  Mon, 01 May 2023 02:39:59 +0300
+
 libfoil (1.0.27) unstable; urgency=low
 
   * Reduced log level for non-critical warnings
