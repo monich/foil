@@ -372,7 +372,7 @@ foil_key_rsa_public_parse_pkcs8(
     foil_parse_skip_spaces(&pos);
     if (foil_parse_skip_bytes(&pos, &rsa_public_pkcs8_prefix) &&
         foil_parse_skip_to_next_line(&pos, TRUE) &&
-        (pos.end - pos.ptr) > rsa_public_pkcs8_prefix.len) {
+        (pos.end - pos.ptr) > (gssize) rsa_public_pkcs8_prefix.len) {
         GBytes* decoded = foil_parse_base64(&pos,
             FOIL_INPUT_BASE64_IGNORE_SPACES |
             FOIL_INPUT_BASE64_STANDARD);
@@ -411,7 +411,7 @@ foil_key_rsa_public_parse_rfc4716(
             pos.ptr, pos.end - pos.ptr, rsa_public_base64_prefix)) {
             foil_parse_skip_to_next_line(&pos, TRUE);
         }
-        if ((pos.end - pos.ptr) > rsa_public_rfc4716_suffix.len) {
+        if ((pos.end - pos.ptr) > (gssize) rsa_public_rfc4716_suffix.len) {
             GBytes* decoded = foil_parse_base64(&pos,
                 FOIL_INPUT_BASE64_IGNORE_SPACES |
                 FOIL_INPUT_BASE64_STANDARD);
