@@ -30,8 +30,6 @@
  * any official policies, either expressed or implied.
  */
 
-#define GLIB_DISABLE_DEPRECATION_WARNINGS
-
 #include "foil_key_p.h"
 #include "foil_digest.h"
 #include "foil_output.h"

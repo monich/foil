@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,8 +29,6 @@
  * are those of the authors and should not be interpreted as representing
  * any official policies, either expressed or implied.
  */
-
-#define GLIB_DISABLE_DEPRECATION_WARNINGS
 
 #include "foil_cipher_p.h"
 #include "foil_util_p.h"
@@ -211,11 +209,13 @@ foil_cipher_set_padding_func(
     FoilCipher* self,
     FoilCipherPaddingFunc fn)
 {
-    /* Padding makes no sense if we can't encrypt */
-    if (G_LIKELY(self) &&
-       (FOIL_CIPHER_GET_CLASS(self)->flags & FOIL_CIPHER_ENCRYPT)) {
-        self->fn_pad = fn ? fn : foil_cipher_default_padding_func;
-        return TRUE;
+    if (G_LIKELY(self)) {
+        FoilCipherClass* klass = FOIL_CIPHER_GET_CLASS(self);
+        /* Padding makes no sense if we can't encrypt */
+        if (klass->flags & FOIL_CIPHER_ENCRYPT) {
+            self->fn_pad = klass->fn_pad;
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -288,6 +288,7 @@ foil_cipher_cancel_all(
     }
 }
 
+static
 void
 foil_cipher_default_padding_func(
     guint8* block,
@@ -855,7 +856,7 @@ foil_cipher_init(
 {
     self->priv = G_TYPE_INSTANCE_GET_PRIVATE(self, FOIL_TYPE_CIPHER,
         FoilCipherPriv);
-    self->fn_pad = foil_cipher_default_padding_func;
+    self->fn_pad = FOIL_CIPHER_GET_CLASS(self)->fn_pad;
 }
 
 static
@@ -863,6 +864,7 @@ void
 foil_cipher_class_init(
     FoilCipherClass* klass)
 {
+    klass->fn_pad = foil_cipher_default_padding_func;
     klass->fn_init_with_key = foil_cipher_init_with_key;
     klass->fn_copy = foil_cipher_default_copy;
     klass->fn_cancel_all = foil_cipher_default_cancel_all;

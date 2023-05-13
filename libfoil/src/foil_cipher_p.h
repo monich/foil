@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2023 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,7 @@ struct foil_cipher_class {
     GObjectClass object;
     const char* name;
     FOIL_CIPHER_FLAGS flags;
+    FoilCipherPaddingFunc fn_pad; /* Default padding */
     gboolean (*fn_supports_key)(FoilCipherClass* klass, GType key_type);
     void (*fn_init_with_key)(FoilCipher* cipher, FoilKey* key);
     void (*fn_copy)(FoilCipher* dest, FoilCipher* src);
@@ -80,13 +81,6 @@ GType foil_cipher_get_type(void) FOIL_INTERNAL;
         FOIL_TYPE_CIPHER, FoilCipherClass))
 #define FOIL_CIPHER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), \
         FOIL_TYPE_CIPHER, FoilCipherClass))
-
-void
-foil_cipher_default_padding_func(
-    guint8* block,
-    gsize data_size,
-    gsize block_size)
-    FOIL_INTERNAL;
 
 int
 foil_cipher_symmetric_finish(
