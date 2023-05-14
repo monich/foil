@@ -357,12 +357,10 @@ test_cipher_aes_async(
     g_assert(!foil_cipher_write_data_async(cipher, test->input,
         test->input_size, NULL, NULL, test_cipher_aes_async_proc, loop));
 
-    /* Encrypt asynchronously (the second attempt must fail) */
+    /* Encrypt asynchronously */
     id = foil_cipher_write_data_async(cipher, test->input,
         test->input_size, out, NULL, test_cipher_aes_async_proc, loop);
     g_assert(id);
-    g_assert(!foil_cipher_write_data_async(cipher, test->input,
-        test->input_size, out, NULL, test_cipher_aes_async_proc, loop));
     timeout_id = g_timeout_add_seconds(TEST_TIMEOUT, test_timeout, loop);
     g_main_loop_run(loop);
     g_source_remove(timeout_id);

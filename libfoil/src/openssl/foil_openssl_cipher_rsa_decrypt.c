@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,6 @@
  * any official policies, either expressed or implied.
  */
 
-#include "foil_cipher_sync.h"
 #include "foil_openssl_rsa.h"
 
 /* Logging */

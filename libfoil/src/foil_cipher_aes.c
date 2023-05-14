@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
 #define GLOG_MODULE_NAME foil_log_cipher
 #include "foil_log_p.h"
 
-G_DEFINE_ABSTRACT_TYPE(FoilCipherAes, foil_cipher_aes, FOIL_TYPE_CIPHER_SYNC);
+G_DEFINE_ABSTRACT_TYPE(FoilCipherAes, foil_cipher_aes, FOIL_TYPE_CIPHER);
 #define SUPER_CLASS foil_cipher_aes_parent_class
 
 static

@@ -2,25 +2,25 @@ Source: libfoil
 Section: libs
 Priority: optional
 Maintainer: Slava Monich <slava@monich.com>
-Build-Depends: debhelper (>= 7), libglibutil-dev (>= 1.0.54), libglib2.0-dev (>= 2.32), libpng-dev, libmagic-dev, libssl-dev
+Build-Depends: debhelper (>= 7), libglibutil-dev (>= 1.0.68), libglib2.0-dev (>= 2.32), libpng-dev, libmagic-dev, libssl-dev
 Standards-Version: 3.8.4
 
 Package: libfoil
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libglibutil (>= 1.0.24)
+Depends: ${shlibs:Depends}, ${misc:Depends}, libglibutil (>= 1.0.68)
 Description: Library of glib-based cryptography utilities
 
 Package: libfoil-dev
 Section: libdevel
 Architecture: any
-Depends: libfoil (= ${binary:Version}), ${misc:Depends}, libglib2.0-dev (>= 2.32), libglibutil-dev (>= 1.0.54)
+Depends: libfoil (= ${binary:Version}), ${misc:Depends}, libglib2.0-dev (>= 2.32), libglibutil-dev (>= 1.0.68)
 Description: Development files for libfoil
 
 Package: libfoilmsg-dev
 Section: libdevel
 Architecture: any
-Depends: libfoil-dev, libglibutil-dev (>= 1.0.54)
+Depends: libfoil-dev, libglibutil-dev (>= 1.0.68)
 Description: Development files for libfoilmsg
 
 Package: foil-tools

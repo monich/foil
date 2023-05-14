@@ -30,7 +30,7 @@
  * any official policies, either expressed or implied.
  */
 
-#include "foil_cipher_sync.h"
+#include "foil_cipher_p.h"
 #include "foil_util_p.h"
 
 /* Yes we know that this API is deprecated */
@@ -43,12 +43,12 @@
 #include "foil_log_p.h"
 
 typedef struct foil_openssl_cipher_cbc_class {
-    FoilCipherSyncClass sync;
+    FoilCipherClass cipher;
     int op;
 } FoilOpensslCipherDesCbcClass;
 
 typedef struct foil_openssl_cipher_cbc {
-    FoilCipherSync sync;
+    FoilCipher cipher;
     FoilOpensslKeyDes* key;
     DES_cblock ivec;
 } FoilOpensslCipherDesCbc;
@@ -64,7 +64,7 @@ GType foil_openssl_cipher_des_cbc_decrypt_get_type() FOIL_INTERNAL;
 
 G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherDesCbc,
     foil_openssl_cipher_des_cbc,
-    FOIL_TYPE_CIPHER_SYNC);
+    FOIL_TYPE_CIPHER);
 
 #define FOIL_TYPE_OPENSSL_CIPHER_DES_CBC \
     foil_openssl_cipher_des_cbc_get_type()

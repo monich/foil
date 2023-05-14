@@ -55,11 +55,6 @@ struct foil_cipher_class {
     void (*fn_copy)(FoilCipher* dest, FoilCipher* src);
     int (*fn_step)(FoilCipher* cipher, const void* in, void* out);
     int (*fn_finish)(FoilCipher* cipher, const void* in, int n, void* out);
-    guint (*fn_step_async)(FoilCipher* cipher, const void* in,
-        void* out, FoilCipherAsyncFunc fn, void* arg);
-    guint (*fn_finish_async)(FoilCipher* cipher, const void* in, int n,
-        void* out, FoilCipherAsyncFunc fn, void* arg);
-    void (*fn_cancel_all)(FoilCipher* cipher);
 };
 
 struct foil_cipher {
@@ -81,6 +76,57 @@ GType foil_cipher_get_type(void) FOIL_INTERNAL;
         FOIL_TYPE_CIPHER, FoilCipherClass))
 #define FOIL_CIPHER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS((obj), \
         FOIL_TYPE_CIPHER, FoilCipherClass))
+
+typedef struct foil_cipher_run {
+    const FoilBytes* blocks;
+    guint nblocks;
+    guint current_block;
+    guint current_offset;
+    gsize bytes_total;
+    gsize bytes_left;
+    const guint8* in_ptr;
+    guint8* in_buf;
+    gsize in_len;
+    guint in_block_size;
+} FoilCipherRun;
+
+void
+foil_cipher_run_init(
+    FoilCipher* self,
+    FoilCipherRun* run,
+    const FoilBytes* blocks,
+    guint nblocks)
+    FOIL_INTERNAL;
+
+void
+foil_cipher_run_next(
+    FoilCipherRun* run)
+    FOIL_INTERNAL;
+
+void
+foil_cipher_run_deinit(
+    FoilCipherRun* run)
+    FOIL_INTERNAL;
+
+void
+foil_cipher_priv_add(
+    FoilCipherClass* klass)
+    FOIL_INTERNAL;
+
+FoilCipherPriv*
+foil_cipher_priv_get(
+    FoilCipher* cipher)
+    FOIL_INTERNAL;
+
+void
+foil_cipher_priv_finalize(
+    FoilCipherPriv* priv)
+    FOIL_INTERNAL;
+
+void
+foil_cipher_priv_cancel_all(
+    FoilCipherPriv* priv)
+    FOIL_INTERNAL;
 
 int
 foil_cipher_symmetric_finish(

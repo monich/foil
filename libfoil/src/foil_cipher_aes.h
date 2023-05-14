@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +33,12 @@
 #ifndef FOIL_CIPHER_AES_H
 #define FOIL_CIPHER_AES_H
 
-#include "foil_cipher_sync.h"
+#include "foil_cipher_p.h"
 #include "foil_key_aes.h"
 
-typedef FoilCipherSyncClass FoilCipherAesClass;
+typedef FoilCipherClass FoilCipherAesClass;
 typedef struct foil_cipher_aes {
-    FoilCipherSync sync;
+    FoilCipher cipher;
     guint8 block[FOIL_AES_BLOCK_SIZE];
 } FoilCipherAes;
 

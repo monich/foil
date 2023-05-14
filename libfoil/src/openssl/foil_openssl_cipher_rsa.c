@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2016-2019 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -27,7 +30,7 @@
  * any official policies, either expressed or implied.
  */
 
-#include "foil_cipher_sync.h"
+#include "foil_cipher_p.h"
 #include "foil_openssl_rsa.h"
 
 /* Logging */
@@ -35,7 +38,7 @@
 #include "foil_log_p.h"
 
 G_DEFINE_ABSTRACT_TYPE(FoilOpensslCipherRsa, foil_openssl_cipher_rsa,
-        FOIL_TYPE_CIPHER_SYNC)
+        FOIL_TYPE_CIPHER)
 #define FOIL_OPENSSL_CIPHER_RSA(obj) (G_TYPE_CHECK_INSTANCE_CAST(obj, \
         FOIL_OPENSSL_TYPE_CIPHER_RSA, FoilOpensslCipherRsa))
 

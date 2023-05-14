@@ -93,7 +93,7 @@ SRC = \
   foil_bcrypt.c \
   foil_cipher.c \
   foil_cipher_aes.c \
-  foil_cipher_sync.c \
+  foil_cipher_async.c \
   foil_cmac.c \
   foil_digest.c \
   foil_digest_md5.c \

@@ -10,15 +10,14 @@ URL: https://github.com/monich/foil
 Source: %{name}-%{version}.tar.bz2
 
 %define glib_version 2.32
-%define libglibutil_version 1.0.24
-%define libglibutil_build_version 1.0.54
+%define libglibutil_version 1.0.68
 
 BuildRequires: file-devel
 BuildRequires: pkgconfig
 BuildRequires: pkgconfig(openssl)
 BuildRequires: pkgconfig(libpng)
 BuildRequires: pkgconfig(glib-2.0) >= %{glib_version}
-BuildRequires: pkgconfig(libglibutil) >= %{libglibutil_build_version}
+BuildRequires: pkgconfig(libglibutil) >= %{libglibutil_version}
 Requires: glib2 >= %{glib_version}
 Requires: libglibutil >= %{libglibutil_version}
 Requires(post): /sbin/ldconfig
@@ -31,7 +30,7 @@ Provides glib based cryptography API.
 Summary: Development library for %{name}
 Group: Development/Libraries
 Requires: %{name} = %{version}
-Requires: pkgconfig(libglibutil) >= %{libglibutil_build_version}
+Requires: pkgconfig(libglibutil) >= %{libglibutil_version}
 
 %description devel
 This package contains the development library for %{name}.
