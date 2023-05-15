@@ -181,7 +181,7 @@ foil_cipher_set_padding_func(
         FoilCipherClass* klass = FOIL_CIPHER_GET_CLASS(self);
         /* Padding makes no sense if we can't encrypt */
         if (klass->flags & FOIL_CIPHER_ENCRYPT) {
-            self->fn_pad = klass->fn_pad;
+            self->fn_pad = fn ? fn : klass->fn_pad;
             return TRUE;
         }
     }
