@@ -1,31 +1,29 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1. Redistributions of source code must retain the above copyright
- *      notice, this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright
- *      notice, this list of conditions and the following disclaimer
- *      in the documentation and/or other materials provided with the
- *      distribution.
- *   3. Neither the names of the copyright holders nor the names of its
- *      contributors may be used to endorse or promote products derived
- *      from this software without specific prior written permission.
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer
+ *     in the documentation and/or other materials provided with the
+ *     distribution.
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) ARISING
+ * IN ANY WAY OUT OF THE USE OR INABILITY TO USE THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
@@ -42,11 +40,13 @@
 #include "foil_pool.h"
 #include "foil_random_p.h"
 
+#include <gutil_misc.h>
+
 #define BYTES_SET(b,d) ((b).val = (d), (b).len = sizeof(d))
 #define BYTES_IN(d) foil_input_mem_new_static(d,sizeof(d))
 #define POS_SET(p,d) ((p).ptr = (p).end = (d), (p).end += sizeof(d))
 #define GBYTES_STATIC(d) g_bytes_new_static(d, sizeof(d))
-#define GBYTES_EQUAL(g,d) test_bytes_equal(g,d,sizeof(d))
+#define GBYTES_EQUAL(g,d) gutil_bytes_equal(g,d,sizeof(d))
 
 static
 void
@@ -818,7 +818,7 @@ test_asn1_bit_string(
 
         g_assert(g_bytes_get_size(enc) ==
             foil_asn1_bit_string_block_length(bytes.len*8));
-        g_assert(test_bytes_equal(enc, subtest[i].enc, subtest[i].len));
+        g_assert(gutil_bytes_equal(enc, subtest[i].enc, subtest[i].len));
 
         /* Parse the header */
         pos.ptr = subtest[i].enc;
@@ -921,7 +921,7 @@ test_asn1_octet_string(
         g_bytes_unref(enc1);
 
         g_assert(g_bytes_get_size(enc) == foil_asn1_block_length(bytes.len));
-        g_assert(test_bytes_equal(enc, subtest[i].enc, subtest[i].len));
+        g_assert(gutil_bytes_equal(enc, subtest[i].enc, subtest[i].len));
 
         g_assert(foil_asn1_read_octet_string_header(in, &len));
         g_assert(len == bytes.len);
@@ -1039,7 +1039,7 @@ test_asn1_ia5_string(
         if (subtest->convert_back) {
             GString* s = g_string_new_len((char*)bytes.val, bytes.len);
             GBytes* enc = foil_asn1_encode_ia5_string_bytes(s->str);
-            g_assert(test_bytes_equal(enc, subtest->data, subtest->len));
+            g_assert(gutil_bytes_equal(enc, subtest->data, subtest->len));
             g_string_free(s, TRUE);
             g_bytes_unref(enc);
         } else {
@@ -1138,9 +1138,9 @@ test_asn1_integer(
             foil_asn1_encode_integer_bytes(out, &bytes);
             enc2 = foil_output_free_to_bytes(out);
             TEST_DEBUG_HEXDUMP_BYTES(enc1);
-            g_assert(test_bytes_equal(enc1, subtest->data, subtest->len));
+            g_assert(gutil_bytes_equal(enc1, subtest->data, subtest->len));
             TEST_DEBUG_HEXDUMP_BYTES(enc2);
-            g_assert(test_bytes_equal(enc2, subtest->data, subtest->len));
+            g_assert(gutil_bytes_equal(enc2, subtest->data, subtest->len));
             g_bytes_unref(enc1);
             g_bytes_unref(enc2);
         }

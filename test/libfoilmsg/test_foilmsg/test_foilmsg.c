@@ -1,13 +1,13 @@
 /*
- * Copyright (C) 2016-2021 by Slava Monich
+ * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1.Redistributions of source code must retain the above copyright
+ *  1. Redistributions of source code must retain the above copyright
  *     notice, this list of conditions and the following disclaimer.
- *   2.Redistributions in binary form must reproduce the above copyright
+ *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer
  *     in the documentation and/or other materials provided with the
  *     distribution.
@@ -37,6 +37,8 @@
 #include <foil_private_key.h>
 #include <foil_output.h>
 #include <foil_util.h>
+
+#include <gutil_misc.h>
 
 #include <glib/gstdio.h>
 
@@ -204,7 +206,7 @@ test_foilmsg_decrypt_file(
 
     msg = foilmsg_decrypt_file(priv, tmpfile, NULL);
     g_assert(msg);
-    g_assert(test_bytes_equal(msg->data, in.val,  in.len));
+    g_assert(gutil_bytes_equal(msg->data, in.val,  in.len));
     foilmsg_free(msg);
 
     foil_private_key_unref(priv);
@@ -266,19 +268,19 @@ test_foilmsg_encrypt_self(
     /* And they all should get decrypted */
     msg = foilmsg_decrypt(priv, foil_bytes_from_data(&bytes, enc1), NULL);
     g_assert(msg);
-    g_assert(test_bytes_equal(msg->data, text,  len));
+    g_assert(gutil_bytes_equal(msg->data, text,  len));
     foilmsg_free(msg);
     g_bytes_unref(enc1);
 
     msg = foilmsg_decrypt(priv, foil_bytes_from_data(&bytes, enc2), NULL);
     g_assert(msg);
-    g_assert(test_bytes_equal(msg->data, text,  len));
+    g_assert(gutil_bytes_equal(msg->data, text,  len));
     foilmsg_free(msg);
     g_bytes_unref(enc2);
 
     msg = foilmsg_decrypt(priv, foil_bytes_from_data(&bytes, enc3), NULL);
     g_assert(msg);
-    g_assert(test_bytes_equal(msg->data, text,  len));
+    g_assert(gutil_bytes_equal(msg->data, text,  len));
     foilmsg_free(msg);
     g_bytes_unref(enc3);
 
@@ -294,7 +296,7 @@ test_foilmsg_to_binary(
 {
     const TestFoilMsgConvertToBinary* test = param;
     GBytes* bytes = foilmsg_to_binary(&test->in);
-    g_assert(test_bytes_equal(bytes, test->out, test->out_size));
+    g_assert(gutil_bytes_equal(bytes, test->out, test->out_size));
     g_bytes_unref(bytes);
 }
 
@@ -498,7 +500,7 @@ static const TestFoilMsgConvertToBinary foilmsg_convert_tests[] = {
     {
         TEST_("ConvertEmpty"),
         { (gconstpointer)foilmsg_prefix_only, 0 },
-        NULL, 0
+          (gconstpointer)foilmsg_convert_tests, 0 /* Equals empty GBytes */
     },{
         TEST_("ConvertShort1"),
         { (gconstpointer)foilmsg_prefix_only, 1 },
@@ -506,14 +508,14 @@ static const TestFoilMsgConvertToBinary foilmsg_convert_tests[] = {
     }, {
         TEST_("ConvertPrefix"),
         { (gconstpointer)foilmsg_prefix_only, FOILMSG_PREFIX_LENGTH },
-        NULL, 0
+          (gconstpointer)foilmsg_convert_tests, 0 /* Equals empty GBytes */
     }, {
         TEST_("ConvertPrefixAndSpaces"),
         {
             (gconstpointer)foilmsg_prefix_and_spaces,
             G_N_ELEMENTS(foilmsg_prefix_and_spaces)-1
         },
-        NULL, 0
+        (gconstpointer)foilmsg_convert_tests, 0 /* Equals empty GBytes */
     }, {
         TEST_("ConvertNoPrefix"),
         { (gconstpointer)TEST_ARRAY_AND_SIZE(foilmsg_no_prefix) },

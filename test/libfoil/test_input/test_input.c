@@ -36,6 +36,8 @@
 #include "foil_output.h"
 #include "foil_digest.h"
 
+#include <gutil_misc.h>
+
 #ifdef _WIN32
 #  include <io.h>
 #  include <direct.h>
@@ -214,9 +216,9 @@ test_input_range(
     g_assert(g_bytes_equal(digest_bytes1234copy, digest_bytes1234));
 
     bytes1234 = foil_output_free_to_bytes(out1234);
-    g_assert(test_bytes_equal(bytes1234, test12345, 4));
-    g_assert(test_bytes_equal(bytes234, test12345 + 1, 3));
-    g_assert(test_bytes_equal(bytes345, test12345 + 2, 3));
+    g_assert(gutil_bytes_equal(bytes1234, test12345, 4));
+    g_assert(gutil_bytes_equal(bytes234, test12345 + 1, 3));
+    g_assert(gutil_bytes_equal(bytes345, test12345 + 2, 3));
 
     foil_input_unref(in3);
     foil_input_unref(range345);
@@ -350,7 +352,7 @@ test_input_push(
     bytes = foil_input_read_all(in);
     foil_input_unref(in);
 
-    g_assert(test_bytes_equal(bytes, TEST_ARRAY_AND_SIZE(test123456)));
+    g_assert(gutil_bytes_equal(bytes, TEST_ARRAY_AND_SIZE(test123456)));
     g_bytes_unref(bytes);
 }
 
@@ -474,7 +476,7 @@ test_input_base64(
     GDEBUG("%s", t->in);
     g_assert(decoded);
     if (t->out) {
-        g_assert(test_bytes_equal(decoded, t->out, t->outbytes));
+        g_assert(gutil_bytes_equal(decoded, t->out, t->outbytes));
         g_assert(inputlen - foil_input_bytes_read(mem) == t->remaining);
     } else {
         g_assert(!g_bytes_get_size(decoded));

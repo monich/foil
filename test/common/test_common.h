@@ -48,12 +48,6 @@ test_run(
     void);
 
 gboolean
-test_bytes_equal(
-    GBytes* bytes,
-    const void* data,
-    guint len);
-
-gboolean
 test_bytes_equal_str(
     GBytes* bytes,
     const char* str);
