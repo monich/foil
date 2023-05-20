@@ -48,9 +48,13 @@ typedef struct test_cipher_aes {
     GType (*key_type)(void);
     GType (*enc_type)(void);
     GType (*dec_type)(void);
-    const void* input;
-    gsize input_size;
+    GUtilData in;
 } TestCipherAes;
+
+typedef struct test_cipher_aes_out {
+    TestCipherAes aes;
+    GUtilData out;
+} TestCipherAesOut;
 
 typedef struct test_cipher_aes_vector {
     const char* name;
@@ -68,7 +72,11 @@ test_padding(
     gsize data_size,
     gsize block_size)
 {
-    memset(block + data_size, 0, block_size - data_size);
+    gsize i, n = block_size - data_size;
+
+    for (i = 0; i < n; i++) {
+        block[data_size + i] = (guint8)i;
+    }
 }
 
 static
@@ -78,7 +86,7 @@ test_cipher_aes_basic(
 {
     const TestCipherAes* test = param;
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
-    FoilKey* key = foil_key_new_from_file(FOIL_KEY_AES128, key_path);
+    FoilKey* key = foil_key_new_from_file(test->key_type(), key_path);
     FoilCipher* enc = foil_cipher_new(test->enc_type(), key);
     FoilCipher* dec = foil_cipher_new(test->dec_type(), key);
 
@@ -93,6 +101,44 @@ test_cipher_aes_basic(
     foil_key_unref(key);
     foil_cipher_unref(enc);
     foil_cipher_unref(dec);
+    g_free(key_path);
+}
+
+static
+void
+test_cipher_aes_padding(
+    gconstpointer param)
+{
+    const TestCipherAesOut* test = param;
+    char* key_path = g_strconcat(DATA_DIR, test->aes.key_file, NULL);
+    FoilKey* key = foil_key_new_from_file(test->aes.key_type(), key_path);
+    FoilCipher* enc = foil_cipher_new(test->aes.enc_type(), key);
+    GByteArray* out = g_byte_array_new();
+    const gsize blk = foil_cipher_input_block_size(enc);
+    const guint8* in = test->aes.in.bytes;
+    gsize k, off;
+
+    g_assert(key);
+    g_assert(enc);
+    g_assert_cmpuint(foil_cipher_output_block_size(enc), == ,blk);
+    g_assert(foil_cipher_set_padding_func(enc, test_padding));
+
+    for (k = test->aes.in.size; k >= blk; k -= blk, in += blk) {
+        off = out->len;
+        g_byte_array_set_size(out, out->len + blk);
+        g_assert_cmpint(foil_cipher_step(enc, in, out->data + off), == ,blk);
+    }
+
+    off = out->len;
+    g_byte_array_set_size(out, out->len + blk);
+    g_assert_cmpint(foil_cipher_finish(enc, in, k, out->data + off), == ,blk);
+
+    g_assert_cmpuint(out->len, == ,test->out.size);
+    g_assert(!memcmp(out->data, test->out.bytes, out->len));
+
+    g_byte_array_free(out, TRUE);
+    foil_cipher_unref(enc);
+    foil_key_unref(key);
     g_free(key_path);
 }
 
@@ -266,7 +312,7 @@ test_cipher_aes_clone(
 {
     const TestCipherAes* test = param;
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
-    GBytes* in = g_bytes_new_static(test->input, test->input_size);
+    GBytes* in = g_bytes_new_static(test->in.bytes, test->in.size);
     FoilKey* key = foil_key_new_from_file(test->key_type(), key_path);
     FoilCipher* enc1 = foil_cipher_new(test->enc_type(), key);
     FoilCipher* enc2 = foil_cipher_clone(enc1);
@@ -305,12 +351,12 @@ test_cipher_aes_sync(
     const TestCipherAes* test = param;
     char* key_path = g_strconcat(DATA_DIR, test->key_file, NULL);
     FoilKey* key = foil_key_new_from_file(test->key_type(), key_path);
-    GBytes* in = g_bytes_new_static(test->input, test->input_size);
+    GBytes* in = g_bytes_new_static(test->in.bytes, test->in.size);
     GBytes* out = foil_cipher_bytes(test->enc_type(), key, in);
     GBytes* dec = foil_cipher_bytes(test->dec_type(), key, out);
     GBytes* dec2;
     g_assert(dec);
-    dec2 = g_bytes_new_from_bytes(dec, 0, test->input_size);
+    dec2 = g_bytes_new_from_bytes(dec, 0, test->in.size);
     GDEBUG("Plain text:");
     TEST_DEBUG_HEXDUMP_BYTES(in);
     GDEBUG("Encrypted (%u bytes):", (guint)g_bytes_get_size(out));
@@ -354,12 +400,12 @@ test_cipher_aes_async(
     guint timeout_id, id;
 
     /* This one must fail (no output) */
-    g_assert(!foil_cipher_write_data_async(cipher, test->input,
-        test->input_size, NULL, NULL, test_cipher_aes_async_proc, loop));
+    g_assert(!foil_cipher_write_data_async(cipher, test->in.bytes,
+        test->in.size, NULL, NULL, test_cipher_aes_async_proc, loop));
 
     /* Encrypt asynchronously */
-    id = foil_cipher_write_data_async(cipher, test->input,
-        test->input_size, out, NULL, test_cipher_aes_async_proc, loop);
+    id = foil_cipher_write_data_async(cipher, test->in.bytes,
+        test->in.size, out, NULL, test_cipher_aes_async_proc, loop);
     g_assert(id);
     timeout_id = g_timeout_add_seconds(TEST_TIMEOUT, test_timeout, loop);
     g_main_loop_run(loop);
@@ -379,15 +425,15 @@ test_cipher_aes_async(
     foil_cipher_unref(cipher);
     dec = foil_output_free_to_bytes(out);
     g_assert(dec);
-    dec2 = g_bytes_new_from_bytes(dec, 0, test->input_size);
+    dec2 = g_bytes_new_from_bytes(dec, 0, test->in.size);
 
     GDEBUG("Plain text:");
-    TEST_DEBUG_HEXDUMP(test->input, test->input_size);
+    TEST_DEBUG_HEXDUMP_DATA(&test->in);
     GDEBUG("Encrypted (%u bytes):", (guint)g_bytes_get_size(enc));
     TEST_DEBUG_HEXDUMP_BYTES(enc);
     GDEBUG("Decrypted:");
     TEST_DEBUG_HEXDUMP_BYTES(dec);
-    g_assert(test_bytes_equal(dec2, test->input, test->input_size));
+    g_assert(gutil_bytes_equal_data(dec2, &test->in));
     g_bytes_unref(enc);
     g_bytes_unref(dec);
     g_bytes_unref(dec2);
@@ -467,12 +513,17 @@ static const char input_long[] =
     "to a candid world.\n";
 
 #define TEST_(name) "/cipher_aes/" name
+#define TEST_BASIC(bits,mode) \
+    { TEST_("basic" #bits "-" #mode), test_cipher_aes_basic, \
+      "aes" #bits, foil_key_aes##bits##_get_type, \
+      foil_impl_cipher_aes_##mode##_encrypt_get_type, \
+      foil_impl_cipher_aes_##mode##_decrypt_get_type}
 #define TEST_CLONE_(bits,mode,name) \
     { TEST_("clone" #bits "-" #mode "-" #name), \
       test_cipher_aes_clone, "aes" #bits, foil_key_aes##bits##_get_type, \
       foil_impl_cipher_aes_##mode##_encrypt_get_type, \
       foil_impl_cipher_aes_##mode##_decrypt_get_type, \
-      input_##name, sizeof(input_##name) }
+      { (const void*) input_##name, sizeof(input_##name) } }
 #define TEST_CLONE(bits,name) \
     TEST_CLONE_(bits,cbc,name), \
     TEST_CLONE_(bits,cfb,name), \
@@ -483,7 +534,7 @@ static const char input_long[] =
       test_cipher_aes_sync, "aes" #bits, foil_key_aes##bits##_get_type, \
       foil_impl_cipher_aes_##mode##_encrypt_get_type, \
       foil_impl_cipher_aes_##mode##_decrypt_get_type, \
-      input_##name, sizeof(input_##name) }
+      { (const void*) input_##name, sizeof(input_##name) } }
 #define TEST_SYNC(bits,name) \
     TEST_SYNC_(bits,cbc,name), \
     TEST_SYNC_(bits,cfb,name), \
@@ -494,7 +545,7 @@ static const char input_long[] =
       test_cipher_aes_async, "aes" #bits, foil_key_aes##bits##_get_type, \
       foil_impl_cipher_aes_##mode##_encrypt_get_type, \
       foil_impl_cipher_aes_##mode##_decrypt_get_type, \
-      input_##name, sizeof(input_##name) }
+      { (const void*) input_##name, sizeof(input_##name) } }
 #define TEST_ASYNC(bits,name) \
     TEST_ASYNC_(bits,cbc,name), \
     TEST_ASYNC_(bits,cfb,name), \
@@ -502,19 +553,16 @@ static const char input_long[] =
     TEST_ASYNC_(bits,ecb,name)
 
 static const TestCipherAes tests[] = {
-    { TEST_("basic-cbc"), test_cipher_aes_basic, "aes128", NULL,
-      foil_impl_cipher_aes_cbc_encrypt_get_type,
-      foil_impl_cipher_aes_cbc_decrypt_get_type},
-    { TEST_("basic-cfb"), test_cipher_aes_basic, "aes128", NULL,
-      foil_impl_cipher_aes_cfb_encrypt_get_type,
-      foil_impl_cipher_aes_cfb_decrypt_get_type},
-    { TEST_("basic-ctr"), test_cipher_aes_basic, "aes128", NULL,
-      foil_impl_cipher_aes_ctr_encrypt_get_type,
-      foil_impl_cipher_aes_ctr_decrypt_get_type},
-    { TEST_("basic-ecb"), test_cipher_aes_basic, "aes128", NULL,
-      foil_impl_cipher_aes_cbc_encrypt_get_type,
-      foil_impl_cipher_aes_cbc_decrypt_get_type},
     { TEST_("cancel"), test_cipher_aes_cancel, "aes128" },
+    TEST_BASIC(128,cbc),
+    TEST_BASIC(128,cfb),
+    TEST_BASIC(128,ctr),
+    TEST_BASIC(192,cbc),
+    TEST_BASIC(192,cfb),
+    TEST_BASIC(192,ctr),
+    TEST_BASIC(256,cbc),
+    TEST_BASIC(256,cfb),
+    TEST_BASIC(256,ctr),
     TEST_CLONE(128,short),
     TEST_CLONE(192,short),
     TEST_CLONE(256,short),
@@ -533,6 +581,82 @@ static const TestCipherAes tests[] = {
     TEST_ASYNC(128,long),
     TEST_ASYNC(192,long),
     TEST_ASYNC(256,long),
+};
+
+static const char pad_input[] = "This is a secret.";
+static const guint8 pad_output_128_cbc[] = {
+    0x45, 0x94, 0x6d, 0x37, 0xf9, 0xe5, 0x94, 0x20,
+    0xce, 0x15, 0xd9, 0xa0, 0xe2, 0x47, 0x98, 0xf8,
+    0x10, 0x9f, 0x21, 0x27, 0x1b, 0x39, 0x1b, 0xcb,
+    0xd1, 0xec, 0x20, 0x54, 0x3e, 0x26, 0xa0, 0xf4
+};
+static const guint8 pad_output_128_cfb[] = {
+    0x53, 0x96, 0x86, 0x07, 0xc1, 0xbc, 0x70, 0x4e,
+    0xf1, 0x2e, 0x9d, 0x74, 0xed, 0xe6, 0xf7, 0xe7,
+    0x10, 0xb7, 0xb9, 0x40, 0x5a, 0x33, 0x57, 0x31,
+    0x87, 0x86, 0x20, 0x92, 0x2b, 0x6d, 0x78, 0x21
+};
+static const guint8 pad_output_128_ctr[] = {
+    0x53, 0x96, 0x86, 0x07, 0xc1, 0xbc, 0x70, 0x4e,
+    0xf1, 0x2e, 0x9d, 0x74, 0xed, 0xe6, 0xf7, 0xe7,
+    0xbc, 0xc2, 0xc5, 0x05, 0xda, 0x0f, 0x86, 0x07,
+    0x40, 0x7e, 0x75, 0x6b, 0x81, 0xf2, 0xd2, 0x05
+};
+static const guint8 pad_output_192_cbc[] = {
+    0x8c, 0x14, 0xf6, 0x8c, 0x4b, 0x96, 0x76, 0x65,
+    0xa1, 0xc5, 0xa2, 0x60, 0x73, 0x95, 0xfd, 0x15,
+    0x20, 0x5e, 0x78, 0x59, 0xc1, 0xf1, 0xb2, 0x71,
+    0xaf, 0x46, 0x36, 0x74, 0x45, 0x92, 0x9c, 0xc6
+};
+static const guint8 pad_output_192_cfb[] = {
+    0x54, 0x08, 0xd6, 0x8d, 0x66, 0xea, 0x38, 0x98,
+    0xbb, 0x7c, 0x8a, 0xc3, 0x7c, 0x80, 0x45, 0xda,
+    0xe4, 0x07, 0xce, 0x81, 0x29, 0x2a, 0x1d, 0x5b,
+    0x0a, 0xb5, 0x4b, 0x48, 0xd6, 0xc1, 0xa9, 0x64
+};
+static const guint8 pad_output_192_ctr[] = {
+    0x54, 0x08, 0xd6, 0x8d, 0x66, 0xea, 0x38, 0x98,
+    0xbb, 0x7c, 0x8a, 0xc3, 0x7c, 0x80, 0x45, 0xda,
+    0x07, 0xf7, 0x63, 0xe9, 0xa3, 0x76, 0xc2, 0xba,
+    0xa3, 0x53, 0x9c, 0x80, 0x18, 0x8f, 0x49, 0xf8
+};
+static const guint8 pad_output_256_cbc[] = {
+    0x7b, 0x13, 0xa2, 0x1d, 0xe0, 0x08, 0x4d, 0xa6,
+    0x92, 0x88, 0x03, 0xd9, 0xfb, 0x44, 0x28, 0x85,
+    0xa4, 0x3a, 0x33, 0x84, 0x4d, 0x19, 0x6d, 0x0f,
+    0x82, 0xe2, 0x26, 0x9d, 0x42, 0xa4, 0x32, 0xc7
+};
+static const guint8 pad_output_256_cfb[] = {
+    0x0e, 0x06, 0x6d, 0x24, 0x28, 0x92, 0x02, 0xb6,
+    0x91, 0x0e, 0x26, 0x58, 0x61, 0xb1, 0xc3, 0xe6,
+    0xd4, 0x29, 0xf8, 0x97, 0xf9, 0xcb, 0x94, 0xb9,
+    0x8f, 0xe3, 0xd9, 0x07, 0xb7, 0xf4, 0x8a, 0x10
+};
+static const guint8 pad_output_256_ctr[] = {
+    0x0e, 0x06, 0x6d, 0x24, 0x28, 0x92, 0x02, 0xb6,
+    0x91, 0x0e, 0x26, 0x58, 0x61, 0xb1, 0xc3, 0xe6,
+    0x4e, 0xf3, 0x10, 0xd4, 0xc1, 0x86, 0x5c, 0x58,
+    0x53, 0x11, 0xf3, 0x58, 0x78, 0xee, 0x2c, 0xc2
+};
+
+#define TEST_PAD(bits,mode)           \
+    { { TEST_("pad" #bits "-" #mode), \
+    test_cipher_aes_padding, "aes" #bits, foil_key_aes##bits##_get_type, \
+    foil_impl_cipher_aes_##mode##_encrypt_get_type, \
+    foil_impl_cipher_aes_##mode##_decrypt_get_type, \
+    { (const void*) pad_input, sizeof(pad_input) } }, \
+    { TEST_ARRAY_AND_SIZE(pad_output_##bits##_##mode) } }
+
+static const TestCipherAesOut out_tests[] = {
+    TEST_PAD(128,cbc),
+    TEST_PAD(128,cfb),
+    TEST_PAD(128,ctr),
+    TEST_PAD(192,cbc),
+    TEST_PAD(192,cfb),
+    TEST_PAD(192,ctr),
+    TEST_PAD(256,cbc),
+    TEST_PAD(256,cfb),
+    TEST_PAD(256,ctr)
 };
 
 /* Examples from NIST Special Publication 800-38A */
@@ -678,6 +802,10 @@ int main(int argc, char* argv[])
     g_test_init(&argc, &argv, NULL);
     for (i = 0; i < G_N_ELEMENTS(tests); i++) {
         g_test_add_data_func(tests[i].name, tests + i, tests[i].fn);
+    }
+    for (i = 0; i < G_N_ELEMENTS(out_tests); i++) {
+        g_test_add_data_func(out_tests[i].aes.name, out_tests + i,
+            out_tests[i].aes.fn);
     }
     for (i = 0; i < G_N_ELEMENTS(test_vectors); i++) {
         g_test_add_data_func(test_vectors[i].name, test_vectors + i,
