@@ -1,3 +1,9 @@
+libfoil (1.0.29) unstable; urgency=low
+
+  * Refactored implemention of pseudo-async cipher API
+
+ -- Slava Monich <slava@monich.com>  Mon, 26 Jun 2023 14:22:07 +0300
+
 libfoil (1.0.28) unstable; urgency=low
 
   * Implemented support for AES CTR mode

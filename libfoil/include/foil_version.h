@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2022-2023 Slava Monich <slava@monich.com>
  *
+ * You may use this file under the terms of the BSD license as follows:
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -59,8 +61,8 @@ G_BEGIN_DECLS
 
 #define FOIL_VERSION_MAJOR   1
 #define FOIL_VERSION_MINOR   0
-#define FOIL_VERSION_RELEASE 28
-#define FOIL_VERSION_STRING  "1.0.28"
+#define FOIL_VERSION_RELEASE 29
+#define FOIL_VERSION_STRING  "1.0.29"
 
 /* Version as a single word */
 #define FOIL_VERSION_WORD(v1,v2,v3) \
@@ -90,6 +92,7 @@ foil_version(
 #define FOIL_VERSION_1_0_26 FOIL_VERSION_WORD(1,0,26)
 #define FOIL_VERSION_1_0_27 FOIL_VERSION_WORD(1,0,27)
 #define FOIL_VERSION_1_0_28 FOIL_VERSION_WORD(1,0,28)
+#define FOIL_VERSION_1_0_29 FOIL_VERSION_WORD(1,0,29)
 
 G_END_DECLS
 
