@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2016-2023 Slava Monich <slava@monich.com>
  *
+ * You may use this file under the terms of the BSD license as follows:
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -115,9 +117,9 @@ typedef enum foilmsg_signature {
     FOILMSG_SIGNATURE_SHA512_RSA
 } FOILMSG_SIGNATURE;
 
-#define FOILMSG_KEY_TYPE_DEFAULT (FOILMSG_KEY_AES_128)
+#define FOILMSG_KEY_TYPE_DEFAULT (FOILMSG_KEY_AES_256)
 #define FOILMSG_CIPHER_DEFAULT (FOILMSG_CIPHER_AES_CBC)
-#define FOILMSG_SIGNATURE_DEFAULT (FOILMSG_SIGNATURE_MD5_RSA)
+#define FOILMSG_SIGNATURE_DEFAULT (FOILMSG_SIGNATURE_SHA1_RSA)
 
 typedef struct foilmsg_encrypt_options {
     FOILMSG_KEY_TYPE key_type;
