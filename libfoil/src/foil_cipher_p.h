@@ -81,7 +81,7 @@ typedef struct foil_cipher_run {
     const FoilBytes* blocks;
     guint nblocks;
     guint current_block;
-    guint current_offset;
+    gsize current_offset;
     gsize bytes_total;
     gsize bytes_left;
     const guint8* in_ptr;
