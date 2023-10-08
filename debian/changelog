@@ -1,3 +1,10 @@
+libfoil (1.0.30) unstable; urgency=low
+
+  * Changed default foilmsg signature digest and AES key size
+  * Fixed overflow when ciphering data blocks larger than 4GB
+
+ -- Slava Monich <slava@monich.com>  Sun, 08 Oct 2023 03:30:02 +0300
+
 libfoil (1.0.29) unstable; urgency=low
 
   * Refactored implemention of pseudo-async cipher API
