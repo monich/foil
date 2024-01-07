@@ -97,6 +97,12 @@ PlainData ::= SEQUENCE {
     data            OCTET STRING
 }
 
+Note that even if the header value is a UTF-8 encoded string, it
+is still tagged as IA5String for backward compatibility. Strictly
+speaking, a real UTF-8 string tagged as IA5String may be considered
+an invalid encoding but libfoilmsg handles that and the backward
+compatibility is more important here than ASN.1 compliance.
+
 After decryption, the data following the PlainData sequence (such as
 block cipher padding) are discarded.
 
