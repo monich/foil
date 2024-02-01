@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Slava Monich <slava@monich.com>
+ * Copyright (C) 2017-2024 Slava Monich <slava@monich.com>
  *
  * You may use this file under the terms of the BSD license as follows:
  *
@@ -438,7 +438,7 @@ main(
         { "self", 'S', 0, G_OPTION_ARG_NONE, &for_self,
           "Encrypt to self and the recipient", NULL },
         { "digest", 'D', 0, G_OPTION_ARG_STRING, &digest,
-          "Signature digest (MD5, SHA1, SHA256 or SHA512) [MD5]", "DIGEST" },
+          "Signature digest (MD5, SHA1, SHA256 or SHA512) [SHA1]", "DIGEST" },
         { NULL }
     };
     const char* summary =
