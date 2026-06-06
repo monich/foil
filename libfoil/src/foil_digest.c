@@ -1,25 +1,29 @@
 /*
- * Copyright (C) 2016-2022 by Slava Monich <slava@monich.com>
+ * Copyright (C) 2016-2026 by Slava Monich <slava@monich.com>
+ *
+ * You may use this file under the terms of the BSD license as follows:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
- *   1. Redistributions of source code must retain the above copyright
- *      notice, this list of conditions and the following disclaimer.
- *   2. Redistributions in binary form must reproduce the above copyright
- *      notice, this list of conditions and the following disclaimer
- *      in the documentation and/or other materials provided with the
- *      distribution.
- *   3. Neither the names of the copyright holders nor the names of its
- *      contributors may be used to endorse or promote products derived
- *      from this software without specific prior written permission.
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer
+ *     in the documentation and/or other materials provided with the
+ *     distribution.
+ *
+ *  3. Neither the names of the copyright holders nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
@@ -49,6 +53,24 @@ G_DEFINE_ABSTRACT_TYPE(FoilDigest, foil_digest, G_TYPE_OBJECT);
         FOIL_TYPE_DIGEST, FoilDigestClass)
 #define foil_digest_class_ref(type) ((FoilDigestClass*)foil_class_ref(type, \
         FOIL_TYPE_DIGEST))
+
+static
+void
+foil_digest_copy_impl(
+    FoilDigest* dest,
+    FoilDigest* src,
+    FoilDigestClass* klass)
+{
+    /*
+     * Caller makes sure that both instances are of the same class and that
+     * class has fn_copy method.
+     */
+    klass->fn_copy(dest, src);
+    if (dest->result) {
+        g_bytes_unref(dest->result);
+    }
+    dest->result = src->result ? g_bytes_ref(src->result) : NULL;
+}
 
 gsize
 foil_digest_type_size(
@@ -211,13 +233,14 @@ foil_digest_clone(
     FoilDigest* self) /* Since 1.0.8 */
 {
     if (G_LIKELY(self)) {
-        GType type = G_TYPE_FROM_INSTANCE(self);
-        FoilDigest* clone = foil_digest_new(type);
+        FoilDigestClass* klass = FOIL_DIGEST_GET_CLASS(self);
 
-        if (foil_digest_copy(clone, self)) {
+        if (klass->fn_copy) {
+            FoilDigest* clone = g_object_new(G_TYPE_FROM_CLASS(klass), NULL);
+
+            foil_digest_copy_impl(clone, self, klass);
             return clone;
         }
-        foil_digest_unref(clone);
     }
     return NULL;
 }
@@ -236,14 +259,7 @@ foil_digest_copy(
             FoilDigestClass* klass = FOIL_DIGEST_GET_CLASS(self);
 
             if (klass == FOIL_DIGEST_GET_CLASS(source) && klass->fn_copy) {
-                klass->fn_copy(self, source);
-                if (self->result) {
-                    g_bytes_unref(self->result);
-                    self->result = NULL;
-                }
-                if (source->result) {
-                    self->result = g_bytes_ref(source->result);
-                }
+                foil_digest_copy_impl(self, source, klass);
                 return TRUE;
             }
         }
