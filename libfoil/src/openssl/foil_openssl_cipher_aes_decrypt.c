@@ -185,8 +185,13 @@ foil_openssl_cipher_aes_decrypt_reset(
 {
     FoilKey* key = FOIL_CIPHER(self)->key;
     FoilKeyAes* aes_key = FOIL_KEY_AES_(key);
-    FOIL_OPENSSL_CIPHER_AES_DECRYPT_GET_CLASS(self)->fn_set_key(aes_key->key,
+    int result = FOIL_OPENSSL_CIPHER_AES_DECRYPT_GET_CLASS(self)->fn_set_key(aes_key->key,
         FOIL_KEY_AES_GET_CLASS(key)->size * 8, &self->aes);
+    if (result<0) {
+		self->parent.cipher.key = NULL;
+		self->parent.cipher.input_block_size = 0;
+		self->parent.cipher.output_block_size = 0;
+    }
 }
 
 static
